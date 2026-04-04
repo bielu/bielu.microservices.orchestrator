@@ -1,0 +1,151 @@
+using Bielu.Microservices.Orchestrator.Abstractions;
+using Bielu.Microservices.Orchestrator.Kubernetes.Configuration;
+using Bielu.Microservices.Orchestrator.Models;
+using k8s;
+using Microsoft.Extensions.Logging;
+
+namespace Bielu.Microservices.Orchestrator.Kubernetes;
+
+/// <summary>
+/// Kubernetes implementation of the container manager.
+/// Maps container operations to Kubernetes Pod operations.
+/// </summary>
+public class KubernetesContainerManager : IContainerManager
+{
+    private readonly IKubernetes _client;
+    private readonly KubernetesOptions _options;
+    private readonly ILogger<KubernetesContainerManager> _logger;
+
+    public KubernetesContainerManager(IKubernetes client, KubernetesOptions options, ILogger<KubernetesContainerManager> logger)
+    {
+        _client = client;
+        _options = options;
+        _logger = logger;
+    }
+
+    public async Task<IReadOnlyList<ContainerInfo>> ListAsync(bool all = false, CancellationToken cancellationToken = default)
+    {
+        var pods = await _client.CoreV1.ListNamespacedPodAsync(_options.Namespace, cancellationToken: cancellationToken);
+
+        return pods.Items.Select(pod => new ContainerInfo
+        {
+            Id = pod.Metadata.Uid ?? string.Empty,
+            Name = pod.Metadata.Name ?? string.Empty,
+            Image = pod.Spec.Containers.FirstOrDefault()?.Image ?? string.Empty,
+            State = MapPodPhase(pod.Status?.Phase),
+            CreatedAt = pod.Metadata.CreationTimestamp ?? DateTimeOffset.MinValue,
+            Labels = pod.Metadata.Labels != null
+                ? new Dictionary<string, string>(pod.Metadata.Labels)
+                : new Dictionary<string, string>()
+        }).ToList().AsReadOnly();
+    }
+
+    public async Task<ContainerInfo?> GetAsync(string containerId, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var pod = await _client.CoreV1.ReadNamespacedPodAsync(containerId, _options.Namespace, cancellationToken: cancellationToken);
+            return new ContainerInfo
+            {
+                Id = pod.Metadata.Uid ?? string.Empty,
+                Name = pod.Metadata.Name ?? string.Empty,
+                Image = pod.Spec.Containers.FirstOrDefault()?.Image ?? string.Empty,
+                State = MapPodPhase(pod.Status?.Phase),
+                CreatedAt = pod.Metadata.CreationTimestamp ?? DateTimeOffset.MinValue,
+                Labels = pod.Metadata.Labels != null
+                    ? new Dictionary<string, string>(pod.Metadata.Labels)
+                    : new Dictionary<string, string>()
+            };
+        }
+        catch (k8s.Autorest.HttpOperationException ex) when (ex.Response.StatusCode == System.Net.HttpStatusCode.NotFound)
+        {
+            return null;
+        }
+    }
+
+    public async Task<string> CreateAsync(CreateContainerRequest request, CancellationToken cancellationToken = default)
+    {
+        var pod = new k8s.Models.V1Pod
+        {
+            Metadata = new k8s.Models.V1ObjectMeta
+            {
+                Name = request.Name ?? $"orchestrator-{Guid.NewGuid():N}",
+                NamespaceProperty = _options.Namespace,
+                Labels = new Dictionary<string, string>(request.Labels)
+            },
+            Spec = new k8s.Models.V1PodSpec
+            {
+                Containers = new List<k8s.Models.V1Container>
+                {
+                    new()
+                    {
+                        Name = request.Name ?? "main",
+                        Image = request.Image,
+                        Command = request.Command?.ToList(),
+                        Env = request.EnvironmentVariables.Select(kv =>
+                            new k8s.Models.V1EnvVar { Name = kv.Key, Value = kv.Value }).ToList(),
+                        Ports = request.Ports.Select(p =>
+                            new k8s.Models.V1ContainerPort
+                            {
+                                ContainerPort = p.ContainerPort,
+                                Protocol = p.Protocol.ToUpperInvariant()
+                            }).ToList()
+                    }
+                },
+                RestartPolicy = "Never"
+            }
+        };
+
+        var created = await _client.CoreV1.CreateNamespacedPodAsync(pod, _options.Namespace, cancellationToken: cancellationToken);
+        _logger.LogInformation("Created Kubernetes pod {PodName} from image {Image}", created.Metadata.Name, request.Image);
+        return created.Metadata.Name ?? string.Empty;
+    }
+
+    public Task StartAsync(string containerId, CancellationToken cancellationToken = default)
+    {
+        // Kubernetes pods start automatically upon creation
+        _logger.LogInformation("Kubernetes pod {PodName} starts automatically upon creation", containerId);
+        return Task.CompletedTask;
+    }
+
+    public async Task StopAsync(string containerId, TimeSpan? timeout = null, CancellationToken cancellationToken = default)
+    {
+        // In Kubernetes, stopping a pod means deleting it
+        int? gracePeriod = timeout.HasValue ? (int)timeout.Value.TotalSeconds : null;
+        await _client.CoreV1.DeleteNamespacedPodAsync(
+            containerId, _options.Namespace,
+            gracePeriodSeconds: gracePeriod,
+            cancellationToken: cancellationToken);
+        _logger.LogInformation("Stopped (deleted) Kubernetes pod {PodName}", containerId);
+    }
+
+    public async Task RemoveAsync(string containerId, bool force = false, CancellationToken cancellationToken = default)
+    {
+        await _client.CoreV1.DeleteNamespacedPodAsync(
+            containerId, _options.Namespace,
+            gracePeriodSeconds: force ? 0 : null,
+            cancellationToken: cancellationToken);
+        _logger.LogInformation("Removed Kubernetes pod {PodName}", containerId);
+    }
+
+    public async Task<string> GetLogsAsync(string containerId, bool stdout = true, bool stderr = true, CancellationToken cancellationToken = default)
+    {
+        var logStream = await _client.CoreV1.ReadNamespacedPodLogAsync(
+            containerId, _options.Namespace, cancellationToken: cancellationToken);
+        using var reader = new StreamReader(logStream);
+        return await reader.ReadToEndAsync(cancellationToken);
+    }
+
+    private static ContainerState MapPodPhase(string? phase)
+    {
+        return phase?.ToLowerInvariant() switch
+        {
+            "pending" => ContainerState.Created,
+            "running" => ContainerState.Running,
+            "succeeded" => ContainerState.Exited,
+            "failed" => ContainerState.Dead,
+            "unknown" => ContainerState.Unknown,
+            _ => ContainerState.Unknown
+        };
+    }
+}

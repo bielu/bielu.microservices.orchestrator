@@ -1,0 +1,72 @@
+using Bielu.Microservices.Orchestrator.Abstractions;
+using Bielu.Microservices.Orchestrator.Kubernetes.Configuration;
+using Bielu.Microservices.Orchestrator.Models;
+using k8s;
+using Microsoft.Extensions.Logging;
+
+namespace Bielu.Microservices.Orchestrator.Kubernetes;
+
+/// <summary>
+/// Kubernetes implementation of the image manager.
+/// Kubernetes doesn't manage images directly; pulls happen at pod creation time.
+/// </summary>
+public class KubernetesImageManager : IImageManager
+{
+    private readonly IKubernetes _client;
+    private readonly KubernetesOptions _options;
+    private readonly ILogger<KubernetesImageManager> _logger;
+
+    public KubernetesImageManager(IKubernetes client, KubernetesOptions options, ILogger<KubernetesImageManager> logger)
+    {
+        _client = client;
+        _options = options;
+        _logger = logger;
+    }
+
+    public async Task<IReadOnlyList<ImageInfo>> ListAsync(CancellationToken cancellationToken = default)
+    {
+        // List images available across nodes
+        var nodes = await _client.CoreV1.ListNodeAsync(cancellationToken: cancellationToken);
+        var images = new List<ImageInfo>();
+
+        foreach (var node in nodes.Items)
+        {
+            if (node.Status?.Images == null) continue;
+            foreach (var image in node.Status.Images)
+            {
+                images.Add(new ImageInfo
+                {
+                    Id = image.Names?.FirstOrDefault() ?? string.Empty,
+                    Tags = image.Names?.ToList() ?? new List<string>(),
+                    Size = image.SizeBytes ?? 0
+                });
+            }
+        }
+
+        return images.AsReadOnly();
+    }
+
+    public Task<ImageInfo?> GetAsync(string imageId, CancellationToken cancellationToken = default)
+    {
+        _logger.LogDebug("Kubernetes does not support direct image inspection. Image: {ImageId}", imageId);
+        return Task.FromResult<ImageInfo?>(null);
+    }
+
+    public Task PullAsync(PullImageRequest request, CancellationToken cancellationToken = default)
+    {
+        _logger.LogInformation("Kubernetes pulls images at pod creation time. Image: {Image}:{Tag}", request.Image, request.Tag);
+        return Task.CompletedTask;
+    }
+
+    public Task RemoveAsync(string imageId, bool force = false, CancellationToken cancellationToken = default)
+    {
+        _logger.LogWarning("Kubernetes does not support direct image removal. Image: {ImageId}", imageId);
+        throw new NotSupportedException("Kubernetes does not support direct image removal from the cluster.");
+    }
+
+    public Task TagAsync(string imageId, string repository, string tag, CancellationToken cancellationToken = default)
+    {
+        _logger.LogWarning("Kubernetes does not support direct image tagging. Image: {ImageId}", imageId);
+        throw new NotSupportedException("Kubernetes does not support direct image tagging.");
+    }
+}

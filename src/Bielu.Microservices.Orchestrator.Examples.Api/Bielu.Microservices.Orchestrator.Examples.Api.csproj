@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <LangVersion>14</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Bielu.Microservices.Orchestrator\Bielu.Microservices.Orchestrator.csproj" />
+    <ProjectReference Include="..\Bielu.Microservices.Orchestrator.Docker\Bielu.Microservices.Orchestrator.Docker.csproj" />
+    <ProjectReference Include="..\Bielu.Microservices.Orchestrator.Examples.ServiceDefaults\Bielu.Microservices.Orchestrator.Examples.ServiceDefaults.csproj" />
+  </ItemGroup>
+
+</Project>
