@@ -31,7 +31,7 @@ public class DockerContainerManager : IContainerManager
             Name = c.Names?.FirstOrDefault()?.TrimStart('/') ?? string.Empty,
             Image = c.Image,
             State = MapState(c.State),
-            CreatedAt = DateTimeOffset.FromUnixTimeSeconds(c.Created),
+            CreatedAt = new DateTimeOffset(c.Created),
             Labels = c.Labels != null ? new Dictionary<string, string>(c.Labels) : new Dictionary<string, string>(),
             Ports = c.Ports?.Select(p => new PortMapping
             {
@@ -54,7 +54,7 @@ public class DockerContainerManager : IContainerManager
                 Name = response.Name.TrimStart('/'),
                 Image = response.Config.Image,
                 State = MapState(response.State.Status),
-                CreatedAt = DateTimeOffset.Parse(response.Created),
+                CreatedAt = new DateTimeOffset(response.Created),
                 Labels = response.Config.Labels != null ? new Dictionary<string, string>(response.Config.Labels) : new Dictionary<string, string>(),
                 EnvironmentVariables = ParseEnvironmentVariables(response.Config.Env)
             };
@@ -130,22 +130,23 @@ public class DockerContainerManager : IContainerManager
         };
 
         using var logStream = await _client.Containers.GetContainerLogsAsync(containerId, false, logParams, cancellationToken);
-        using var reader = new StreamReader(logStream);
-        return await reader.ReadToEndAsync(cancellationToken);
+        using var memoryStream = new MemoryStream();
+        await logStream.CopyOutputToAsync(Stream.Null, memoryStream, Stream.Null, cancellationToken);
+        return System.Text.Encoding.UTF8.GetString(memoryStream.ToArray());
     }
 
-    private static ContainerState MapState(string state)
+    private static Models.ContainerState MapState(string state)
     {
         return state?.ToLowerInvariant() switch
         {
-            "created" => ContainerState.Created,
-            "running" => ContainerState.Running,
-            "paused" => ContainerState.Paused,
-            "restarting" => ContainerState.Restarting,
-            "removing" => ContainerState.Removing,
-            "exited" => ContainerState.Exited,
-            "dead" => ContainerState.Dead,
-            _ => ContainerState.Unknown
+            "created" => Models.ContainerState.Created,
+            "running" => Models.ContainerState.Running,
+            "paused" => Models.ContainerState.Paused,
+            "restarting" => Models.ContainerState.Restarting,
+            "removing" => Models.ContainerState.Removing,
+            "exited" => Models.ContainerState.Exited,
+            "dead" => Models.ContainerState.Dead,
+            _ => Models.ContainerState.Unknown
         };
     }
 

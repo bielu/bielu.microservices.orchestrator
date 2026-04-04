@@ -6,6 +6,7 @@ using Bielu.Microservices.Orchestrator.Kubernetes.Extensions;
 using Bielu.Microservices.Orchestrator.Podman.Extensions;
 using Microsoft.Extensions.DependencyInjection;
 using Shouldly;
+using Xunit;
 
 namespace Bielu.Microservices.Orchestrator.Tests;
 

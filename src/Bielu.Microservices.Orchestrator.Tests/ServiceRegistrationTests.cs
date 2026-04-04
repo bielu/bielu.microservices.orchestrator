@@ -5,6 +5,7 @@ using Bielu.Microservices.Orchestrator.Docker.Extensions;
 using Bielu.Microservices.Orchestrator.Extensions;
 using Microsoft.Extensions.DependencyInjection;
 using Shouldly;
+using Xunit;
 
 namespace Bielu.Microservices.Orchestrator.Tests;
 

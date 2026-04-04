@@ -1,4 +1,4 @@
-<Project Sdk="Aspire.AppHost.Sdk/9.2.1">
+<Project Sdk="Aspire.AppHost.Sdk/13.2.1">
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
@@ -12,7 +12,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Bielu.Microservices.Orchestrator.Examples.Api\Bielu.Microservices.Orchestrator.Examples.Api.csproj" />
-    <ProjectReference Include="..\Bielu.Microservices.Orchestrator.Examples.ServiceDefaults\Bielu.Microservices.Orchestrator.Examples.ServiceDefaults.csproj" />
+    <ProjectReference Include="..\Bielu.Microservices.Orchestrator.Examples.ServiceDefaults\Bielu.Microservices.Orchestrator.Examples.ServiceDefaults.csproj" IsAspireProjectResource="false" />
   </ItemGroup>
 
 </Project>

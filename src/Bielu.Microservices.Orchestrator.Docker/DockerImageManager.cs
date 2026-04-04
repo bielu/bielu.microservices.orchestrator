@@ -30,7 +30,7 @@ public class DockerImageManager : IImageManager
             Id = i.ID,
             Tags = i.RepoTags?.ToList() ?? new List<string>(),
             Size = i.Size,
-            CreatedAt = DateTimeOffset.FromUnixTimeSeconds(i.Created),
+            CreatedAt = new DateTimeOffset(i.Created),
             Labels = i.Labels != null ? new Dictionary<string, string>(i.Labels) : new Dictionary<string, string>()
         }).ToList().AsReadOnly();
     }
@@ -45,7 +45,7 @@ public class DockerImageManager : IImageManager
                 Id = response.ID,
                 Tags = response.RepoTags?.ToList() ?? new List<string>(),
                 Size = response.Size,
-                CreatedAt = DateTimeOffset.Parse(response.Created),
+                CreatedAt = new DateTimeOffset(response.Created),
                 Labels = response.Config?.Labels != null
                     ? new Dictionary<string, string>(response.Config.Labels)
                     : new Dictionary<string, string>()

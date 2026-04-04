@@ -13,14 +13,13 @@
     <PackageVersion Include="Microsoft.Extensions.Http" Version="10.0.0" />
     <!-- Container runtimes -->
     <PackageVersion Include="Docker.DotNet" Version="3.125.15" />
-    <PackageVersion Include="KubernetesClient" Version="15.0.1" />
+    <PackageVersion Include="KubernetesClient" Version="17.0.14" />
     <PackageVersion Include="Grpc.Net.Client" Version="2.67.0" />
     <PackageVersion Include="Google.Protobuf" Version="3.28.3" />
     <PackageVersion Include="Grpc.Tools" Version="2.67.0" />
     <!-- Aspire -->
-    <PackageVersion Include="Aspire.Hosting" Version="9.2.1" />
-    <PackageVersion Include="Aspire.Hosting.AppHost" Version="9.2.1" />
-    <PackageVersion Include="Aspire.Hosting.Testing" Version="9.2.1" />
+    <PackageVersion Include="Aspire.Hosting" Version="13.2.1" />
+    <PackageVersion Include="Aspire.Hosting.Testing" Version="13.2.1" />
     <!-- Test frameworks -->
     <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.12.0" />
     <PackageVersion Include="xunit" Version="2.9.3" />

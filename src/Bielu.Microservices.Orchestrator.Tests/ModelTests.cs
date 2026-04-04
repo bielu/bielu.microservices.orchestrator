@@ -1,5 +1,6 @@
 using Bielu.Microservices.Orchestrator.Models;
 using Shouldly;
+using Xunit;
 
 namespace Bielu.Microservices.Orchestrator.Tests;
 
