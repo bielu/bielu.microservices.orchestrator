@@ -18,8 +18,18 @@ public class PodmanOptions
 
     private static string GetDefaultEndpoint()
     {
-        return OperatingSystem.IsWindows()
-            ? "npipe://./pipe/podman-machine-default"
-            : $"unix:///run/user/{Environment.GetEnvironmentVariable("UID") ?? "1000"}/podman/podman.sock";
+        if (OperatingSystem.IsWindows())
+        {
+            return "npipe://./pipe/podman-machine-default";
+        }
+
+        var uid = Environment.GetEnvironmentVariable("UID") ?? "1000";
+        // Validate UID is numeric to prevent path injection
+        if (!int.TryParse(uid, out _))
+        {
+            uid = "1000";
+        }
+
+        return $"unix:///run/user/{uid}/podman/podman.sock";
     }
 }
