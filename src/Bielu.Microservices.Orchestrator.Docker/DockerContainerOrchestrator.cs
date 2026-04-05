@@ -6,35 +6,24 @@ namespace Bielu.Microservices.Orchestrator.Docker;
 /// <summary>
 /// Docker implementation of the container orchestrator.
 /// </summary>
-public class DockerContainerOrchestrator : IContainerOrchestrator
+public class DockerContainerOrchestrator(
+    IContainerManager containerManager,
+    IImageManager imageManager,
+    INetworkManager networkManager,
+    IVolumeManager volumeManager,
+    ILogger<DockerContainerOrchestrator> logger) : IContainerOrchestrator
 {
-    private readonly ILogger<DockerContainerOrchestrator> _logger;
-
-    public DockerContainerOrchestrator(
-        IContainerManager containerManager,
-        IImageManager imageManager,
-        INetworkManager networkManager,
-        IVolumeManager volumeManager,
-        ILogger<DockerContainerOrchestrator> logger)
-    {
-        Containers = containerManager;
-        Images = imageManager;
-        Networks = networkManager;
-        Volumes = volumeManager;
-        _logger = logger;
-    }
+    /// <inheritdoc />
+    public IContainerManager Containers { get; } = containerManager;
 
     /// <inheritdoc />
-    public IContainerManager Containers { get; }
+    public IImageManager Images { get; } = imageManager;
 
     /// <inheritdoc />
-    public IImageManager Images { get; }
+    public INetworkManager Networks { get; } = networkManager;
 
     /// <inheritdoc />
-    public INetworkManager Networks { get; }
-
-    /// <inheritdoc />
-    public IVolumeManager Volumes { get; }
+    public IVolumeManager Volumes { get; } = volumeManager;
 
     /// <inheritdoc />
     public string ProviderName => "Docker";
@@ -49,7 +38,7 @@ public class DockerContainerOrchestrator : IContainerOrchestrator
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Docker runtime is not available");
+            logger.LogWarning(ex, "Docker runtime is not available");
             return false;
         }
     }

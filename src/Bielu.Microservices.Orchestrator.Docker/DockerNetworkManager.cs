@@ -9,20 +9,14 @@ namespace Bielu.Microservices.Orchestrator.Docker;
 /// <summary>
 /// Docker implementation of the network manager.
 /// </summary>
-public class DockerNetworkManager : INetworkManager
+public class DockerNetworkManager(
+    DockerClient client,
+    ILogger<DockerNetworkManager> logger) : INetworkManager
 {
-    private readonly DockerClient _client;
-    private readonly ILogger<DockerNetworkManager> _logger;
-
-    public DockerNetworkManager(DockerClient client, ILogger<DockerNetworkManager> logger)
-    {
-        _client = client;
-        _logger = logger;
-    }
 
     public async Task<IReadOnlyList<NetworkInfo>> ListAsync(CancellationToken cancellationToken = default)
     {
-        var networks = await _client.Networks.ListNetworksAsync(cancellationToken: cancellationToken);
+        var networks = await client.Networks.ListNetworksAsync(cancellationToken: cancellationToken);
 
         return networks.Select(n => new NetworkInfo
         {
@@ -35,29 +29,29 @@ public class DockerNetworkManager : INetworkManager
 
     public async Task<string> CreateAsync(string name, string driver = "bridge", CancellationToken cancellationToken = default)
     {
-        var response = await _client.Networks.CreateNetworkAsync(
+        var response = await client.Networks.CreateNetworkAsync(
             new NetworksCreateParameters { Name = name, Driver = driver }, cancellationToken);
-        _logger.LogInformation("Created network {NetworkId} with name {Name}", response.ID, name);
+        logger.LogInformation("Created network {NetworkId} with name {Name}", response.ID, name);
         return response.ID;
     }
 
     public async Task RemoveAsync(string networkId, CancellationToken cancellationToken = default)
     {
-        await _client.Networks.DeleteNetworkAsync(networkId, cancellationToken);
-        _logger.LogInformation("Removed network {NetworkId}", networkId);
+        await client.Networks.DeleteNetworkAsync(networkId, cancellationToken);
+        logger.LogInformation("Removed network {NetworkId}", networkId);
     }
 
     public async Task ConnectAsync(string networkId, string containerId, CancellationToken cancellationToken = default)
     {
-        await _client.Networks.ConnectNetworkAsync(networkId,
+        await client.Networks.ConnectNetworkAsync(networkId,
             new NetworkConnectParameters { Container = containerId }, cancellationToken);
-        _logger.LogInformation("Connected container {ContainerId} to network {NetworkId}", containerId, networkId);
+        logger.LogInformation("Connected container {ContainerId} to network {NetworkId}", containerId, networkId);
     }
 
     public async Task DisconnectAsync(string networkId, string containerId, CancellationToken cancellationToken = default)
     {
-        await _client.Networks.DisconnectNetworkAsync(networkId,
+        await client.Networks.DisconnectNetworkAsync(networkId,
             new NetworkDisconnectParameters { Container = containerId }, cancellationToken);
-        _logger.LogInformation("Disconnected container {ContainerId} from network {NetworkId}", containerId, networkId);
+        logger.LogInformation("Disconnected container {ContainerId} from network {NetworkId}", containerId, networkId);
     }
 }

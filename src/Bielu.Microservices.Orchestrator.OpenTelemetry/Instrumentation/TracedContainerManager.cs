@@ -7,14 +7,8 @@ namespace Bielu.Microservices.Orchestrator.OpenTelemetry.Instrumentation;
 /// <summary>
 /// Decorator for <see cref="IContainerManager"/> that adds OpenTelemetry tracing to all operations.
 /// </summary>
-public class TracedContainerManager : IContainerManager
+public class TracedContainerManager(IContainerManager inner) : IContainerManager
 {
-    private readonly IContainerManager _inner;
-
-    public TracedContainerManager(IContainerManager inner)
-    {
-        _inner = inner;
-    }
 
     /// <inheritdoc />
     public async Task<IReadOnlyList<ContainerInfo>> ListAsync(bool all = false, CancellationToken cancellationToken = default)
@@ -22,7 +16,7 @@ public class TracedContainerManager : IContainerManager
         using var activity = OrchestratorActivitySource.Source.StartActivity(OrchestratorActivitySource.ContainerList);
         activity?.SetTag("container.list.all", all);
 
-        var result = await _inner.ListAsync(all, cancellationToken);
+        var result = await inner.ListAsync(all, cancellationToken);
         activity?.SetTag("container.list.count", result.Count);
         return result;
     }
@@ -33,7 +27,7 @@ public class TracedContainerManager : IContainerManager
         using var activity = OrchestratorActivitySource.Source.StartActivity(OrchestratorActivitySource.ContainerGet);
         activity?.SetTag(OrchestratorActivitySource.AttributeContainerId, containerId);
 
-        return await _inner.GetAsync(containerId, cancellationToken);
+        return await inner.GetAsync(containerId, cancellationToken);
     }
 
     /// <inheritdoc />
@@ -43,7 +37,7 @@ public class TracedContainerManager : IContainerManager
         activity?.SetTag(OrchestratorActivitySource.AttributeContainerImage, request.Image);
         activity?.SetTag("container.name", request.Name);
 
-        var containerId = await _inner.CreateAsync(request, cancellationToken);
+        var containerId = await inner.CreateAsync(request, cancellationToken);
         activity?.SetTag(OrchestratorActivitySource.AttributeContainerId, containerId);
         return containerId;
     }
@@ -54,7 +48,7 @@ public class TracedContainerManager : IContainerManager
         using var activity = OrchestratorActivitySource.Source.StartActivity(OrchestratorActivitySource.ContainerStart);
         activity?.SetTag(OrchestratorActivitySource.AttributeContainerId, containerId);
 
-        await _inner.StartAsync(containerId, cancellationToken);
+        await inner.StartAsync(containerId, cancellationToken);
     }
 
     /// <inheritdoc />
@@ -67,7 +61,7 @@ public class TracedContainerManager : IContainerManager
             activity?.SetTag("container.stop.timeout_seconds", (int)timeout.Value.TotalSeconds);
         }
 
-        await _inner.StopAsync(containerId, timeout, cancellationToken);
+        await inner.StopAsync(containerId, timeout, cancellationToken);
     }
 
     /// <inheritdoc />
@@ -77,7 +71,7 @@ public class TracedContainerManager : IContainerManager
         activity?.SetTag(OrchestratorActivitySource.AttributeContainerId, containerId);
         activity?.SetTag("container.remove.force", force);
 
-        await _inner.RemoveAsync(containerId, force, cancellationToken);
+        await inner.RemoveAsync(containerId, force, cancellationToken);
     }
 
     /// <inheritdoc />
@@ -88,7 +82,7 @@ public class TracedContainerManager : IContainerManager
         activity?.SetTag("container.logs.stdout", stdout);
         activity?.SetTag("container.logs.stderr", stderr);
 
-        return await _inner.GetLogsAsync(containerId, stdout, stderr, cancellationToken);
+        return await inner.GetLogsAsync(containerId, stdout, stderr, cancellationToken);
     }
 
     /// <inheritdoc />
@@ -98,6 +92,6 @@ public class TracedContainerManager : IContainerManager
         activity?.SetTag(OrchestratorActivitySource.AttributeContainerId, containerId);
         activity?.SetTag("container.scale.replicas", replicas);
 
-        await _inner.ScaleAsync(containerId, replicas, cancellationToken);
+        await inner.ScaleAsync(containerId, replicas, cancellationToken);
     }
 }

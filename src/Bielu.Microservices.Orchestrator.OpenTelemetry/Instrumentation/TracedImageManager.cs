@@ -6,21 +6,15 @@ namespace Bielu.Microservices.Orchestrator.OpenTelemetry.Instrumentation;
 /// <summary>
 /// Decorator for <see cref="IImageManager"/> that adds OpenTelemetry tracing to all operations.
 /// </summary>
-public class TracedImageManager : IImageManager
+public class TracedImageManager(IImageManager inner) : IImageManager
 {
-    private readonly IImageManager _inner;
-
-    public TracedImageManager(IImageManager inner)
-    {
-        _inner = inner;
-    }
 
     /// <inheritdoc />
     public async Task<IReadOnlyList<ImageInfo>> ListAsync(CancellationToken cancellationToken = default)
     {
         using var activity = OrchestratorActivitySource.Source.StartActivity(OrchestratorActivitySource.ImageList);
 
-        var result = await _inner.ListAsync(cancellationToken);
+        var result = await inner.ListAsync(cancellationToken);
         activity?.SetTag("image.list.count", result.Count);
         return result;
     }
@@ -31,7 +25,7 @@ public class TracedImageManager : IImageManager
         using var activity = OrchestratorActivitySource.Source.StartActivity(OrchestratorActivitySource.ImageGet);
         activity?.SetTag(OrchestratorActivitySource.AttributeImageId, imageId);
 
-        return await _inner.GetAsync(imageId, cancellationToken);
+        return await inner.GetAsync(imageId, cancellationToken);
     }
 
     /// <inheritdoc />
@@ -41,7 +35,7 @@ public class TracedImageManager : IImageManager
         activity?.SetTag(OrchestratorActivitySource.AttributeImageId, request.Image);
         activity?.SetTag(OrchestratorActivitySource.AttributeImageTag, request.Tag);
 
-        await _inner.PullAsync(request, cancellationToken);
+        await inner.PullAsync(request, cancellationToken);
     }
 
     /// <inheritdoc />
@@ -51,7 +45,7 @@ public class TracedImageManager : IImageManager
         activity?.SetTag(OrchestratorActivitySource.AttributeImageId, imageId);
         activity?.SetTag("image.remove.force", force);
 
-        await _inner.RemoveAsync(imageId, force, cancellationToken);
+        await inner.RemoveAsync(imageId, force, cancellationToken);
     }
 
     /// <inheritdoc />
@@ -62,6 +56,6 @@ public class TracedImageManager : IImageManager
         activity?.SetTag("image.tag.repository", repository);
         activity?.SetTag(OrchestratorActivitySource.AttributeImageTag, tag);
 
-        await _inner.TagAsync(imageId, repository, tag, cancellationToken);
+        await inner.TagAsync(imageId, repository, tag, cancellationToken);
     }
 }

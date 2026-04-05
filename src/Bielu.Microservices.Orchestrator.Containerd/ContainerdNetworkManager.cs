@@ -9,44 +9,37 @@ namespace Bielu.Microservices.Orchestrator.Containerd;
 /// containerd implementation of the network manager.
 /// Note: containerd has limited built-in networking; CNI plugins are typically used.
 /// </summary>
-public class ContainerdNetworkManager : INetworkManager
+public class ContainerdNetworkManager(
+    ContainerdOptions options,
+    ILogger<ContainerdNetworkManager> logger) : INetworkManager
 {
-    private readonly ContainerdOptions _options;
-    private readonly ILogger<ContainerdNetworkManager> _logger;
-
-    public ContainerdNetworkManager(ContainerdOptions options, ILogger<ContainerdNetworkManager> logger)
-    {
-        _options = options;
-        _logger = logger;
-    }
-
     public Task<IReadOnlyList<NetworkInfo>> ListAsync(CancellationToken cancellationToken = default)
     {
-        _logger.LogDebug("Listing containerd networks (CNI) in namespace {Namespace}", _options.Namespace);
+        logger.LogDebug("Listing containerd networks (CNI) in namespace {Namespace}", options.Namespace);
         return Task.FromResult<IReadOnlyList<NetworkInfo>>(new List<NetworkInfo>().AsReadOnly());
     }
 
     public Task<string> CreateAsync(string name, string driver = "bridge", CancellationToken cancellationToken = default)
     {
-        _logger.LogInformation("Creating containerd network {Name} with CNI plugin", name);
+        logger.LogInformation("Creating containerd network {Name} with CNI plugin", name);
         throw new NotImplementedException("containerd networking requires CNI plugin configuration.");
     }
 
     public Task RemoveAsync(string networkId, CancellationToken cancellationToken = default)
     {
-        _logger.LogInformation("Removing containerd network {NetworkId}", networkId);
+        logger.LogInformation("Removing containerd network {NetworkId}", networkId);
         throw new NotImplementedException("containerd networking requires CNI plugin configuration.");
     }
 
     public Task ConnectAsync(string networkId, string containerId, CancellationToken cancellationToken = default)
     {
-        _logger.LogInformation("Connecting container {ContainerId} to containerd network {NetworkId}", containerId, networkId);
+        logger.LogInformation("Connecting container {ContainerId} to containerd network {NetworkId}", containerId, networkId);
         throw new NotImplementedException("containerd networking requires CNI plugin configuration.");
     }
 
     public Task DisconnectAsync(string networkId, string containerId, CancellationToken cancellationToken = default)
     {
-        _logger.LogInformation("Disconnecting container {ContainerId} from containerd network {NetworkId}", containerId, networkId);
+        logger.LogInformation("Disconnecting container {ContainerId} from containerd network {NetworkId}", containerId, networkId);
         throw new NotImplementedException("containerd networking requires CNI plugin configuration.");
     }
 }

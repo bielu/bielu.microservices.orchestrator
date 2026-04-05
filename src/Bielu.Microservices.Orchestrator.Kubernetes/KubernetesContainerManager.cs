@@ -11,22 +11,15 @@ namespace Bielu.Microservices.Orchestrator.Kubernetes;
 /// Kubernetes implementation of the container manager.
 /// Maps container operations to Kubernetes Pod operations.
 /// </summary>
-public class KubernetesContainerManager : IContainerManager
+public class KubernetesContainerManager(
+    IKubernetes client,
+    KubernetesOptions options,
+    ILogger<KubernetesContainerManager> logger) : IContainerManager
 {
-    private readonly IKubernetes _client;
-    private readonly KubernetesOptions _options;
-    private readonly ILogger<KubernetesContainerManager> _logger;
-
-    public KubernetesContainerManager(IKubernetes client, KubernetesOptions options, ILogger<KubernetesContainerManager> logger)
-    {
-        _client = client;
-        _options = options;
-        _logger = logger;
-    }
 
     public async Task<IReadOnlyList<ContainerInfo>> ListAsync(bool all = false, CancellationToken cancellationToken = default)
     {
-        var pods = await _client.CoreV1.ListNamespacedPodAsync(_options.Namespace, cancellationToken: cancellationToken);
+        var pods = await client.CoreV1.ListNamespacedPodAsync(options.Namespace, cancellationToken: cancellationToken);
 
         return pods.Items.Select(pod => new ContainerInfo
         {
@@ -45,7 +38,7 @@ public class KubernetesContainerManager : IContainerManager
     {
         try
         {
-            var pod = await _client.CoreV1.ReadNamespacedPodAsync(containerId, _options.Namespace, cancellationToken: cancellationToken);
+            var pod = await client.CoreV1.ReadNamespacedPodAsync(containerId, options.Namespace, cancellationToken: cancellationToken);
             return new ContainerInfo
             {
                 Id = pod.Metadata.Uid ?? string.Empty,
@@ -93,7 +86,7 @@ public class KubernetesContainerManager : IContainerManager
             firstName ??= name;
         }
 
-        _logger.LogInformation("Created {Replicas} Kubernetes pod replicas in group {GroupName}", request.Replicas, LogSanitizer.Sanitize(groupName));
+        logger.LogInformation("Created {Replicas} Kubernetes pod replicas in group {GroupName}", request.Replicas, LogSanitizer.Sanitize(groupName));
         return firstName!;
     }
 
@@ -109,7 +102,7 @@ public class KubernetesContainerManager : IContainerManager
     public Task StartAsync(string containerId, CancellationToken cancellationToken = default)
     {
         // Kubernetes pods start automatically upon creation
-        _logger.LogInformation("Kubernetes pod {PodName} starts automatically upon creation", LogSanitizer.Sanitize(containerId));
+        logger.LogInformation("Kubernetes pod {PodName} starts automatically upon creation", LogSanitizer.Sanitize(containerId));
         return Task.CompletedTask;
     }
 
@@ -117,26 +110,26 @@ public class KubernetesContainerManager : IContainerManager
     {
         // In Kubernetes, stopping a pod means deleting it
         int? gracePeriod = timeout.HasValue ? (int)timeout.Value.TotalSeconds : null;
-        await _client.CoreV1.DeleteNamespacedPodAsync(
-            containerId, _options.Namespace,
+        await client.CoreV1.DeleteNamespacedPodAsync(
+            containerId, options.Namespace,
             gracePeriodSeconds: gracePeriod,
             cancellationToken: cancellationToken);
-        _logger.LogInformation("Stopped (deleted) Kubernetes pod {PodName}", LogSanitizer.Sanitize(containerId));
+        logger.LogInformation("Stopped (deleted) Kubernetes pod {PodName}", LogSanitizer.Sanitize(containerId));
     }
 
     public async Task RemoveAsync(string containerId, bool force = false, CancellationToken cancellationToken = default)
     {
-        await _client.CoreV1.DeleteNamespacedPodAsync(
-            containerId, _options.Namespace,
+        await client.CoreV1.DeleteNamespacedPodAsync(
+            containerId, options.Namespace,
             gracePeriodSeconds: force ? 0 : null,
             cancellationToken: cancellationToken);
-        _logger.LogInformation("Removed Kubernetes pod {PodName}", LogSanitizer.Sanitize(containerId));
+        logger.LogInformation("Removed Kubernetes pod {PodName}", LogSanitizer.Sanitize(containerId));
     }
 
     public async Task<string> GetLogsAsync(string containerId, bool stdout = true, bool stderr = true, CancellationToken cancellationToken = default)
     {
-        var logStream = await _client.CoreV1.ReadNamespacedPodLogAsync(
-            containerId, _options.Namespace, cancellationToken: cancellationToken);
+        var logStream = await client.CoreV1.ReadNamespacedPodLogAsync(
+            containerId, options.Namespace, cancellationToken: cancellationToken);
         using var reader = new StreamReader(logStream);
         return await reader.ReadToEndAsync(cancellationToken);
     }
@@ -152,7 +145,7 @@ public class KubernetesContainerManager : IContainerManager
             Metadata = new k8s.Models.V1ObjectMeta
             {
                 Name = podName ?? $"orchestrator-{Guid.NewGuid():N}",
-                NamespaceProperty = _options.Namespace,
+                NamespaceProperty = options.Namespace,
                 Labels = new Dictionary<string, string>(labels)
             },
             Spec = new k8s.Models.V1PodSpec
@@ -178,8 +171,8 @@ public class KubernetesContainerManager : IContainerManager
             }
         };
 
-        var created = await _client.CoreV1.CreateNamespacedPodAsync(pod, _options.Namespace, cancellationToken: cancellationToken);
-        _logger.LogInformation("Created Kubernetes pod {PodName} from image {Image}",
+        var created = await client.CoreV1.CreateNamespacedPodAsync(pod, options.Namespace, cancellationToken: cancellationToken);
+        logger.LogInformation("Created Kubernetes pod {PodName} from image {Image}",
             LogSanitizer.Sanitize(created.Metadata.Name), LogSanitizer.Sanitize(request.Image));
         return created.Metadata.Name ?? string.Empty;
     }

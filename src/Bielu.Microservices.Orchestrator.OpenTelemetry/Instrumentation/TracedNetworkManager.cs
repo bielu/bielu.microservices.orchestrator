@@ -6,21 +6,15 @@ namespace Bielu.Microservices.Orchestrator.OpenTelemetry.Instrumentation;
 /// <summary>
 /// Decorator for <see cref="INetworkManager"/> that adds OpenTelemetry tracing to all operations.
 /// </summary>
-public class TracedNetworkManager : INetworkManager
+public class TracedNetworkManager(INetworkManager inner) : INetworkManager
 {
-    private readonly INetworkManager _inner;
-
-    public TracedNetworkManager(INetworkManager inner)
-    {
-        _inner = inner;
-    }
 
     /// <inheritdoc />
     public async Task<IReadOnlyList<NetworkInfo>> ListAsync(CancellationToken cancellationToken = default)
     {
         using var activity = OrchestratorActivitySource.Source.StartActivity(OrchestratorActivitySource.NetworkList);
 
-        var result = await _inner.ListAsync(cancellationToken);
+        var result = await inner.ListAsync(cancellationToken);
         activity?.SetTag("network.list.count", result.Count);
         return result;
     }
@@ -32,7 +26,7 @@ public class TracedNetworkManager : INetworkManager
         activity?.SetTag("network.name", name);
         activity?.SetTag(OrchestratorActivitySource.AttributeNetworkDriver, driver);
 
-        var networkId = await _inner.CreateAsync(name, driver, cancellationToken);
+        var networkId = await inner.CreateAsync(name, driver, cancellationToken);
         activity?.SetTag(OrchestratorActivitySource.AttributeNetworkId, networkId);
         return networkId;
     }
@@ -43,7 +37,7 @@ public class TracedNetworkManager : INetworkManager
         using var activity = OrchestratorActivitySource.Source.StartActivity(OrchestratorActivitySource.NetworkRemove);
         activity?.SetTag(OrchestratorActivitySource.AttributeNetworkId, networkId);
 
-        await _inner.RemoveAsync(networkId, cancellationToken);
+        await inner.RemoveAsync(networkId, cancellationToken);
     }
 
     /// <inheritdoc />
@@ -53,7 +47,7 @@ public class TracedNetworkManager : INetworkManager
         activity?.SetTag(OrchestratorActivitySource.AttributeNetworkId, networkId);
         activity?.SetTag(OrchestratorActivitySource.AttributeContainerId, containerId);
 
-        await _inner.ConnectAsync(networkId, containerId, cancellationToken);
+        await inner.ConnectAsync(networkId, containerId, cancellationToken);
     }
 
     /// <inheritdoc />
@@ -63,6 +57,6 @@ public class TracedNetworkManager : INetworkManager
         activity?.SetTag(OrchestratorActivitySource.AttributeNetworkId, networkId);
         activity?.SetTag(OrchestratorActivitySource.AttributeContainerId, containerId);
 
-        await _inner.DisconnectAsync(networkId, containerId, cancellationToken);
+        await inner.DisconnectAsync(networkId, containerId, cancellationToken);
     }
 }

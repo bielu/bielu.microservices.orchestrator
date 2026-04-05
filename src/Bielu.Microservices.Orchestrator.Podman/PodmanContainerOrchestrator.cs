@@ -7,35 +7,24 @@ namespace Bielu.Microservices.Orchestrator.Podman;
 /// Podman implementation of the container orchestrator.
 /// Podman uses a Docker-compatible API, so it delegates to Docker managers internally.
 /// </summary>
-public class PodmanContainerOrchestrator : IContainerOrchestrator
+public class PodmanContainerOrchestrator(
+    IContainerManager containerManager,
+    IImageManager imageManager,
+    INetworkManager networkManager,
+    IVolumeManager volumeManager,
+    ILogger<PodmanContainerOrchestrator> logger) : IContainerOrchestrator
 {
-    private readonly ILogger<PodmanContainerOrchestrator> _logger;
-
-    public PodmanContainerOrchestrator(
-        IContainerManager containerManager,
-        IImageManager imageManager,
-        INetworkManager networkManager,
-        IVolumeManager volumeManager,
-        ILogger<PodmanContainerOrchestrator> logger)
-    {
-        Containers = containerManager;
-        Images = imageManager;
-        Networks = networkManager;
-        Volumes = volumeManager;
-        _logger = logger;
-    }
+    /// <inheritdoc />
+    public IContainerManager Containers { get; } = containerManager;
 
     /// <inheritdoc />
-    public IContainerManager Containers { get; }
+    public IImageManager Images { get; } = imageManager;
 
     /// <inheritdoc />
-    public IImageManager Images { get; }
+    public INetworkManager Networks { get; } = networkManager;
 
     /// <inheritdoc />
-    public INetworkManager Networks { get; }
-
-    /// <inheritdoc />
-    public IVolumeManager Volumes { get; }
+    public IVolumeManager Volumes { get; } = volumeManager;
 
     /// <inheritdoc />
     public string ProviderName => "Podman";
@@ -50,7 +39,7 @@ public class PodmanContainerOrchestrator : IContainerOrchestrator
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Podman runtime is not available");
+            logger.LogWarning(ex, "Podman runtime is not available");
             return false;
         }
     }

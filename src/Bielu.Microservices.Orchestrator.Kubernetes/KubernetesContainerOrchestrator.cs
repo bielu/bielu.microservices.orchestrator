@@ -7,38 +7,25 @@ namespace Bielu.Microservices.Orchestrator.Kubernetes;
 /// <summary>
 /// Kubernetes implementation of the container orchestrator.
 /// </summary>
-public class KubernetesContainerOrchestrator : IContainerOrchestrator
+public class KubernetesContainerOrchestrator(
+    IContainerManager containerManager,
+    IImageManager imageManager,
+    INetworkManager networkManager,
+    IVolumeManager volumeManager,
+    IKubernetes client,
+    ILogger<KubernetesContainerOrchestrator> logger) : IContainerOrchestrator
 {
-    private readonly IKubernetes _client;
-    private readonly ILogger<KubernetesContainerOrchestrator> _logger;
-
-    public KubernetesContainerOrchestrator(
-        IContainerManager containerManager,
-        IImageManager imageManager,
-        INetworkManager networkManager,
-        IVolumeManager volumeManager,
-        IKubernetes client,
-        ILogger<KubernetesContainerOrchestrator> logger)
-    {
-        Containers = containerManager;
-        Images = imageManager;
-        Networks = networkManager;
-        Volumes = volumeManager;
-        _client = client;
-        _logger = logger;
-    }
+    /// <inheritdoc />
+    public IContainerManager Containers { get; } = containerManager;
 
     /// <inheritdoc />
-    public IContainerManager Containers { get; }
+    public IImageManager Images { get; } = imageManager;
 
     /// <inheritdoc />
-    public IImageManager Images { get; }
+    public INetworkManager Networks { get; } = networkManager;
 
     /// <inheritdoc />
-    public INetworkManager Networks { get; }
-
-    /// <inheritdoc />
-    public IVolumeManager Volumes { get; }
+    public IVolumeManager Volumes { get; } = volumeManager;
 
     /// <inheritdoc />
     public string ProviderName => "Kubernetes";
@@ -48,12 +35,12 @@ public class KubernetesContainerOrchestrator : IContainerOrchestrator
     {
         try
         {
-            await _client.CoreV1.GetAPIResourcesAsync(cancellationToken: cancellationToken);
+            await client.CoreV1.GetAPIResourcesAsync(cancellationToken: cancellationToken);
             return true;
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Kubernetes cluster is not available");
+            logger.LogWarning(ex, "Kubernetes cluster is not available");
             return false;
         }
     }

@@ -10,20 +10,13 @@ namespace Bielu.Microservices.Orchestrator.Docker;
 /// <summary>
 /// Docker implementation of the container manager.
 /// </summary>
-public class DockerContainerManager : IContainerManager
+public class DockerContainerManager(
+    DockerClient client,
+    ILogger<DockerContainerManager> logger) : IContainerManager
 {
-    private readonly DockerClient _client;
-    private readonly ILogger<DockerContainerManager> _logger;
-
-    public DockerContainerManager(DockerClient client, ILogger<DockerContainerManager> logger)
-    {
-        _client = client;
-        _logger = logger;
-    }
-
     public async Task<IReadOnlyList<ContainerInfo>> ListAsync(bool all = false, CancellationToken cancellationToken = default)
     {
-        var containers = await _client.Containers.ListContainersAsync(
+        var containers = await client.Containers.ListContainersAsync(
             new ContainersListParameters { All = all }, cancellationToken);
 
         return containers.Select(c => new ContainerInfo
@@ -48,7 +41,7 @@ public class DockerContainerManager : IContainerManager
     {
         try
         {
-            var response = await _client.Containers.InspectContainerAsync(containerId, cancellationToken);
+            var response = await client.Containers.InspectContainerAsync(containerId, cancellationToken);
             return new ContainerInfo
             {
                 Id = response.ID,
@@ -95,7 +88,7 @@ public class DockerContainerManager : IContainerManager
             firstId ??= id;
         }
 
-        _logger.LogInformation("Created {Replicas} container replicas in group {GroupName}", request.Replicas, LogSanitizer.Sanitize(groupName));
+        logger.LogInformation("Created {Replicas} container replicas in group {GroupName}", request.Replicas, LogSanitizer.Sanitize(groupName));
         return firstId!;
     }
 
@@ -110,8 +103,8 @@ public class DockerContainerManager : IContainerManager
 
     public async Task StartAsync(string containerId, CancellationToken cancellationToken = default)
     {
-        await _client.Containers.StartContainerAsync(containerId, new ContainerStartParameters(), cancellationToken);
-        _logger.LogInformation("Started container {ContainerId}", LogSanitizer.Sanitize(containerId));
+        await client.Containers.StartContainerAsync(containerId, new ContainerStartParameters(), cancellationToken);
+        logger.LogInformation("Started container {ContainerId}", LogSanitizer.Sanitize(containerId));
     }
 
     public async Task StopAsync(string containerId, TimeSpan? timeout = null, CancellationToken cancellationToken = default)
@@ -122,15 +115,15 @@ public class DockerContainerManager : IContainerManager
             stopParams.WaitBeforeKillSeconds = (uint)timeout.Value.TotalSeconds;
         }
 
-        await _client.Containers.StopContainerAsync(containerId, stopParams, cancellationToken);
-        _logger.LogInformation("Stopped container {ContainerId}", LogSanitizer.Sanitize(containerId));
+        await client.Containers.StopContainerAsync(containerId, stopParams, cancellationToken);
+        logger.LogInformation("Stopped container {ContainerId}", LogSanitizer.Sanitize(containerId));
     }
 
     public async Task RemoveAsync(string containerId, bool force = false, CancellationToken cancellationToken = default)
     {
-        await _client.Containers.RemoveContainerAsync(containerId,
+        await client.Containers.RemoveContainerAsync(containerId,
             new ContainerRemoveParameters { Force = force }, cancellationToken);
-        _logger.LogInformation("Removed container {ContainerId}", LogSanitizer.Sanitize(containerId));
+        logger.LogInformation("Removed container {ContainerId}", LogSanitizer.Sanitize(containerId));
     }
 
     public async Task<string> GetLogsAsync(string containerId, bool stdout = true, bool stderr = true, CancellationToken cancellationToken = default)
@@ -141,7 +134,7 @@ public class DockerContainerManager : IContainerManager
             ShowStderr = stderr
         };
 
-        using var logStream = await _client.Containers.GetContainerLogsAsync(containerId, false, logParams, cancellationToken);
+        using var logStream = await client.Containers.GetContainerLogsAsync(containerId, false, logParams, cancellationToken);
         using var memoryStream = new MemoryStream();
         await logStream.CopyOutputToAsync(Stream.Null, memoryStream, Stream.Null, cancellationToken);
         return System.Text.Encoding.UTF8.GetString(memoryStream.ToArray());
@@ -177,8 +170,8 @@ public class DockerContainerManager : IContainerManager
             createParams.Cmd = request.Command.ToList();
         }
 
-        var response = await _client.Containers.CreateContainerAsync(createParams, cancellationToken);
-        _logger.LogInformation("Created container {ContainerId} from image {Image}",
+        var response = await client.Containers.CreateContainerAsync(createParams, cancellationToken);
+        logger.LogInformation("Created container {ContainerId} from image {Image}",
             LogSanitizer.Sanitize(response.ID), LogSanitizer.Sanitize(request.Image));
         return response.ID;
     }

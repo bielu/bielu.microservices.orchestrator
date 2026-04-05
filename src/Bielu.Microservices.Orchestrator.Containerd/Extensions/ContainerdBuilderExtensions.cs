@@ -4,6 +4,7 @@ using Bielu.Microservices.Orchestrator.Containerd.Configuration;
 using Grpc.Net.Client;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Logging;
 
 namespace Bielu.Microservices.Orchestrator.Containerd.Extensions;
 
@@ -38,7 +39,13 @@ public static class ContainerdBuilderExtensions
         builder.Services.TryAddSingleton<IImageManager, ContainerdImageManager>();
         builder.Services.TryAddSingleton<INetworkManager, ContainerdNetworkManager>();
         builder.Services.TryAddSingleton<IVolumeManager, ContainerdVolumeManager>();
-        builder.Services.TryAddSingleton<IContainerOrchestrator, ContainerdContainerOrchestrator>();
+        builder.Services.TryAddSingleton<IContainerOrchestrator>(sp =>
+            new ContainerdContainerOrchestrator(
+                sp.GetRequiredService<IContainerManager>(),
+                sp.GetRequiredService<IImageManager>(),
+                sp.GetRequiredService<INetworkManager>(),
+                sp.GetRequiredService<IVolumeManager>(),
+                sp.GetRequiredService<ILogger<ContainerdContainerOrchestrator>>()));
 
         return builder;
     }

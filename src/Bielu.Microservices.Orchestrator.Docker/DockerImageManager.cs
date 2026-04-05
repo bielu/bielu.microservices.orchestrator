@@ -10,20 +10,14 @@ namespace Bielu.Microservices.Orchestrator.Docker;
 /// <summary>
 /// Docker implementation of the image manager.
 /// </summary>
-public class DockerImageManager : IImageManager
+public class DockerImageManager(
+    DockerClient client,
+    ILogger<DockerImageManager> logger) : IImageManager
 {
-    private readonly DockerClient _client;
-    private readonly ILogger<DockerImageManager> _logger;
-
-    public DockerImageManager(DockerClient client, ILogger<DockerImageManager> logger)
-    {
-        _client = client;
-        _logger = logger;
-    }
 
     public async Task<IReadOnlyList<ImageInfo>> ListAsync(CancellationToken cancellationToken = default)
     {
-        var images = await _client.Images.ListImagesAsync(
+        var images = await client.Images.ListImagesAsync(
             new ImagesListParameters { All = true }, cancellationToken);
 
         return images.Select(i => new ImageInfo
@@ -40,7 +34,7 @@ public class DockerImageManager : IImageManager
     {
         try
         {
-            var response = await _client.Images.InspectImageAsync(imageId, cancellationToken);
+            var response = await client.Images.InspectImageAsync(imageId, cancellationToken);
             return new ImageInfo
             {
                 Id = response.ID,
@@ -77,23 +71,23 @@ public class DockerImageManager : IImageManager
             };
         }
 
-        _logger.LogInformation("Pulling image {Image}:{Tag}", LogSanitizer.Sanitize(request.Image), LogSanitizer.Sanitize(request.Tag));
-        await _client.Images.CreateImageAsync(pullParams, authConfig,
+        logger.LogInformation("Pulling image {Image}:{Tag}", LogSanitizer.Sanitize(request.Image), LogSanitizer.Sanitize(request.Tag));
+        await client.Images.CreateImageAsync(pullParams, authConfig,
             new Progress<JSONMessage>(), cancellationToken);
-        _logger.LogInformation("Pulled image {Image}:{Tag}", LogSanitizer.Sanitize(request.Image), LogSanitizer.Sanitize(request.Tag));
+        logger.LogInformation("Pulled image {Image}:{Tag}", LogSanitizer.Sanitize(request.Image), LogSanitizer.Sanitize(request.Tag));
     }
 
     public async Task RemoveAsync(string imageId, bool force = false, CancellationToken cancellationToken = default)
     {
-        await _client.Images.DeleteImageAsync(imageId,
+        await client.Images.DeleteImageAsync(imageId,
             new ImageDeleteParameters { Force = force }, cancellationToken);
-        _logger.LogInformation("Removed image {ImageId}", LogSanitizer.Sanitize(imageId));
+        logger.LogInformation("Removed image {ImageId}", LogSanitizer.Sanitize(imageId));
     }
 
     public async Task TagAsync(string imageId, string repository, string tag, CancellationToken cancellationToken = default)
     {
-        await _client.Images.TagImageAsync(imageId,
+        await client.Images.TagImageAsync(imageId,
             new ImageTagParameters { RepositoryName = repository, Tag = tag }, cancellationToken);
-        _logger.LogInformation("Tagged image {ImageId} as {Repository}:{Tag}", LogSanitizer.Sanitize(imageId), LogSanitizer.Sanitize(repository), LogSanitizer.Sanitize(tag));
+        logger.LogInformation("Tagged image {ImageId} as {Repository}:{Tag}", LogSanitizer.Sanitize(imageId), LogSanitizer.Sanitize(repository), LogSanitizer.Sanitize(tag));
     }
 }

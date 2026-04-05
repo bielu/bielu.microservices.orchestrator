@@ -10,23 +10,16 @@ namespace Bielu.Microservices.Orchestrator.Kubernetes;
 /// Kubernetes implementation of the volume manager.
 /// Maps to Kubernetes PersistentVolumeClaim resources.
 /// </summary>
-public class KubernetesVolumeManager : IVolumeManager
+public class KubernetesVolumeManager(
+    IKubernetes client,
+    KubernetesOptions options,
+    ILogger<KubernetesVolumeManager> logger) : IVolumeManager
 {
-    private readonly IKubernetes _client;
-    private readonly KubernetesOptions _options;
-    private readonly ILogger<KubernetesVolumeManager> _logger;
-
-    public KubernetesVolumeManager(IKubernetes client, KubernetesOptions options, ILogger<KubernetesVolumeManager> logger)
-    {
-        _client = client;
-        _options = options;
-        _logger = logger;
-    }
 
     public async Task<IReadOnlyList<VolumeInfo>> ListAsync(CancellationToken cancellationToken = default)
     {
-        var pvcs = await _client.CoreV1.ListNamespacedPersistentVolumeClaimAsync(
-            _options.Namespace, cancellationToken: cancellationToken);
+        var pvcs = await client.CoreV1.ListNamespacedPersistentVolumeClaimAsync(
+            options.Namespace, cancellationToken: cancellationToken);
 
         return pvcs.Items.Select(pvc => new VolumeInfo
         {
@@ -47,7 +40,7 @@ public class KubernetesVolumeManager : IVolumeManager
             Metadata = new k8s.Models.V1ObjectMeta
             {
                 Name = name,
-                NamespaceProperty = _options.Namespace
+                NamespaceProperty = options.Namespace
             },
             Spec = new k8s.Models.V1PersistentVolumeClaimSpec
             {
@@ -63,10 +56,10 @@ public class KubernetesVolumeManager : IVolumeManager
             }
         };
 
-        var created = await _client.CoreV1.CreateNamespacedPersistentVolumeClaimAsync(
-            pvc, _options.Namespace, cancellationToken: cancellationToken);
+        var created = await client.CoreV1.CreateNamespacedPersistentVolumeClaimAsync(
+            pvc, options.Namespace, cancellationToken: cancellationToken);
 
-        _logger.LogInformation("Created Kubernetes PVC {PvcName}", name);
+        logger.LogInformation("Created Kubernetes PVC {PvcName}", name);
 
         return new VolumeInfo
         {
@@ -81,8 +74,8 @@ public class KubernetesVolumeManager : IVolumeManager
 
     public async Task RemoveAsync(string name, bool force = false, CancellationToken cancellationToken = default)
     {
-        await _client.CoreV1.DeleteNamespacedPersistentVolumeClaimAsync(
-            name, _options.Namespace, cancellationToken: cancellationToken);
-        _logger.LogInformation("Removed Kubernetes PVC {PvcName}", name);
+        await client.CoreV1.DeleteNamespacedPersistentVolumeClaimAsync(
+            name, options.Namespace, cancellationToken: cancellationToken);
+        logger.LogInformation("Removed Kubernetes PVC {PvcName}", name);
     }
 }

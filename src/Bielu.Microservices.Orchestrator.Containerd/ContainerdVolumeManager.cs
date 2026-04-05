@@ -9,32 +9,25 @@ namespace Bielu.Microservices.Orchestrator.Containerd;
 /// containerd implementation of the volume manager.
 /// containerd uses snapshotter-based storage rather than named volumes.
 /// </summary>
-public class ContainerdVolumeManager : IVolumeManager
+public class ContainerdVolumeManager(
+    ContainerdOptions options,
+    ILogger<ContainerdVolumeManager> logger) : IVolumeManager
 {
-    private readonly ContainerdOptions _options;
-    private readonly ILogger<ContainerdVolumeManager> _logger;
-
-    public ContainerdVolumeManager(ContainerdOptions options, ILogger<ContainerdVolumeManager> logger)
-    {
-        _options = options;
-        _logger = logger;
-    }
-
     public Task<IReadOnlyList<VolumeInfo>> ListAsync(CancellationToken cancellationToken = default)
     {
-        _logger.LogDebug("Listing containerd snapshots in namespace {Namespace}", _options.Namespace);
+        logger.LogDebug("Listing containerd snapshots in namespace {Namespace}", options.Namespace);
         return Task.FromResult<IReadOnlyList<VolumeInfo>>(new List<VolumeInfo>().AsReadOnly());
     }
 
     public Task<VolumeInfo> CreateAsync(string name, string? driver = null, CancellationToken cancellationToken = default)
     {
-        _logger.LogInformation("Creating containerd snapshot {Name}", name);
+        logger.LogInformation("Creating containerd snapshot {Name}", name);
         throw new NotImplementedException("containerd uses snapshotters for storage management.");
     }
 
     public Task RemoveAsync(string name, bool force = false, CancellationToken cancellationToken = default)
     {
-        _logger.LogInformation("Removing containerd snapshot {Name}", name);
+        logger.LogInformation("Removing containerd snapshot {Name}", name);
         throw new NotImplementedException("containerd uses snapshotters for storage management.");
     }
 }

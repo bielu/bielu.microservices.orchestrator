@@ -6,21 +6,15 @@ namespace Bielu.Microservices.Orchestrator.OpenTelemetry.Instrumentation;
 /// <summary>
 /// Decorator for <see cref="IVolumeManager"/> that adds OpenTelemetry tracing to all operations.
 /// </summary>
-public class TracedVolumeManager : IVolumeManager
+public class TracedVolumeManager(IVolumeManager inner) : IVolumeManager
 {
-    private readonly IVolumeManager _inner;
-
-    public TracedVolumeManager(IVolumeManager inner)
-    {
-        _inner = inner;
-    }
 
     /// <inheritdoc />
     public async Task<IReadOnlyList<VolumeInfo>> ListAsync(CancellationToken cancellationToken = default)
     {
         using var activity = OrchestratorActivitySource.Source.StartActivity(OrchestratorActivitySource.VolumeList);
 
-        var result = await _inner.ListAsync(cancellationToken);
+        var result = await inner.ListAsync(cancellationToken);
         activity?.SetTag("volume.list.count", result.Count);
         return result;
     }
@@ -35,7 +29,7 @@ public class TracedVolumeManager : IVolumeManager
             activity?.SetTag(OrchestratorActivitySource.AttributeVolumeDriver, driver);
         }
 
-        return await _inner.CreateAsync(name, driver, cancellationToken);
+        return await inner.CreateAsync(name, driver, cancellationToken);
     }
 
     /// <inheritdoc />
@@ -45,6 +39,6 @@ public class TracedVolumeManager : IVolumeManager
         activity?.SetTag(OrchestratorActivitySource.AttributeVolumeName, name);
         activity?.SetTag("volume.remove.force", force);
 
-        await _inner.RemoveAsync(name, force, cancellationToken);
+        await inner.RemoveAsync(name, force, cancellationToken);
     }
 }
