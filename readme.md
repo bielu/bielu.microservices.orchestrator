@@ -115,6 +115,21 @@ var containerId = await orchestrator.Containers.CreateAsync(new CreateContainerR
 });
 ```
 
+### Create multiple instances (replicas)
+
+Set `Replicas` to create multiple container instances from the same configuration.
+Each instance is named with a numeric suffix (e.g., `my-nginx-0`, `my-nginx-1`) and
+labeled with `orchestrator.group` for grouping.
+
+```csharp
+var firstContainerId = await orchestrator.Containers.CreateAsync(new CreateContainerRequest
+{
+    Image    = "nginx:latest",
+    Name     = "my-nginx",
+    Replicas = 3    // creates my-nginx-0, my-nginx-1, my-nginx-2
+});
+```
+
 ### Start a container
 
 ```csharp
@@ -410,11 +425,12 @@ app.Run();
 |--------|-------------|
 | `ListAsync(bool all)` | List containers (running only, or all) |
 | `GetAsync(string id)` | Inspect a single container |
-| `CreateAsync(CreateContainerRequest)` | Create a container and return its ID |
+| `CreateAsync(CreateContainerRequest)` | Create a container (or multiple with `Replicas`) and return its ID |
 | `StartAsync(string id)` | Start a container |
 | `StopAsync(string id, TimeSpan? timeout)` | Gracefully stop a container |
 | `RemoveAsync(string id, bool force)` | Remove a container |
 | `GetLogsAsync(string id, bool stdout, bool stderr)` | Retrieve container logs |
+| `ScaleAsync(string id, int replicas)` | Scale instances (runtime-dependent; may throw `NotSupportedException`) |
 
 ### `IImageManager`
 

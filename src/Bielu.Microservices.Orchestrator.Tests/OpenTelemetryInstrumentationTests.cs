@@ -172,6 +172,17 @@ public class OpenTelemetryInstrumentationTests
     }
 
     [Fact]
+    public async Task TracedContainerManager_ScaleAsync_DelegatesToInner()
+    {
+        var inner = Substitute.For<IContainerManager>();
+        var traced = new TracedContainerManager(inner);
+
+        await traced.ScaleAsync("ctr1", 3);
+
+        await inner.Received(1).ScaleAsync("ctr1", 3, Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
     public async Task TracedImageManager_PullAsync_DelegatesToInner()
     {
         var inner = Substitute.For<IImageManager>();

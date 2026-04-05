@@ -137,6 +137,16 @@ app.MapDelete("/api/containers/{id}", async (string id, IContainerOrchestrator o
     return Results.NoContent();
 });
 
+// Scale the number of instances for a container (runtime-dependent)
+app.MapPost("/api/containers/{id}/scale", async (
+    string id,
+    IContainerOrchestrator orchestrator,
+    int replicas) =>
+{
+    await orchestrator.Containers.ScaleAsync(id, replicas);
+    return Results.Ok(new { Message = $"Container {id} scaled to {replicas} replicas." });
+});
+
 // -------------------------------------------------------------------------
 // Image endpoints
 // -------------------------------------------------------------------------

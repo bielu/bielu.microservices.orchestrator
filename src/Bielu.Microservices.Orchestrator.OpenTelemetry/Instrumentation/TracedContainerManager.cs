@@ -90,4 +90,14 @@ public class TracedContainerManager : IContainerManager
 
         return await _inner.GetLogsAsync(containerId, stdout, stderr, cancellationToken);
     }
+
+    /// <inheritdoc />
+    public async Task ScaleAsync(string containerId, int replicas, CancellationToken cancellationToken = default)
+    {
+        using var activity = OrchestratorActivitySource.Source.StartActivity(OrchestratorActivitySource.ContainerScale);
+        activity?.SetTag(OrchestratorActivitySource.AttributeContainerId, containerId);
+        activity?.SetTag("container.scale.replicas", replicas);
+
+        await _inner.ScaleAsync(containerId, replicas, cancellationToken);
+    }
 }

@@ -41,4 +41,13 @@ public interface IContainerManager
     /// Gets the logs for a container.
     /// </summary>
     Task<string> GetLogsAsync(string containerId, bool stdout = true, bool stderr = true, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Scales the number of instances for a container or container group.
+    /// Not all runtimes support scaling; providers that do not will throw <see cref="NotSupportedException"/>.
+    /// </summary>
+    /// <param name="containerId">The container identifier or group name to scale.</param>
+    /// <param name="replicas">The desired number of instances.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    Task ScaleAsync(string containerId, int replicas, CancellationToken cancellationToken = default);
 }

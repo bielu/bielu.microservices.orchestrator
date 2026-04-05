@@ -34,6 +34,7 @@ public static class OrchestratorActivitySource
     internal const string ContainerStop = "container.stop";
     internal const string ContainerRemove = "container.remove";
     internal const string ContainerGetLogs = "container.get_logs";
+    internal const string ContainerScale = "container.scale";
 
     // Image operations
     internal const string ImageList = "image.list";

@@ -1,6 +1,7 @@
 using Bielu.Microservices.Orchestrator.Abstractions;
 using Bielu.Microservices.Orchestrator.Kubernetes.Configuration;
 using Bielu.Microservices.Orchestrator.Models;
+using Bielu.Microservices.Orchestrator.Utilities;
 using k8s;
 using Microsoft.Extensions.Logging;
 
@@ -48,25 +49,25 @@ public class KubernetesImageManager : IImageManager
 
     public Task<ImageInfo?> GetAsync(string imageId, CancellationToken cancellationToken = default)
     {
-        _logger.LogDebug("Kubernetes does not support direct image inspection. Image: {ImageId}", imageId);
+        _logger.LogDebug("Kubernetes does not support direct image inspection. Image: {ImageId}", LogSanitizer.Sanitize(imageId));
         return Task.FromResult<ImageInfo?>(null);
     }
 
     public Task PullAsync(PullImageRequest request, CancellationToken cancellationToken = default)
     {
-        _logger.LogInformation("Kubernetes pulls images at pod creation time. Image: {Image}:{Tag}", request.Image, request.Tag);
+        _logger.LogInformation("Kubernetes pulls images at pod creation time. Image: {Image}:{Tag}", LogSanitizer.Sanitize(request.Image), LogSanitizer.Sanitize(request.Tag));
         return Task.CompletedTask;
     }
 
     public Task RemoveAsync(string imageId, bool force = false, CancellationToken cancellationToken = default)
     {
-        _logger.LogWarning("Kubernetes does not support direct image removal. Image: {ImageId}", imageId);
+        _logger.LogWarning("Kubernetes does not support direct image removal. Image: {ImageId}", LogSanitizer.Sanitize(imageId));
         throw new NotSupportedException("Kubernetes does not support direct image removal from the cluster.");
     }
 
     public Task TagAsync(string imageId, string repository, string tag, CancellationToken cancellationToken = default)
     {
-        _logger.LogWarning("Kubernetes does not support direct image tagging. Image: {ImageId}", imageId);
+        _logger.LogWarning("Kubernetes does not support direct image tagging. Image: {ImageId}", LogSanitizer.Sanitize(imageId));
         throw new NotSupportedException("Kubernetes does not support direct image tagging.");
     }
 }

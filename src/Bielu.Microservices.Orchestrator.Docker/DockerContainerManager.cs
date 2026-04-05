@@ -1,5 +1,6 @@
 using Bielu.Microservices.Orchestrator.Abstractions;
 using Bielu.Microservices.Orchestrator.Models;
+using Bielu.Microservices.Orchestrator.Utilities;
 using Docker.DotNet;
 using Docker.DotNet.Models;
 using Microsoft.Extensions.Logging;
@@ -67,12 +68,97 @@ public class DockerContainerManager : IContainerManager
 
     public async Task<string> CreateAsync(CreateContainerRequest request, CancellationToken cancellationToken = default)
     {
+        if (request.Replicas <= 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(request), "Replicas must be at least 1.");
+        }
+
+        if (request.Replicas == 1)
+        {
+            return await CreateSingleContainerAsync(request, request.Name, cancellationToken);
+        }
+
+        // Create multiple replicas with indexed names and a grouping label
+        var groupName = request.Name ?? $"orchestrator-{Guid.NewGuid():N}";
+        string? firstId = null;
+
+        for (var i = 0; i < request.Replicas; i++)
+        {
+            var replicaName = $"{groupName}-{i}";
+            var replicaLabels = new Dictionary<string, string>(request.Labels)
+            {
+                ["orchestrator.group"] = groupName,
+                ["orchestrator.replica-index"] = i.ToString()
+            };
+
+            var id = await CreateSingleContainerAsync(request, replicaName, cancellationToken, replicaLabels);
+            firstId ??= id;
+        }
+
+        _logger.LogInformation("Created {Replicas} container replicas in group {GroupName}", request.Replicas, LogSanitizer.Sanitize(groupName));
+        return firstId!;
+    }
+
+    /// <inheritdoc />
+    public Task ScaleAsync(string containerId, int replicas, CancellationToken cancellationToken = default)
+    {
+        throw new NotSupportedException(
+            "Docker does not natively support scaling a single container. " +
+            "Use Docker Compose or Docker Swarm for scaling capabilities, " +
+            "or create multiple containers with Replicas > 1 in CreateContainerRequest.");
+    }
+
+    public async Task StartAsync(string containerId, CancellationToken cancellationToken = default)
+    {
+        await _client.Containers.StartContainerAsync(containerId, new ContainerStartParameters(), cancellationToken);
+        _logger.LogInformation("Started container {ContainerId}", LogSanitizer.Sanitize(containerId));
+    }
+
+    public async Task StopAsync(string containerId, TimeSpan? timeout = null, CancellationToken cancellationToken = default)
+    {
+        var stopParams = new ContainerStopParameters();
+        if (timeout.HasValue)
+        {
+            stopParams.WaitBeforeKillSeconds = (uint)timeout.Value.TotalSeconds;
+        }
+
+        await _client.Containers.StopContainerAsync(containerId, stopParams, cancellationToken);
+        _logger.LogInformation("Stopped container {ContainerId}", LogSanitizer.Sanitize(containerId));
+    }
+
+    public async Task RemoveAsync(string containerId, bool force = false, CancellationToken cancellationToken = default)
+    {
+        await _client.Containers.RemoveContainerAsync(containerId,
+            new ContainerRemoveParameters { Force = force }, cancellationToken);
+        _logger.LogInformation("Removed container {ContainerId}", LogSanitizer.Sanitize(containerId));
+    }
+
+    public async Task<string> GetLogsAsync(string containerId, bool stdout = true, bool stderr = true, CancellationToken cancellationToken = default)
+    {
+        var logParams = new ContainerLogsParameters
+        {
+            ShowStdout = stdout,
+            ShowStderr = stderr
+        };
+
+        using var logStream = await _client.Containers.GetContainerLogsAsync(containerId, false, logParams, cancellationToken);
+        using var memoryStream = new MemoryStream();
+        await logStream.CopyOutputToAsync(Stream.Null, memoryStream, Stream.Null, cancellationToken);
+        return System.Text.Encoding.UTF8.GetString(memoryStream.ToArray());
+    }
+
+    private async Task<string> CreateSingleContainerAsync(
+        CreateContainerRequest request,
+        string? containerName,
+        CancellationToken cancellationToken,
+        Dictionary<string, string>? overrideLabels = null)
+    {
         var createParams = new CreateContainerParameters
         {
             Image = request.Image,
-            Name = request.Name,
+            Name = containerName,
             Env = request.EnvironmentVariables.Select(kv => $"{kv.Key}={kv.Value}").ToList(),
-            Labels = new Dictionary<string, string>(request.Labels),
+            Labels = overrideLabels ?? new Dictionary<string, string>(request.Labels),
             HostConfig = new HostConfig
             {
                 PortBindings = request.Ports.ToDictionary(
@@ -92,47 +178,9 @@ public class DockerContainerManager : IContainerManager
         }
 
         var response = await _client.Containers.CreateContainerAsync(createParams, cancellationToken);
-        _logger.LogInformation("Created container {ContainerId} from image {Image}", response.ID, request.Image);
+        _logger.LogInformation("Created container {ContainerId} from image {Image}",
+            LogSanitizer.Sanitize(response.ID), LogSanitizer.Sanitize(request.Image));
         return response.ID;
-    }
-
-    public async Task StartAsync(string containerId, CancellationToken cancellationToken = default)
-    {
-        await _client.Containers.StartContainerAsync(containerId, new ContainerStartParameters(), cancellationToken);
-        _logger.LogInformation("Started container {ContainerId}", containerId);
-    }
-
-    public async Task StopAsync(string containerId, TimeSpan? timeout = null, CancellationToken cancellationToken = default)
-    {
-        var stopParams = new ContainerStopParameters();
-        if (timeout.HasValue)
-        {
-            stopParams.WaitBeforeKillSeconds = (uint)timeout.Value.TotalSeconds;
-        }
-
-        await _client.Containers.StopContainerAsync(containerId, stopParams, cancellationToken);
-        _logger.LogInformation("Stopped container {ContainerId}", containerId);
-    }
-
-    public async Task RemoveAsync(string containerId, bool force = false, CancellationToken cancellationToken = default)
-    {
-        await _client.Containers.RemoveContainerAsync(containerId,
-            new ContainerRemoveParameters { Force = force }, cancellationToken);
-        _logger.LogInformation("Removed container {ContainerId}", containerId);
-    }
-
-    public async Task<string> GetLogsAsync(string containerId, bool stdout = true, bool stderr = true, CancellationToken cancellationToken = default)
-    {
-        var logParams = new ContainerLogsParameters
-        {
-            ShowStdout = stdout,
-            ShowStderr = stderr
-        };
-
-        using var logStream = await _client.Containers.GetContainerLogsAsync(containerId, false, logParams, cancellationToken);
-        using var memoryStream = new MemoryStream();
-        await logStream.CopyOutputToAsync(Stream.Null, memoryStream, Stream.Null, cancellationToken);
-        return System.Text.Encoding.UTF8.GetString(memoryStream.ToArray());
     }
 
     private static Models.ContainerState MapState(string state)

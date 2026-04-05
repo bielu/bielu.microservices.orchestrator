@@ -1,4 +1,5 @@
 using Bielu.Microservices.Orchestrator.Models;
+using Bielu.Microservices.Orchestrator.Utilities;
 using Shouldly;
 using Xunit;
 
@@ -80,6 +81,7 @@ public class ModelTests
         request.Labels.ShouldNotBeNull();
         request.Volumes.ShouldNotBeNull();
         request.AutoRemove.ShouldBeFalse();
+        request.Replicas.ShouldBe(1);
     }
 
     [Fact]
@@ -114,5 +116,33 @@ public class ModelTests
     public void ContainerState_AllValues_ShouldBeDefined(ContainerState state)
     {
         Enum.IsDefined(state).ShouldBeTrue();
+    }
+
+    // -----------------------------------------------------------------------
+    // LogSanitizer tests
+    // -----------------------------------------------------------------------
+
+    [Fact]
+    public void LogSanitizer_RemovesNewlines()
+    {
+        LogSanitizer.Sanitize("line1\nline2").ShouldBe("line1line2");
+    }
+
+    [Fact]
+    public void LogSanitizer_RemovesCarriageReturns()
+    {
+        LogSanitizer.Sanitize("line1\r\nline2").ShouldBe("line1line2");
+    }
+
+    [Fact]
+    public void LogSanitizer_ReturnsEmptyForNull()
+    {
+        LogSanitizer.Sanitize(null).ShouldBe(string.Empty);
+    }
+
+    [Fact]
+    public void LogSanitizer_PreservesCleanStrings()
+    {
+        LogSanitizer.Sanitize("clean-value").ShouldBe("clean-value");
     }
 }

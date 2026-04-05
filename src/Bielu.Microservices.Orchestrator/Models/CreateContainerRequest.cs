@@ -44,4 +44,10 @@ public class CreateContainerRequest
     /// Whether to automatically remove the container when it stops.
     /// </summary>
     public bool AutoRemove { get; set; }
+
+    /// <summary>
+    /// The number of container instances to create (default is 1).
+    /// When greater than 1, each container is named with a numeric suffix (e.g., my-app-0, my-app-1).
+    /// </summary>
+    public int Replicas { get; set; } = 1;
 }
