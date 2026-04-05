@@ -19,7 +19,7 @@ public static class OrchestratorActivitySource
     /// <summary>
     /// The version of the activity source.
     /// </summary>
-    public static readonly string Version = AssemblyName.Version!.ToString();
+    public static readonly string Version = AssemblyName.Version?.ToString() ?? "0.0.0.0";
 
     /// <summary>
     /// The <see cref="ActivitySource"/> for all orchestrator operations.

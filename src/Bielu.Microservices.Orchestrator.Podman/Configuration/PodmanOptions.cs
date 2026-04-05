@@ -24,8 +24,8 @@ public class PodmanOptions
         }
 
         var uid = Environment.GetEnvironmentVariable("UID") ?? "1000";
-        // Validate UID is numeric to prevent path injection
-        if (!int.TryParse(uid, out _))
+        // Validate UID is a non-negative integer to prevent path injection
+        if (!int.TryParse(uid, out var uidValue) || uidValue < 0)
         {
             uid = "1000";
         }

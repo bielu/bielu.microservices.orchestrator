@@ -59,7 +59,7 @@ builder.Services.AddOpenTelemetry()
 builder.Services.AddHealthChecks()
     .AddContainerRuntimeHealthCheck(
         name: "container-runtime",
-        failureStatus: HealthStatus.Degraded,
+        failureStatus: HealthStatus.Unhealthy,
         tags: ["ready", "runtime"]);
 
 var app = builder.Build();
