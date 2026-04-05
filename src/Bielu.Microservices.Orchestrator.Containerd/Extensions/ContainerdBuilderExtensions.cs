@@ -45,7 +45,11 @@ public static class ContainerdBuilderExtensions
 
         builder.Services.TryAddSingleton<IContainerManager, ContainerdContainerManager>();
         builder.Services.TryAddSingleton<IImageManager, ContainerdImageManager>();
-        builder.Services.TryAddSingleton<INetworkManager, ContainerdNetworkManager>();
+        builder.Services.TryAddSingleton<INetworkManager>(sp =>
+            new ContainerdNetworkManager(
+                sp.GetRequiredService<Tasks.TasksClient>(),
+                options,
+                sp.GetRequiredService<ILogger<ContainerdNetworkManager>>()));
         builder.Services.TryAddSingleton<IVolumeManager, ContainerdVolumeManager>();
         builder.Services.TryAddSingleton<IContainerOrchestrator>(sp =>
             new ContainerdContainerOrchestrator(

@@ -4,12 +4,15 @@ using Bielu.Microservices.Orchestrator.Abstractions;
 using Bielu.Microservices.Orchestrator.Containerd.Configuration;
 using Bielu.Microservices.Orchestrator.Models;
 using Bielu.Microservices.Orchestrator.Utilities;
+using Containerd.Services.Tasks.V1;
+using Grpc.Core;
 using Microsoft.Extensions.Logging;
 
 namespace Bielu.Microservices.Orchestrator.Containerd;
 
 /// <summary>
-/// containerd implementation of the network manager backed by CNI configuration files.
+/// containerd implementation of the network manager backed by CNI configuration files and
+/// CNI plugin binary invocations.
 /// </summary>
 /// <remarks>
 /// <para>
@@ -28,13 +31,16 @@ namespace Bielu.Microservices.Orchestrator.Containerd;
 /// <see href="https://github.com/containernetworking/plugins/releases"/>.
 /// </para>
 /// <para>
-/// <b>Connect / Disconnect</b> are not exposed as a discrete API operation in CNI. Network
-/// attachment happens at task-creation time by passing the network namespace to the CNI plugin.
-/// Use the container's task lifecycle (via <see cref="IContainerManager"/>) to control
-/// which networks a container is attached to.
+/// <b>Connect / Disconnect</b> invoke CNI plugin binaries using the
+/// <see href="https://github.com/containernetworking/cni/blob/main/SPEC.md">CNI wire protocol</see>
+/// (the same mechanism used by <see href="https://github.com/containerd/go-cni">go-cni</see>).
+/// The container's network namespace is resolved from its running task PID via
+/// <c>/proc/{pid}/ns/net</c>, so the container must have a running task before calling
+/// these methods.
 /// </para>
 /// </remarks>
 public class ContainerdNetworkManager(
+    Tasks.TasksClient tasksClient,
     ContainerdOptions options,
     ILogger<ContainerdNetworkManager> logger) : INetworkManager
 {
@@ -206,28 +212,128 @@ public class ContainerdNetworkManager(
 
     /// <inheritdoc />
     /// <remarks>
-    /// Not supported. In CNI, a container is attached to a network when its task is created
-    /// by passing the network namespace path to the CNI plugin binary. There is no separate
-    /// "connect" step after the task is running. Use <see cref="IContainerManager.StartAsync"/>
-    /// to start a container that is already associated with the desired network namespace.
+    /// Invokes the CNI <c>ADD</c> command for the specified network, wiring the network interface
+    /// into the container's network namespace. The container must have a running task so that its
+    /// PID—and therefore its network namespace at <c>/proc/{pid}/ns/net</c>—can be resolved.
     /// </remarks>
-    public Task ConnectAsync(string networkId, string containerId, CancellationToken cancellationToken = default)
+    public async Task ConnectAsync(string networkId, string containerId, CancellationToken cancellationToken = default)
     {
-        throw new NotSupportedException(
-            "CNI does not support attaching a running container to a network after start. " +
-            "Network attachment in CNI happens at task-creation time via the network namespace. " +
-            "Re-create the container with the desired network configuration.");
+        logger.LogInformation(
+            "Connecting container {ContainerId} to CNI network {NetworkId} (ADD)",
+            LogSanitizer.Sanitize(containerId), LogSanitizer.Sanitize(networkId));
+
+        var configJson = await FindConfigContentAsync(networkId, cancellationToken);
+        var netns = await GetNetnsPathAsync(containerId, cancellationToken);
+
+        var invoker = new CniPluginInvoker(logger);
+        await invoker.AddAsync(containerId, netns, configJson, options.CniBinPath, cancellationToken);
+
+        logger.LogInformation(
+            "Connected container {ContainerId} to CNI network {NetworkId}",
+            LogSanitizer.Sanitize(containerId), LogSanitizer.Sanitize(networkId));
     }
 
     /// <inheritdoc />
     /// <remarks>
-    /// Not supported. CNI network detachment from a running container is not exposed as a
-    /// discrete API operation. The network namespace is released when the container task exits.
+    /// Invokes the CNI <c>DEL</c> command for the specified network, removing the network
+    /// interface from the container's network namespace. The container must have a running task.
     /// </remarks>
-    public Task DisconnectAsync(string networkId, string containerId, CancellationToken cancellationToken = default)
+    public async Task DisconnectAsync(string networkId, string containerId, CancellationToken cancellationToken = default)
     {
-        throw new NotSupportedException(
-            "CNI does not support detaching a running container from a network. " +
-            "The network namespace is released when the container task exits.");
+        logger.LogInformation(
+            "Disconnecting container {ContainerId} from CNI network {NetworkId} (DEL)",
+            LogSanitizer.Sanitize(containerId), LogSanitizer.Sanitize(networkId));
+
+        var configJson = await FindConfigContentAsync(networkId, cancellationToken);
+        var netns = await GetNetnsPathAsync(containerId, cancellationToken);
+
+        var invoker = new CniPluginInvoker(logger);
+        await invoker.DeleteAsync(containerId, netns, configJson, options.CniBinPath, cancellationToken);
+
+        logger.LogInformation(
+            "Disconnected container {ContainerId} from CNI network {NetworkId}",
+            LogSanitizer.Sanitize(containerId), LogSanitizer.Sanitize(networkId));
+    }
+
+    /// <summary>
+    /// Reads the raw CNI config JSON for a network identified by <paramref name="networkId"/>.
+    /// <para>
+    /// The <paramref name="networkId"/> may be either the file base-name (e.g. <c>10-mynet</c>)
+    /// as returned by <see cref="ListAsync"/> / <see cref="CreateAsync"/>, or the logical
+    /// <c>name</c> field inside the config file.
+    /// </para>
+    /// </summary>
+    private Task<string> FindConfigContentAsync(string networkId, CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+
+        if (!Directory.Exists(options.CniConfigPath))
+        {
+            throw new DirectoryNotFoundException(
+                $"CNI config directory '{options.CniConfigPath}' does not exist.");
+        }
+
+        foreach (var file in Directory.EnumerateFiles(options.CniConfigPath)
+                     .Where(f => ConfigExtensions.Contains(Path.GetExtension(f), StringComparer.OrdinalIgnoreCase))
+                     .OrderBy(f => f))
+        {
+            // Match by file base-name first (fast path).
+            if (string.Equals(Path.GetFileNameWithoutExtension(file), networkId, StringComparison.OrdinalIgnoreCase))
+            {
+                return Task.FromResult(File.ReadAllText(file));
+            }
+
+            // Also check the "name" field inside the JSON.
+            try
+            {
+                var content = File.ReadAllText(file);
+                var node = JsonNode.Parse(content);
+                var configName = node?["name"]?.GetValue<string>();
+                if (string.Equals(configName, networkId, StringComparison.OrdinalIgnoreCase))
+                {
+                    return Task.FromResult(content);
+                }
+            }
+            catch (Exception ex) when (ex is JsonException or IOException)
+            {
+                logger.LogWarning(ex, "Failed to inspect CNI config file {File}", file);
+            }
+        }
+
+        throw new KeyNotFoundException(
+            $"No CNI config file found for network '{networkId}' in '{options.CniConfigPath}'.");
+    }
+
+    /// <summary>
+    /// Resolves the network namespace path for a container's running task.
+    /// The namespace is located at <c>/proc/{pid}/ns/net</c> where <c>pid</c> is the
+    /// init process PID reported by containerd.
+    /// </summary>
+    private async Task<string> GetNetnsPathAsync(string containerId, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var response = await tasksClient.GetAsync(
+                new GetRequest { ContainerId = containerId },
+                cancellationToken: cancellationToken);
+
+            var pid = response.Process?.Pid
+                      ?? throw new InvalidOperationException(
+                          $"Task for container '{containerId}' has no PID.");
+
+            if (pid == 0)
+            {
+                throw new InvalidOperationException(
+                    $"Task for container '{containerId}' has PID 0; the task may not be running.");
+            }
+
+            return $"/proc/{pid}/ns/net";
+        }
+        catch (RpcException ex) when (ex.StatusCode == StatusCode.NotFound)
+        {
+            throw new InvalidOperationException(
+                $"Container '{containerId}' has no running task. " +
+                "Start the container before connecting it to a network.", ex);
+        }
     }
 }
