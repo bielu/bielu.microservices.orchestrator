@@ -11,6 +11,9 @@
     <PackageVersion Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.0" />
     <PackageVersion Include="Microsoft.Extensions.Options" Version="10.0.0" />
     <PackageVersion Include="Microsoft.Extensions.Http" Version="10.0.0" />
+    <!-- OpenTelemetry -->
+    <PackageVersion Include="OpenTelemetry.Api" Version="1.15.1" />
+    <PackageVersion Include="Scrutor" Version="7.0.0" />
     <!-- Container runtimes -->
     <PackageVersion Include="Docker.DotNet" Version="3.125.15" />
     <PackageVersion Include="KubernetesClient" Version="17.0.14" />
