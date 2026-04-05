@@ -15,6 +15,8 @@
     <ProjectReference Include="..\Bielu.Microservices.Orchestrator.Podman\Bielu.Microservices.Orchestrator.Podman.csproj" />
     <ProjectReference Include="..\Bielu.Microservices.Orchestrator.Containerd\Bielu.Microservices.Orchestrator.Containerd.csproj" />
     <ProjectReference Include="..\Bielu.Microservices.Orchestrator.Kubernetes\Bielu.Microservices.Orchestrator.Kubernetes.csproj" />
+    <ProjectReference Include="..\Bielu.Microservices.Orchestrator.OpenTelemetry\Bielu.Microservices.Orchestrator.OpenTelemetry.csproj" />
+    <ProjectReference Include="..\Bielu.Microservices.Orchestrator.HealthChecks\Bielu.Microservices.Orchestrator.HealthChecks.csproj" />
     <ProjectReference Include="..\Bielu.Microservices.Orchestrator.Examples.AppHost\Bielu.Microservices.Orchestrator.Examples.AppHost.csproj" />
   </ItemGroup>
 

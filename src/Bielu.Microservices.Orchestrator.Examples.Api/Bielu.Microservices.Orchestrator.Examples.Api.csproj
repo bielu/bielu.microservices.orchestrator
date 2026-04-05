@@ -11,7 +11,15 @@
   <ItemGroup>
     <ProjectReference Include="..\Bielu.Microservices.Orchestrator\Bielu.Microservices.Orchestrator.csproj" />
     <ProjectReference Include="..\Bielu.Microservices.Orchestrator.Docker\Bielu.Microservices.Orchestrator.Docker.csproj" />
+    <ProjectReference Include="..\Bielu.Microservices.Orchestrator.OpenTelemetry\Bielu.Microservices.Orchestrator.OpenTelemetry.csproj" />
+    <ProjectReference Include="..\Bielu.Microservices.Orchestrator.HealthChecks\Bielu.Microservices.Orchestrator.HealthChecks.csproj" />
     <ProjectReference Include="..\Bielu.Microservices.Orchestrator.Examples.ServiceDefaults\Bielu.Microservices.Orchestrator.Examples.ServiceDefaults.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="OpenTelemetry.Extensions.Hosting" />
+    <PackageReference Include="OpenTelemetry.Exporter.Console" />
+    <PackageReference Include="OpenTelemetry.Instrumentation.AspNetCore" />
   </ItemGroup>
 
 </Project>
