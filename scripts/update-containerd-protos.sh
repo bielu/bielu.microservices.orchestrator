@@ -13,6 +13,8 @@
 #   ./scripts/update-containerd-protos.sh [VERSION]
 #
 # If VERSION is omitted the value from .containerd-proto-version is used.
+#
+# Requirements: bash 4+, curl, sed (GNU). Designed for Linux / CI use.
 # -------------------------------------------------------------------
 set -euo pipefail
 
