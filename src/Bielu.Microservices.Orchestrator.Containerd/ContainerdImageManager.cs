@@ -112,15 +112,22 @@ public class ContainerdImageManager(
             LogSanitizer.Sanitize(imageId), LogSanitizer.Sanitize(newName));
     }
 
-    private static ImageInfo MapImage(Image image) =>
-        new()
+    private static ImageInfo MapImage(Image image)
+    {
+        // Extract just the tag portion (e.g. "myapp:v1.0" → ["v1.0"], "myapp" → [])
+        var colonIndex = image.Name.LastIndexOf(':');
+        var tag = colonIndex > 0 ? image.Name[(colonIndex + 1)..] : string.Empty;
+        var tags = string.IsNullOrEmpty(tag) ? new List<string>() : new List<string> { tag };
+
+        return new ImageInfo
         {
             Id = image.Name,
-            Tags = new List<string> { image.Name },
+            Tags = tags,
             CreatedAt = image.CreatedAt != null
                 ? DateTimeOffset.FromUnixTimeSeconds(image.CreatedAt.Seconds)
                 : DateTimeOffset.MinValue
         };
+    }
 
     private Metadata NamespaceHeader() =>
         new() { { "containerd-namespace", options.Namespace } };

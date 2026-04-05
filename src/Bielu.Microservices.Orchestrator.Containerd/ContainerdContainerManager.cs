@@ -1,3 +1,4 @@
+using System.Text;
 using System.Text.Json;
 using Bielu.Microservices.Orchestrator.Abstractions;
 using Bielu.Microservices.Orchestrator.Containerd.Configuration;
@@ -30,6 +31,7 @@ public class ContainerdContainerManager(
     ILogger<ContainerdContainerManager> logger) : IContainerManager
 {
     private const string DefaultSnapshotter = "overlayfs";
+    private const string OciSpecVersion = "1.0.2";
 
     // SIGTERM = 15, SIGKILL = 9
     private const uint SigTerm = 15;
@@ -255,7 +257,7 @@ public class ContainerdContainerManager(
         var spec = new Any
         {
             TypeUrl = "types.containerd.io/opencontainers/runtime-spec/1/linux",
-            Value = ByteString.CopyFrom(System.Text.Encoding.UTF8.GetBytes(specJson))
+            Value = ByteString.CopyFrom(Encoding.UTF8.GetBytes(specJson))
         };
 
         var container = new Container
@@ -393,7 +395,7 @@ public class ContainerdContainerManager(
 
         var spec = new
         {
-            ociVersion = "1.0.2",
+            ociVersion = OciSpecVersion,
             process = new
             {
                 terminal = false,
