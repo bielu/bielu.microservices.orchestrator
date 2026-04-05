@@ -34,7 +34,7 @@ public class ContainerdContainerManager(
         return Task.FromResult<ContainerInfo?>(null);
     }
 
-    public async Task<string> CreateAsync(CreateContainerRequest request, CancellationToken cancellationToken = default)
+    public Task<string> CreateAsync(CreateContainerRequest request, CancellationToken cancellationToken = default)
     {
         if (request.Replicas <= 0)
         {
@@ -43,7 +43,7 @@ public class ContainerdContainerManager(
 
         if (request.Replicas == 1)
         {
-            return CreateSingleContainer(request, request.Name);
+            return Task.FromResult(CreateSingleContainer(request, request.Name));
         }
 
         // Create multiple replicas with indexed names and a grouping label
@@ -58,7 +58,7 @@ public class ContainerdContainerManager(
         }
 
         logger.LogInformation("Created {Replicas} containerd container replicas in group {GroupName}", request.Replicas, LogSanitizer.Sanitize(groupName));
-        return firstId!;
+        return Task.FromResult(firstId!);
     }
 
     public Task StartAsync(string containerId, CancellationToken cancellationToken = default)
