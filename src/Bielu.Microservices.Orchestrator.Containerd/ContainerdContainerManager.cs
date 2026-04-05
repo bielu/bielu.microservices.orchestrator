@@ -32,6 +32,7 @@ public class ContainerdContainerManager(
 {
     private const string DefaultSnapshotter = "overlayfs";
     private const string OciSpecVersion = "1.0.2";
+    private const string DefaultContainerPath = "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin";
 
     // SIGTERM = 15, SIGKILL = 9
     private const uint SigTerm = 15;
@@ -378,7 +379,7 @@ public class ContainerdContainerManager(
 
         var env = request.EnvironmentVariables
             .Select(kv => $"{kv.Key}={kv.Value}")
-            .Prepend("PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin")
+            .Prepend(DefaultContainerPath)
             .ToList();
 
         var bindMounts = request.Volumes.Select(v =>
