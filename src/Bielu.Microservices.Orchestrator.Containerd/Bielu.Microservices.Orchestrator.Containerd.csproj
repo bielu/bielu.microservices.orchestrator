@@ -24,16 +24,30 @@
     <PackageReference Include="Microsoft.Extensions.Http" />
   </ItemGroup>
 
+  <!--
+    Containerd gRPC proto files.
+    Sourced from https://github.com/containerd/containerd - version tracked in .containerd-proto-version.
+    To update: ./scripts/update-containerd-protos.sh [VERSION]
+  -->
   <ItemGroup>
-    <Protobuf Include="Proto\containerd\types\descriptor.proto" ProtoRoot="Proto" GrpcServices="None" />
-    <Protobuf Include="Proto\containerd\types\mount.proto" ProtoRoot="Proto" GrpcServices="None" />
-    <Protobuf Include="Proto\containerd\types\metrics.proto" ProtoRoot="Proto" GrpcServices="None" />
-    <Protobuf Include="Proto\containerd\types\task\task.proto" ProtoRoot="Proto" GrpcServices="None" />
-    <Protobuf Include="Proto\containerd\services\containers\v1\containers.proto" ProtoRoot="Proto" GrpcServices="Client" />
-    <Protobuf Include="Proto\containerd\services\tasks\v1\tasks.proto" ProtoRoot="Proto" GrpcServices="Client" />
-    <Protobuf Include="Proto\containerd\services\images\v1\images.proto" ProtoRoot="Proto" GrpcServices="Client" />
-    <Protobuf Include="Proto\containerd\services\snapshots\v1\snapshots.proto" ProtoRoot="Proto" GrpcServices="Client" />
-    <Protobuf Include="Proto\containerd\services\version\v1\version.proto" ProtoRoot="Proto" GrpcServices="Client" />
+    <Protobuf Include="Proto\containerd\types\descriptor.proto" ProtoRoot="Proto" GrpcServices="None"
+              SourceUrl="https://raw.githubusercontent.com/containerd/containerd/$(ContainerdProtoVersion)/api/types/descriptor.proto" />
+    <Protobuf Include="Proto\containerd\types\mount.proto" ProtoRoot="Proto" GrpcServices="None"
+              SourceUrl="https://raw.githubusercontent.com/containerd/containerd/$(ContainerdProtoVersion)/api/types/mount.proto" />
+    <Protobuf Include="Proto\containerd\types\metrics.proto" ProtoRoot="Proto" GrpcServices="None"
+              SourceUrl="https://raw.githubusercontent.com/containerd/containerd/$(ContainerdProtoVersion)/api/types/metrics.proto" />
+    <Protobuf Include="Proto\containerd\types\task\task.proto" ProtoRoot="Proto" GrpcServices="None"
+              SourceUrl="https://raw.githubusercontent.com/containerd/containerd/$(ContainerdProtoVersion)/api/types/task/task.proto" />
+    <Protobuf Include="Proto\containerd\services\containers\v1\containers.proto" ProtoRoot="Proto" GrpcServices="Client"
+              SourceUrl="https://raw.githubusercontent.com/containerd/containerd/$(ContainerdProtoVersion)/api/services/containers/v1/containers.proto" />
+    <Protobuf Include="Proto\containerd\services\tasks\v1\tasks.proto" ProtoRoot="Proto" GrpcServices="Client"
+              SourceUrl="https://raw.githubusercontent.com/containerd/containerd/$(ContainerdProtoVersion)/api/services/tasks/v1/tasks.proto" />
+    <Protobuf Include="Proto\containerd\services\images\v1\images.proto" ProtoRoot="Proto" GrpcServices="Client"
+              SourceUrl="https://raw.githubusercontent.com/containerd/containerd/$(ContainerdProtoVersion)/api/services/images/v1/images.proto" />
+    <Protobuf Include="Proto\containerd\services\snapshots\v1\snapshots.proto" ProtoRoot="Proto" GrpcServices="Client"
+              SourceUrl="https://raw.githubusercontent.com/containerd/containerd/$(ContainerdProtoVersion)/api/services/snapshots/v1/snapshots.proto" />
+    <Protobuf Include="Proto\containerd\services\version\v1\version.proto" ProtoRoot="Proto" GrpcServices="Client"
+              SourceUrl="https://raw.githubusercontent.com/containerd/containerd/$(ContainerdProtoVersion)/api/services/version/v1/version.proto" />
   </ItemGroup>
 
 </Project>
