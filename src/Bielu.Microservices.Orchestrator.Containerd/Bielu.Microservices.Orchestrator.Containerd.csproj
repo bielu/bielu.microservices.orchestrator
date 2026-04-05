@@ -19,8 +19,21 @@
   <ItemGroup>
     <PackageReference Include="Grpc.Net.Client" />
     <PackageReference Include="Google.Protobuf" />
+    <PackageReference Include="Grpc.Tools" PrivateAssets="All" />
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
     <PackageReference Include="Microsoft.Extensions.Http" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Protobuf Include="Proto\containerd\types\descriptor.proto" ProtoRoot="Proto" GrpcServices="None" />
+    <Protobuf Include="Proto\containerd\types\mount.proto" ProtoRoot="Proto" GrpcServices="None" />
+    <Protobuf Include="Proto\containerd\types\metrics.proto" ProtoRoot="Proto" GrpcServices="None" />
+    <Protobuf Include="Proto\containerd\types\task\task.proto" ProtoRoot="Proto" GrpcServices="None" />
+    <Protobuf Include="Proto\containerd\services\containers\v1\containers.proto" ProtoRoot="Proto" GrpcServices="Client" />
+    <Protobuf Include="Proto\containerd\services\tasks\v1\tasks.proto" ProtoRoot="Proto" GrpcServices="Client" />
+    <Protobuf Include="Proto\containerd\services\images\v1\images.proto" ProtoRoot="Proto" GrpcServices="Client" />
+    <Protobuf Include="Proto\containerd\services\snapshots\v1\snapshots.proto" ProtoRoot="Proto" GrpcServices="Client" />
+    <Protobuf Include="Proto\containerd\services\version\v1\version.proto" ProtoRoot="Proto" GrpcServices="Client" />
   </ItemGroup>
 
 </Project>
