@@ -1,0 +1,103 @@
+name: Check containerd Proto Updates
+
+on:
+  schedule:
+    # Run weekly on Monday at 08:00 UTC
+    - cron: '0 8 * * 1'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Override containerd version (e.g. v2.2.2). Leave empty to use latest stable.'
+        required: false
+        type: string
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  check-update:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Determine target version
+        id: version
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          CURRENT=$(tr -d '[:space:]' < .containerd-proto-version)
+          echo "current=${CURRENT}" >> "$GITHUB_OUTPUT"
+
+          if [[ -n "${{ inputs.version }}" ]]; then
+            LATEST="${{ inputs.version }}"
+          else
+            # Fetch latest stable release (skip pre-releases)
+            LATEST=$(gh api repos/containerd/containerd/releases \
+              --jq '[.[] | select(.prerelease == false and .draft == false)][0].tag_name')
+          fi
+
+          echo "latest=${LATEST}" >> "$GITHUB_OUTPUT"
+
+          if [[ "$CURRENT" == "$LATEST" ]]; then
+            echo "update_needed=false" >> "$GITHUB_OUTPUT"
+            echo "✅ Already up to date: ${CURRENT}"
+          else
+            echo "update_needed=true" >> "$GITHUB_OUTPUT"
+            echo "🔄 Update available: ${CURRENT} → ${LATEST}"
+          fi
+
+      - name: Update proto files
+        if: steps.version.outputs.update_needed == 'true'
+        run: |
+          ./scripts/update-containerd-protos.sh "${{ steps.version.outputs.latest }}"
+
+      - name: Setup .NET
+        if: steps.version.outputs.update_needed == 'true'
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Verify build
+        if: steps.version.outputs.update_needed == 'true'
+        run: |
+          dotnet build src/Bielu.Microservices.Orchestrator.Containerd/Bielu.Microservices.Orchestrator.Containerd.csproj
+
+      - name: Create Pull Request
+        if: steps.version.outputs.update_needed == 'true'
+        uses: peter-evans/create-pull-request@v7
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: "chore: update containerd proto files to ${{ steps.version.outputs.latest }}"
+          branch: "deps/containerd-proto-${{ steps.version.outputs.latest }}"
+          delete-branch: true
+          title: "chore(deps): update containerd proto files from ${{ steps.version.outputs.current }} to ${{ steps.version.outputs.latest }}"
+          body: |
+            ## Containerd Proto Update
+
+            Updates vendored containerd gRPC proto files from `${{ steps.version.outputs.current }}` to `${{ steps.version.outputs.latest }}`.
+
+            **Release notes:** https://github.com/containerd/containerd/releases/tag/${{ steps.version.outputs.latest }}
+
+            ### What changed
+            - Downloaded proto files from [containerd ${{ steps.version.outputs.latest }}](https://github.com/containerd/containerd/tree/${{ steps.version.outputs.latest }}/api)
+            - Applied C# patches (namespace options, import path rewrites, Descriptor→ContentDescriptor rename)
+            - Verified build passes
+
+            ### Proto files updated
+            - `containerd/types/descriptor.proto`
+            - `containerd/types/mount.proto`
+            - `containerd/types/metrics.proto`
+            - `containerd/types/task/task.proto`
+            - `containerd/services/containers/v1/containers.proto`
+            - `containerd/services/tasks/v1/tasks.proto`
+            - `containerd/services/images/v1/images.proto`
+            - `containerd/services/snapshots/v1/snapshots.proto`
+            - `containerd/services/version/v1/version.proto`
+
+            ---
+            *This PR was automatically created by the [Check containerd Proto Updates](.github/workflows/check-containerd-release.yml) workflow.*
+          labels: |
+            dependencies
+            automated

@@ -1,0 +1,24 @@
+<Project>
+
+    <Import Project="../version.props"/>
+
+    <PropertyGroup>
+      <Title>$(MSBuildProjectName)</Title>
+      <AssemblyName>$(MSBuildProjectName)</AssemblyName>
+      <AssemblyVersion>$(Version)</AssemblyVersion>
+    </PropertyGroup>
+
+    <PropertyGroup>
+        <Authors>bielu</Authors>
+        <PackageOutputPath>$(MSBuildProjectDirectory)/../../dist</PackageOutputPath>
+        <PackageReadmeFile>readme.md</PackageReadmeFile>
+        <RepositoryUrl>https://github.com/bielu/bielu.microservices.orchestrator</RepositoryUrl>
+        <RepositoryType>git</RepositoryType>
+        <PackageProjectUrl>https://github.com/bielu/bielu.microservices.orchestrator</PackageProjectUrl>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <None Include="$(MSBuildThisFileDirectory)../readme.md" Pack="true" PackagePath="/" />
+    </ItemGroup>
+
+</Project>

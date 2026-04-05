@@ -1,0 +1,25 @@
+<Solution>
+  <Folder Name="/tests/">
+    <Project Path="Bielu.Microservices.Orchestrator.Tests/Bielu.Microservices.Orchestrator.Tests.csproj" />
+  </Folder>
+  <Folder Name="/examples/">
+    <Project Path="Bielu.Microservices.Orchestrator.Examples.AppHost/Bielu.Microservices.Orchestrator.Examples.AppHost.csproj" />
+    <Project Path="Bielu.Microservices.Orchestrator.Examples.ServiceDefaults/Bielu.Microservices.Orchestrator.Examples.ServiceDefaults.csproj" />
+    <Project Path="Bielu.Microservices.Orchestrator.Examples.Api/Bielu.Microservices.Orchestrator.Examples.Api.csproj" />
+  </Folder>
+  <Folder Name="/Solution Files/">
+    <File Path="../.gitignore" />
+    <File Path="../CODEOWNERS" />
+    <File Path="../LICENSE.md" />
+    <File Path="../readme.md" />
+    <File Path="../version.props" />
+    <File Path="../Directory.Packages.props" />
+  </Folder>
+  <Project Path="Bielu.Microservices.Orchestrator/Bielu.Microservices.Orchestrator.csproj" />
+  <Project Path="Bielu.Microservices.Orchestrator.Docker/Bielu.Microservices.Orchestrator.Docker.csproj" />
+  <Project Path="Bielu.Microservices.Orchestrator.Podman/Bielu.Microservices.Orchestrator.Podman.csproj" />
+  <Project Path="Bielu.Microservices.Orchestrator.Containerd/Bielu.Microservices.Orchestrator.Containerd.csproj" />
+  <Project Path="Bielu.Microservices.Orchestrator.Kubernetes/Bielu.Microservices.Orchestrator.Kubernetes.csproj" />
+  <Project Path="Bielu.Microservices.Orchestrator.OpenTelemetry/Bielu.Microservices.Orchestrator.OpenTelemetry.csproj" />
+  <Project Path="Bielu.Microservices.Orchestrator.HealthChecks/Bielu.Microservices.Orchestrator.HealthChecks.csproj" />
+</Solution>

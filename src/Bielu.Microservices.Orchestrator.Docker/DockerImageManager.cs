@@ -1,0 +1,93 @@
+using Bielu.Microservices.Orchestrator.Abstractions;
+using Bielu.Microservices.Orchestrator.Models;
+using Bielu.Microservices.Orchestrator.Utilities;
+using Docker.DotNet;
+using Docker.DotNet.Models;
+using Microsoft.Extensions.Logging;
+
+namespace Bielu.Microservices.Orchestrator.Docker;
+
+/// <summary>
+/// Docker implementation of the image manager.
+/// </summary>
+public class DockerImageManager(
+    DockerClient client,
+    ILogger<DockerImageManager> logger) : IImageManager
+{
+
+    public async Task<IReadOnlyList<ImageInfo>> ListAsync(CancellationToken cancellationToken = default)
+    {
+        var images = await client.Images.ListImagesAsync(
+            new ImagesListParameters { All = true }, cancellationToken);
+
+        return images.Select(i => new ImageInfo
+        {
+            Id = i.ID,
+            Tags = i.RepoTags?.ToList() ?? new List<string>(),
+            Size = i.Size,
+            CreatedAt = new DateTimeOffset(i.Created),
+            Labels = i.Labels != null ? new Dictionary<string, string>(i.Labels) : new Dictionary<string, string>()
+        }).ToList().AsReadOnly();
+    }
+
+    public async Task<ImageInfo?> GetAsync(string imageId, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var response = await client.Images.InspectImageAsync(imageId, cancellationToken);
+            return new ImageInfo
+            {
+                Id = response.ID,
+                Tags = response.RepoTags?.ToList() ?? new List<string>(),
+                Size = response.Size,
+                CreatedAt = new DateTimeOffset(response.Created),
+                Labels = response.Config?.Labels != null
+                    ? new Dictionary<string, string>(response.Config.Labels)
+                    : new Dictionary<string, string>()
+            };
+        }
+        catch (DockerImageNotFoundException)
+        {
+            return null;
+        }
+    }
+
+    public async Task PullAsync(PullImageRequest request, CancellationToken cancellationToken = default)
+    {
+        var pullParams = new ImagesCreateParameters
+        {
+            FromImage = request.Image,
+            Tag = request.Tag
+        };
+
+        AuthConfig? authConfig = null;
+        if (request.Credentials != null)
+        {
+            authConfig = new AuthConfig
+            {
+                ServerAddress = request.Credentials.ServerAddress,
+                Username = request.Credentials.Username,
+                Password = request.Credentials.Password
+            };
+        }
+
+        logger.LogInformation("Pulling image {Image}:{Tag}", LogSanitizer.Sanitize(request.Image), LogSanitizer.Sanitize(request.Tag));
+        await client.Images.CreateImageAsync(pullParams, authConfig,
+            new Progress<JSONMessage>(), cancellationToken);
+        logger.LogInformation("Pulled image {Image}:{Tag}", LogSanitizer.Sanitize(request.Image), LogSanitizer.Sanitize(request.Tag));
+    }
+
+    public async Task RemoveAsync(string imageId, bool force = false, CancellationToken cancellationToken = default)
+    {
+        await client.Images.DeleteImageAsync(imageId,
+            new ImageDeleteParameters { Force = force }, cancellationToken);
+        logger.LogInformation("Removed image {ImageId}", LogSanitizer.Sanitize(imageId));
+    }
+
+    public async Task TagAsync(string imageId, string repository, string tag, CancellationToken cancellationToken = default)
+    {
+        await client.Images.TagImageAsync(imageId,
+            new ImageTagParameters { RepositoryName = repository, Tag = tag }, cancellationToken);
+        logger.LogInformation("Tagged image {ImageId} as {Repository}:{Tag}", LogSanitizer.Sanitize(imageId), LogSanitizer.Sanitize(repository), LogSanitizer.Sanitize(tag));
+    }
+}

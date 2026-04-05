@@ -1,0 +1,40 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <LangVersion>14</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Bielu.Microservices.Orchestrator\Bielu.Microservices.Orchestrator.csproj" />
+    <ProjectReference Include="..\Bielu.Microservices.Orchestrator.Docker\Bielu.Microservices.Orchestrator.Docker.csproj" />
+    <ProjectReference Include="..\Bielu.Microservices.Orchestrator.Podman\Bielu.Microservices.Orchestrator.Podman.csproj" />
+    <ProjectReference Include="..\Bielu.Microservices.Orchestrator.Containerd\Bielu.Microservices.Orchestrator.Containerd.csproj" />
+    <ProjectReference Include="..\Bielu.Microservices.Orchestrator.Kubernetes\Bielu.Microservices.Orchestrator.Kubernetes.csproj" />
+    <ProjectReference Include="..\Bielu.Microservices.Orchestrator.OpenTelemetry\Bielu.Microservices.Orchestrator.OpenTelemetry.csproj" />
+    <ProjectReference Include="..\Bielu.Microservices.Orchestrator.HealthChecks\Bielu.Microservices.Orchestrator.HealthChecks.csproj" />
+    <ProjectReference Include="..\Bielu.Microservices.Orchestrator.Examples.AppHost\Bielu.Microservices.Orchestrator.Examples.AppHost.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Aspire.Hosting" />
+    <PackageReference Include="Aspire.Hosting.Testing" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="xunit" />
+    <PackageReference Include="xunit.runner.visualstudio">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="Shouldly" />
+    <PackageReference Include="NSubstitute" />
+    <PackageReference Include="coverlet.collector">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+
+</Project>
