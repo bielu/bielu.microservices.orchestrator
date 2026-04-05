@@ -1,6 +1,10 @@
 using Bielu.Microservices.Orchestrator.Abstractions;
 using Bielu.Microservices.Orchestrator.Configuration;
 using Bielu.Microservices.Orchestrator.Containerd.Configuration;
+using Containerd.Services.Containers.V1;
+using Containerd.Services.Images.V1;
+using Containerd.Services.Snapshots.V1;
+using Containerd.Services.Tasks.V1;
 using Grpc.Net.Client;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -28,16 +32,24 @@ public static class ContainerdBuilderExtensions
 
         builder.Services.AddSingleton(options);
         builder.Services.AddSingleton(_ =>
-        {
-            return GrpcChannel.ForAddress(options.Endpoint, new GrpcChannelOptions
+            GrpcChannel.ForAddress(options.Endpoint, new GrpcChannelOptions
             {
                 Credentials = Grpc.Core.ChannelCredentials.Insecure
-            });
-        });
+            }));
+
+        // Register generated gRPC clients
+        builder.Services.AddSingleton(sp => new Containers.ContainersClient(sp.GetRequiredService<GrpcChannel>()));
+        builder.Services.AddSingleton(sp => new Tasks.TasksClient(sp.GetRequiredService<GrpcChannel>()));
+        builder.Services.AddSingleton(sp => new Images.ImagesClient(sp.GetRequiredService<GrpcChannel>()));
+        builder.Services.AddSingleton(sp => new Snapshots.SnapshotsClient(sp.GetRequiredService<GrpcChannel>()));
 
         builder.Services.TryAddSingleton<IContainerManager, ContainerdContainerManager>();
         builder.Services.TryAddSingleton<IImageManager, ContainerdImageManager>();
-        builder.Services.TryAddSingleton<INetworkManager, ContainerdNetworkManager>();
+        builder.Services.TryAddSingleton<INetworkManager>(sp =>
+            new ContainerdNetworkManager(
+                sp.GetRequiredService<Tasks.TasksClient>(),
+                options,
+                sp.GetRequiredService<ILogger<ContainerdNetworkManager>>()));
         builder.Services.TryAddSingleton<IVolumeManager, ContainerdVolumeManager>();
         builder.Services.TryAddSingleton<IContainerOrchestrator>(sp =>
             new ContainerdContainerOrchestrator(
