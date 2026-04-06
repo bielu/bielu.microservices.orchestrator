@@ -19,11 +19,10 @@ public static class ServiceCollectionExtensions
         Action<OrchestratorBuilder>? configure = null)
     {
         var options = new OrchestratorOptions();
-        services.AddSingleton(options);
-        services.AddOptions<OrchestratorOptions>();
-
         var builder = new OrchestratorBuilder(services, options);
         configure?.Invoke(builder);
+
+        services.AddSingleton(options);
 
         return services;
     }

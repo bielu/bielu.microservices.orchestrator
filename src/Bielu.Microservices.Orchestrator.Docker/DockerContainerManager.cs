@@ -160,12 +160,17 @@ public class DockerContainerManager(
         CancellationToken cancellationToken,
         Dictionary<string, string>? overrideLabels = null)
     {
+        var labels = overrideLabels != null
+            ? new Dictionary<string, string>(overrideLabels)
+            : new Dictionary<string, string>(request.Labels);
+        labels[OrchestratorLabels.ManagedBy] = OrchestratorLabels.ManagedByValue;
+
         var createParams = new CreateContainerParameters
         {
             Image = request.Image,
             Name = containerName,
             Env = request.EnvironmentVariables.Select(kv => $"{kv.Key}={kv.Value}").ToList(),
-            Labels = AddManagedByLabel(overrideLabels ?? new Dictionary<string, string>(request.Labels)),
+            Labels = labels,
             HostConfig = new HostConfig
             {
                 PortBindings = request.Ports.ToDictionary(
@@ -219,11 +224,5 @@ public class DockerContainerManager(
             }
         }
         return result;
-    }
-
-    private static Dictionary<string, string> AddManagedByLabel(Dictionary<string, string> labels)
-    {
-        labels[OrchestratorLabels.ManagedBy] = OrchestratorLabels.ManagedByValue;
-        return labels;
     }
 }

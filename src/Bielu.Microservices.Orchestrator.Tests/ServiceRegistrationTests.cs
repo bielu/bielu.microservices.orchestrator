@@ -25,8 +25,6 @@ public class ServiceRegistrationTests
 
         // Assert
         var provider = services.BuildServiceProvider();
-        var options = provider.GetService<Microsoft.Extensions.Options.IOptions<OrchestratorOptions>>();
-        options.ShouldNotBeNull();
         var orchestratorOptions = provider.GetService<OrchestratorOptions>();
         orchestratorOptions.ShouldNotBeNull();
         orchestratorOptions.ManagedContainersOnly.ShouldBeTrue();
