@@ -1,6 +1,7 @@
 using System.Text;
 using System.Text.Json;
 using Bielu.Microservices.Orchestrator.Abstractions;
+using Bielu.Microservices.Orchestrator.Configuration;
 using Bielu.Microservices.Orchestrator.Containerd.Configuration;
 using Bielu.Microservices.Orchestrator.Utilities;
 using Containerd.Services.Containers.V1;
@@ -28,6 +29,7 @@ public class ContainerdContainerManager(
     Tasks.TasksClient tasksClient,
     Snapshots.SnapshotsClient snapshotsClient,
     ContainerdOptions options,
+    OrchestratorOptions orchestratorOptions,
     ILogger<ContainerdContainerManager> logger) : IContainerManager
 {
     private const string DefaultSnapshotter = "overlayfs";
@@ -43,7 +45,14 @@ public class ContainerdContainerManager(
         logger.LogDebug("Listing containerd containers in namespace {Namespace}", LogSanitizer.Sanitize(options.Namespace));
 
         var headers = NamespaceHeader();
-        var listResponse = await containersClient.ListAsync(new ListContainersRequest(), headers, cancellationToken: cancellationToken);
+        var listRequest = new ListContainersRequest();
+
+        if (orchestratorOptions.ManagedContainersOnly)
+        {
+            listRequest.Filters.Add($"labels.\"{OrchestratorLabels.ManagedBy}\"=={OrchestratorLabels.ManagedByValue}");
+        }
+
+        var listResponse = await containersClient.ListAsync(listRequest, headers, cancellationToken: cancellationToken);
 
         // Build a lookup of task statuses
         var taskStatuses = await GetTaskStatusMapAsync(headers, cancellationToken);
@@ -95,8 +104,8 @@ public class ContainerdContainerManager(
             var replicaName = $"{groupName}-{i}";
             var replicaLabels = new Dictionary<string, string>(request.Labels)
             {
-                ["orchestrator.group"] = groupName,
-                ["orchestrator.replica-index"] = i.ToString()
+                [OrchestratorLabels.Group] = groupName,
+                [OrchestratorLabels.ReplicaIndex] = i.ToString()
             };
 
             var id = await CreateSingleContainerAsync(request, replicaName, cancellationToken, replicaLabels);
@@ -253,6 +262,7 @@ public class ContainerdContainerManager(
         var headers = NamespaceHeader();
 
         var labels = overrideLabels ?? new Dictionary<string, string>(request.Labels);
+        labels[OrchestratorLabels.ManagedBy] = OrchestratorLabels.ManagedByValue;
 
         var specJson = BuildOciSpec(request);
         var spec = new Any

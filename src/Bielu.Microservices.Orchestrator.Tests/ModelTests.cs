@@ -1,3 +1,4 @@
+using Bielu.Microservices.Orchestrator.Configuration;
 using Bielu.Microservices.Orchestrator.Models;
 using Bielu.Microservices.Orchestrator.Utilities;
 using Shouldly;
@@ -144,5 +145,53 @@ public class ModelTests
     public void LogSanitizer_PreservesCleanStrings()
     {
         LogSanitizer.Sanitize("clean-value").ShouldBe("clean-value");
+    }
+
+    // -----------------------------------------------------------------------
+    // OrchestratorOptions tests
+    // -----------------------------------------------------------------------
+
+    [Fact]
+    public void OrchestratorOptions_ManagedContainersOnly_DefaultsToTrue()
+    {
+        var options = new OrchestratorOptions();
+
+        options.ManagedContainersOnly.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void OrchestratorOptions_DefaultProvider_DefaultsToNull()
+    {
+        var options = new OrchestratorOptions();
+
+        options.DefaultProvider.ShouldBeNull();
+    }
+
+    // -----------------------------------------------------------------------
+    // OrchestratorLabels tests
+    // -----------------------------------------------------------------------
+
+    [Fact]
+    public void OrchestratorLabels_ManagedBy_HasExpectedValue()
+    {
+        OrchestratorLabels.ManagedBy.ShouldBe("orchestrator.managed-by");
+    }
+
+    [Fact]
+    public void OrchestratorLabels_ManagedByValue_HasExpectedValue()
+    {
+        OrchestratorLabels.ManagedByValue.ShouldBe("bielu-orchestrator");
+    }
+
+    [Fact]
+    public void OrchestratorLabels_Group_HasExpectedValue()
+    {
+        OrchestratorLabels.Group.ShouldBe("orchestrator.group");
+    }
+
+    [Fact]
+    public void OrchestratorLabels_ReplicaIndex_HasExpectedValue()
+    {
+        OrchestratorLabels.ReplicaIndex.ShouldBe("orchestrator.replica-index");
     }
 }

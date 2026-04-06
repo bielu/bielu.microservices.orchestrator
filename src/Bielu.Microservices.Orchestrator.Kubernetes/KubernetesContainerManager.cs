@@ -1,4 +1,5 @@
 using Bielu.Microservices.Orchestrator.Abstractions;
+using Bielu.Microservices.Orchestrator.Configuration;
 using Bielu.Microservices.Orchestrator.Kubernetes.Configuration;
 using Bielu.Microservices.Orchestrator.Models;
 using Bielu.Microservices.Orchestrator.Utilities;
@@ -14,12 +15,20 @@ namespace Bielu.Microservices.Orchestrator.Kubernetes;
 public class KubernetesContainerManager(
     IKubernetes client,
     KubernetesOptions options,
+    OrchestratorOptions orchestratorOptions,
     ILogger<KubernetesContainerManager> logger) : IContainerManager
 {
 
     public async Task<IReadOnlyList<ContainerInfo>> ListAsync(bool all = false, CancellationToken cancellationToken = default)
     {
-        var pods = await client.CoreV1.ListNamespacedPodAsync(options.Namespace, cancellationToken: cancellationToken);
+        var labelSelector = orchestratorOptions.ManagedContainersOnly
+            ? $"{OrchestratorLabels.ManagedBy}={OrchestratorLabels.ManagedByValue}"
+            : null;
+
+        var pods = await client.CoreV1.ListNamespacedPodAsync(
+            options.Namespace,
+            labelSelector: labelSelector,
+            cancellationToken: cancellationToken);
 
         return pods.Items.Select(pod => new ContainerInfo
         {
@@ -78,8 +87,8 @@ public class KubernetesContainerManager(
             var replicaName = $"{groupName}-{i}";
             var replicaLabels = new Dictionary<string, string>(request.Labels)
             {
-                ["orchestrator.group"] = groupName,
-                ["orchestrator.replica-index"] = i.ToString()
+                [OrchestratorLabels.Group] = groupName,
+                [OrchestratorLabels.ReplicaIndex] = i.ToString()
             };
 
             var name = await CreateSinglePodAsync(request, replicaName, replicaLabels, cancellationToken);
@@ -140,13 +149,18 @@ public class KubernetesContainerManager(
         IDictionary<string, string> labels,
         CancellationToken cancellationToken)
     {
+        var podLabels = new Dictionary<string, string>(labels)
+        {
+            [OrchestratorLabels.ManagedBy] = OrchestratorLabels.ManagedByValue
+        };
+
         var pod = new k8s.Models.V1Pod
         {
             Metadata = new k8s.Models.V1ObjectMeta
             {
                 Name = podName ?? $"orchestrator-{Guid.NewGuid():N}",
                 NamespaceProperty = options.Namespace,
-                Labels = new Dictionary<string, string>(labels)
+                Labels = podLabels
             },
             Spec = new k8s.Models.V1PodSpec
             {
