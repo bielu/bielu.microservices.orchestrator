@@ -52,6 +52,15 @@ public class FluentApiTests
     }
 
     [Fact]
+    public void WithDefaultProvider_ThrowsOnEmpty()
+    {
+        var options = new OrchestratorOptions();
+        var builder = new OrchestratorBuilder(new ServiceCollection(), options);
+
+        Should.Throw<ArgumentException>(() => builder.WithDefaultProvider(""));
+    }
+
+    [Fact]
     public void Builder_FluentChaining_Works()
     {
         var options = new OrchestratorOptions();
@@ -172,6 +181,20 @@ public class FluentApiTests
         var request = new CreateContainerRequest().WithReplicas(3);
 
         request.Replicas.ShouldBe(3);
+    }
+
+    [Fact]
+    public void WithReplicas_ThrowsOnZero()
+    {
+        Should.Throw<ArgumentOutOfRangeException>(
+            () => new CreateContainerRequest().WithReplicas(0));
+    }
+
+    [Fact]
+    public void WithReplicas_ThrowsOnNegative()
+    {
+        Should.Throw<ArgumentOutOfRangeException>(
+            () => new CreateContainerRequest().WithReplicas(-1));
     }
 
     [Fact]

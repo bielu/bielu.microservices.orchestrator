@@ -47,6 +47,10 @@ public static class CreateContainerRequestExtensions
     /// <summary>
     /// Adds a port mapping to the container.
     /// </summary>
+    /// <remarks>
+    /// The default <paramref name="hostIp"/> of <c>"0.0.0.0"</c> binds the port on all
+    /// network interfaces. Use <c>"127.0.0.1"</c> to restrict access to the local machine.
+    /// </remarks>
     public static CreateContainerRequest WithPort(
         this CreateContainerRequest request,
         int containerPort,
@@ -96,8 +100,10 @@ public static class CreateContainerRequestExtensions
     /// <summary>
     /// Sets the number of container replicas to create.
     /// </summary>
+    /// <exception cref="ArgumentOutOfRangeException">Thrown when <paramref name="replicas"/> is less than 1.</exception>
     public static CreateContainerRequest WithReplicas(this CreateContainerRequest request, int replicas)
     {
+        ArgumentOutOfRangeException.ThrowIfLessThan(replicas, 1);
         request.Replicas = replicas;
         return request;
     }
