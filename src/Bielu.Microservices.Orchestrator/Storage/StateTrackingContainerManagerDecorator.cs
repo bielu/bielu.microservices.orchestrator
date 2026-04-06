@@ -1,5 +1,6 @@
 using Bielu.Microservices.Orchestrator.Abstractions;
 using Bielu.Microservices.Orchestrator.Models;
+using Bielu.Microservices.Orchestrator.Utilities;
 using Microsoft.Extensions.Logging;
 
 namespace Bielu.Microservices.Orchestrator.Storage;
@@ -51,7 +52,7 @@ public class StateTrackingContainerManagerDecorator(
         }
         catch (Exception ex)
         {
-            logger.LogWarning(ex, "Failed to persist managed instance {InstanceId} to store", Utilities.LogSanitizer.Sanitize(instance.Id));
+            logger.LogWarning(ex, "Failed to persist managed instance {InstanceId} to store", LogSanitizer.Sanitize(instance.Id));
         }
 
         return containerId;
@@ -75,7 +76,7 @@ public class StateTrackingContainerManagerDecorator(
         }
         catch (Exception ex)
         {
-            logger.LogWarning(ex, "Failed to update store before removing container {ContainerId}", Utilities.LogSanitizer.Sanitize(containerId));
+            logger.LogWarning(ex, "Failed to update store before removing container {ContainerId}", LogSanitizer.Sanitize(containerId));
         }
 
         await inner.RemoveAsync(containerId, force, cancellationToken);
@@ -102,7 +103,7 @@ public class StateTrackingContainerManagerDecorator(
         }
         catch (Exception ex)
         {
-            logger.LogWarning(ex, "Failed to update desired replicas for {ContainerId} in store", Utilities.LogSanitizer.Sanitize(containerId));
+            logger.LogWarning(ex, "Failed to update desired replicas for {ContainerId} in store", LogSanitizer.Sanitize(containerId));
         }
     }
 }
