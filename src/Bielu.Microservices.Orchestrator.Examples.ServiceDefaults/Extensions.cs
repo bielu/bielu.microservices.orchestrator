@@ -1,8 +1,13 @@
+using Bielu.Microservices.Orchestrator.OpenTelemetry;
+using Bielu.Microservices.Orchestrator.OpenTelemetry.Extensions;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Logging;
+using OpenTelemetry.Metrics;
+using OpenTelemetry.Resources;
+using OpenTelemetry.Trace;
 
 namespace Microsoft.Extensions.Hosting;
 
@@ -13,8 +18,26 @@ public static class Extensions
 {
     public static IHostApplicationBuilder AddServiceDefaults(this IHostApplicationBuilder builder)
     {
+        builder.ConfigureOpenTelemetry();
+
         builder.Services.AddHealthChecks()
             .AddCheck("self", () => HealthCheckResult.Healthy(), ["live"]);
+
+        return builder;
+    }
+
+    public static IHostApplicationBuilder ConfigureOpenTelemetry(this IHostApplicationBuilder builder)
+    {
+        builder.Services.AddOpenTelemetry()
+            .ConfigureResource(r => r.AddService(builder.Environment.ApplicationName))
+            .WithTracing(tracing => tracing
+                .AddOrchestratorInstrumentation()
+                .AddAspNetCoreInstrumentation()
+                .AddConsoleExporter())
+            .WithMetrics(metrics => metrics
+                .AddOrchestratorMetrics()
+                .AddAspNetCoreInstrumentation()
+                .AddConsoleExporter());
 
         return builder;
     }

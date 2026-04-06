@@ -4,8 +4,6 @@ using Bielu.Microservices.Orchestrator.HealthChecks.Extensions;
 using Bielu.Microservices.Orchestrator.OpenTelemetry.Extensions;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
-using OpenTelemetry.Resources;
-using OpenTelemetry.Trace;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -19,8 +17,9 @@ builder.AddServiceDefaults();
 // to target a different runtime with zero changes to the rest of the code.
 //
 // AddOpenTelemetryInstrumentation() wraps every manager interface with a
-// thin decorator that opens an Activity span around each operation so that
-// any configured OpenTelemetry exporter receives the telemetry.
+// thin decorator that opens an Activity span and records metrics around
+// each operation so that any configured OpenTelemetry exporter receives
+// the telemetry.
 builder.Services.AddMicroservicesOrchestrator(orchestrator =>
 {
     orchestrator
@@ -35,20 +34,7 @@ builder.Services.AddMicroservicesOrchestrator(orchestrator =>
 });
 
 // -------------------------------------------------------------------------
-// 2. OpenTelemetry — export container-operation traces
-// -------------------------------------------------------------------------
-// AddOrchestratorInstrumentation() registers the library's ActivitySource
-// with the TracerProvider so all spans from the tracing decorators are
-// captured and forwarded to the configured exporters.
-builder.Services.AddOpenTelemetry()
-    .ConfigureResource(r => r.AddService("orchestrator-api"))
-    .WithTracing(tracing => tracing
-        .AddOrchestratorInstrumentation()   // <-- orchestrator spans
-        .AddAspNetCoreInstrumentation()     // <-- HTTP request spans
-        .AddConsoleExporter());             // replace with OTLP in production
-
-// -------------------------------------------------------------------------
-// 3. Health checks — verify the container runtime is reachable
+// 2. Health checks — verify the container runtime is reachable
 // -------------------------------------------------------------------------
 // AddContainerRuntimeHealthCheck() registers a check that calls
 // IContainerOrchestrator.IsAvailableAsync() and reports Healthy/Unhealthy.
@@ -61,7 +47,7 @@ builder.Services.AddHealthChecks()
         tags: ["ready", "runtime"]);
 
 // -------------------------------------------------------------------------
-// 4. Controllers — register MVC controllers for API endpoints
+// 3. Controllers — register MVC controllers for API endpoints
 // -------------------------------------------------------------------------
 builder.Services.AddControllers();
 

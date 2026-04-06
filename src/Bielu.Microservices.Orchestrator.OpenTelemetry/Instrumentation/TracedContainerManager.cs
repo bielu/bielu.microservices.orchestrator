@@ -5,20 +5,29 @@ using Bielu.Microservices.Orchestrator.Models;
 namespace Bielu.Microservices.Orchestrator.OpenTelemetry.Instrumentation;
 
 /// <summary>
-/// Decorator for <see cref="IContainerManager"/> that adds OpenTelemetry tracing to all operations.
+/// Decorator for <see cref="IContainerManager"/> that adds OpenTelemetry tracing and metrics to all operations.
 /// </summary>
 public class TracedContainerManager(IContainerManager inner) : IContainerManager
 {
-
     /// <inheritdoc />
     public async Task<IReadOnlyList<ContainerInfo>> ListAsync(bool all = false, CancellationToken cancellationToken = default)
     {
         using var activity = OrchestratorActivitySource.Source.StartActivity(OrchestratorActivitySource.ContainerList);
         activity?.SetTag("container.list.all", all);
+        var startTimestamp = Stopwatch.GetTimestamp();
 
-        var result = await inner.ListAsync(all, cancellationToken);
-        activity?.SetTag("container.list.count", result.Count);
-        return result;
+        try
+        {
+            var result = await inner.ListAsync(all, cancellationToken);
+            activity?.SetTag("container.list.count", result.Count);
+            RecordSuccess(OrchestratorActivitySource.ContainerList, startTimestamp);
+            return result;
+        }
+        catch (Exception ex)
+        {
+            RecordError(OrchestratorActivitySource.ContainerList, startTimestamp, activity, ex);
+            throw;
+        }
     }
 
     /// <inheritdoc />
@@ -26,8 +35,19 @@ public class TracedContainerManager(IContainerManager inner) : IContainerManager
     {
         using var activity = OrchestratorActivitySource.Source.StartActivity(OrchestratorActivitySource.ContainerGet);
         activity?.SetTag(OrchestratorActivitySource.AttributeContainerId, containerId);
+        var startTimestamp = Stopwatch.GetTimestamp();
 
-        return await inner.GetAsync(containerId, cancellationToken);
+        try
+        {
+            var result = await inner.GetAsync(containerId, cancellationToken);
+            RecordSuccess(OrchestratorActivitySource.ContainerGet, startTimestamp);
+            return result;
+        }
+        catch (Exception ex)
+        {
+            RecordError(OrchestratorActivitySource.ContainerGet, startTimestamp, activity, ex);
+            throw;
+        }
     }
 
     /// <inheritdoc />
@@ -36,10 +56,20 @@ public class TracedContainerManager(IContainerManager inner) : IContainerManager
         using var activity = OrchestratorActivitySource.Source.StartActivity(OrchestratorActivitySource.ContainerCreate);
         activity?.SetTag(OrchestratorActivitySource.AttributeContainerImage, request.Image);
         activity?.SetTag("container.name", request.Name);
+        var startTimestamp = Stopwatch.GetTimestamp();
 
-        var containerId = await inner.CreateAsync(request, cancellationToken);
-        activity?.SetTag(OrchestratorActivitySource.AttributeContainerId, containerId);
-        return containerId;
+        try
+        {
+            var containerId = await inner.CreateAsync(request, cancellationToken);
+            activity?.SetTag(OrchestratorActivitySource.AttributeContainerId, containerId);
+            RecordSuccess(OrchestratorActivitySource.ContainerCreate, startTimestamp);
+            return containerId;
+        }
+        catch (Exception ex)
+        {
+            RecordError(OrchestratorActivitySource.ContainerCreate, startTimestamp, activity, ex);
+            throw;
+        }
     }
 
     /// <inheritdoc />
@@ -47,8 +77,18 @@ public class TracedContainerManager(IContainerManager inner) : IContainerManager
     {
         using var activity = OrchestratorActivitySource.Source.StartActivity(OrchestratorActivitySource.ContainerStart);
         activity?.SetTag(OrchestratorActivitySource.AttributeContainerId, containerId);
+        var startTimestamp = Stopwatch.GetTimestamp();
 
-        await inner.StartAsync(containerId, cancellationToken);
+        try
+        {
+            await inner.StartAsync(containerId, cancellationToken);
+            RecordSuccess(OrchestratorActivitySource.ContainerStart, startTimestamp);
+        }
+        catch (Exception ex)
+        {
+            RecordError(OrchestratorActivitySource.ContainerStart, startTimestamp, activity, ex);
+            throw;
+        }
     }
 
     /// <inheritdoc />
@@ -60,8 +100,18 @@ public class TracedContainerManager(IContainerManager inner) : IContainerManager
         {
             activity?.SetTag("container.stop.timeout_seconds", (int)timeout.Value.TotalSeconds);
         }
+        var startTimestamp = Stopwatch.GetTimestamp();
 
-        await inner.StopAsync(containerId, timeout, cancellationToken);
+        try
+        {
+            await inner.StopAsync(containerId, timeout, cancellationToken);
+            RecordSuccess(OrchestratorActivitySource.ContainerStop, startTimestamp);
+        }
+        catch (Exception ex)
+        {
+            RecordError(OrchestratorActivitySource.ContainerStop, startTimestamp, activity, ex);
+            throw;
+        }
     }
 
     /// <inheritdoc />
@@ -70,8 +120,18 @@ public class TracedContainerManager(IContainerManager inner) : IContainerManager
         using var activity = OrchestratorActivitySource.Source.StartActivity(OrchestratorActivitySource.ContainerRemove);
         activity?.SetTag(OrchestratorActivitySource.AttributeContainerId, containerId);
         activity?.SetTag("container.remove.force", force);
+        var startTimestamp = Stopwatch.GetTimestamp();
 
-        await inner.RemoveAsync(containerId, force, cancellationToken);
+        try
+        {
+            await inner.RemoveAsync(containerId, force, cancellationToken);
+            RecordSuccess(OrchestratorActivitySource.ContainerRemove, startTimestamp);
+        }
+        catch (Exception ex)
+        {
+            RecordError(OrchestratorActivitySource.ContainerRemove, startTimestamp, activity, ex);
+            throw;
+        }
     }
 
     /// <inheritdoc />
@@ -81,8 +141,19 @@ public class TracedContainerManager(IContainerManager inner) : IContainerManager
         activity?.SetTag(OrchestratorActivitySource.AttributeContainerId, containerId);
         activity?.SetTag("container.logs.stdout", stdout);
         activity?.SetTag("container.logs.stderr", stderr);
+        var startTimestamp = Stopwatch.GetTimestamp();
 
-        return await inner.GetLogsAsync(containerId, stdout, stderr, cancellationToken);
+        try
+        {
+            var result = await inner.GetLogsAsync(containerId, stdout, stderr, cancellationToken);
+            RecordSuccess(OrchestratorActivitySource.ContainerGetLogs, startTimestamp);
+            return result;
+        }
+        catch (Exception ex)
+        {
+            RecordError(OrchestratorActivitySource.ContainerGetLogs, startTimestamp, activity, ex);
+            throw;
+        }
     }
 
     /// <inheritdoc />
@@ -91,7 +162,35 @@ public class TracedContainerManager(IContainerManager inner) : IContainerManager
         using var activity = OrchestratorActivitySource.Source.StartActivity(OrchestratorActivitySource.ContainerScale);
         activity?.SetTag(OrchestratorActivitySource.AttributeContainerId, containerId);
         activity?.SetTag("container.scale.replicas", replicas);
+        var startTimestamp = Stopwatch.GetTimestamp();
 
-        await inner.ScaleAsync(containerId, replicas, cancellationToken);
+        try
+        {
+            await inner.ScaleAsync(containerId, replicas, cancellationToken);
+            RecordSuccess(OrchestratorActivitySource.ContainerScale, startTimestamp);
+        }
+        catch (Exception ex)
+        {
+            RecordError(OrchestratorActivitySource.ContainerScale, startTimestamp, activity, ex);
+            throw;
+        }
+    }
+
+    private static void RecordSuccess(string operation, long startTimestamp)
+    {
+        var duration = Stopwatch.GetElapsedTime(startTimestamp).TotalSeconds;
+        var tags = new TagList { { "operation", operation }, { "status", "success" } };
+        OrchestratorMetrics.ContainerOperationCount.Add(1, tags);
+        OrchestratorMetrics.ContainerOperationDuration.Record(duration, tags);
+    }
+
+    private static void RecordError(string operation, long startTimestamp, Activity? activity, Exception ex)
+    {
+        var duration = Stopwatch.GetElapsedTime(startTimestamp).TotalSeconds;
+        var tags = new TagList { { "operation", operation }, { "status", "error" } };
+        OrchestratorMetrics.ContainerOperationCount.Add(1, tags);
+        OrchestratorMetrics.ContainerOperationDuration.Record(duration, tags);
+        OrchestratorMetrics.OperationErrorCount.Add(1, new TagList { { "operation", operation } });
+        activity?.SetStatus(ActivityStatusCode.Error, ex.Message);
     }
 }

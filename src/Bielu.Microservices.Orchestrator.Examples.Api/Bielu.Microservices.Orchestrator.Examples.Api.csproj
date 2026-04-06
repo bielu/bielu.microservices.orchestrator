@@ -16,10 +16,4 @@
     <ProjectReference Include="..\Bielu.Microservices.Orchestrator.Examples.ServiceDefaults\Bielu.Microservices.Orchestrator.Examples.ServiceDefaults.csproj" />
   </ItemGroup>
 
-  <ItemGroup>
-    <PackageReference Include="OpenTelemetry.Extensions.Hosting" />
-    <PackageReference Include="OpenTelemetry.Exporter.Console" />
-    <PackageReference Include="OpenTelemetry.Instrumentation.AspNetCore" />
-  </ItemGroup>
-
 </Project>
