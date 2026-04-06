@@ -36,7 +36,7 @@ public class OpenTelemetryInstrumentationTests
 
         var provider = services.BuildServiceProvider();
         var manager = provider.GetRequiredService<IContainerManager>();
-        manager.ShouldBeOfType<TracedContainerManager>();
+        manager.ShouldBeOfType<OpenTelemetryContainerManagerDecorator>();
     }
 
     [Fact]
@@ -53,7 +53,7 @@ public class OpenTelemetryInstrumentationTests
 
         var provider = services.BuildServiceProvider();
         var manager = provider.GetRequiredService<IImageManager>();
-        manager.ShouldBeOfType<TracedImageManager>();
+        manager.ShouldBeOfType<OpenTelemetryImageManagerDecorator>();
     }
 
     [Fact]
@@ -70,7 +70,7 @@ public class OpenTelemetryInstrumentationTests
 
         var provider = services.BuildServiceProvider();
         var manager = provider.GetRequiredService<INetworkManager>();
-        manager.ShouldBeOfType<TracedNetworkManager>();
+        manager.ShouldBeOfType<OpenTelemetryNetworkManagerDecorator>();
     }
 
     [Fact]
@@ -87,7 +87,7 @@ public class OpenTelemetryInstrumentationTests
 
         var provider = services.BuildServiceProvider();
         var manager = provider.GetRequiredService<IVolumeManager>();
-        manager.ShouldBeOfType<TracedVolumeManager>();
+        manager.ShouldBeOfType<OpenTelemetryVolumeManagerDecorator>();
     }
 
     // -----------------------------------------------------------------------
@@ -95,13 +95,13 @@ public class OpenTelemetryInstrumentationTests
     // -----------------------------------------------------------------------
 
     [Fact]
-    public async Task TracedContainerManager_ListAsync_DelegatesToInner()
+    public async Task OpenTelemetryContainerManagerDecorator_ListAsync_DelegatesToInner()
     {
         var inner = Substitute.For<IContainerManager>();
         inner.ListAsync(Arg.Any<bool>(), Arg.Any<CancellationToken>())
              .Returns(new List<ContainerInfo>().AsReadOnly());
 
-        var traced = new TracedContainerManager(inner);
+        var traced = new OpenTelemetryContainerManagerDecorator(inner);
         var result = await traced.ListAsync(all: true);
 
         result.ShouldNotBeNull();
@@ -109,14 +109,14 @@ public class OpenTelemetryInstrumentationTests
     }
 
     [Fact]
-    public async Task TracedContainerManager_CreateAsync_DelegatesToInner()
+    public async Task OpenTelemetryContainerManagerDecorator_CreateAsync_DelegatesToInner()
     {
         const string expectedId = "abc123";
         var inner = Substitute.For<IContainerManager>();
         inner.CreateAsync(Arg.Any<CreateContainerRequest>(), Arg.Any<CancellationToken>())
              .Returns(expectedId);
 
-        var traced = new TracedContainerManager(inner);
+        var traced = new OpenTelemetryContainerManagerDecorator(inner);
         var request = new CreateContainerRequest { Image = "nginx:latest" };
         var id = await traced.CreateAsync(request);
 
@@ -125,10 +125,10 @@ public class OpenTelemetryInstrumentationTests
     }
 
     [Fact]
-    public async Task TracedContainerManager_StartAsync_DelegatesToInner()
+    public async Task OpenTelemetryContainerManagerDecorator_StartAsync_DelegatesToInner()
     {
         var inner = Substitute.For<IContainerManager>();
-        var traced = new TracedContainerManager(inner);
+        var traced = new OpenTelemetryContainerManagerDecorator(inner);
 
         await traced.StartAsync("ctr1");
 
@@ -136,10 +136,10 @@ public class OpenTelemetryInstrumentationTests
     }
 
     [Fact]
-    public async Task TracedContainerManager_StopAsync_DelegatesToInner()
+    public async Task OpenTelemetryContainerManagerDecorator_StopAsync_DelegatesToInner()
     {
         var inner = Substitute.For<IContainerManager>();
-        var traced = new TracedContainerManager(inner);
+        var traced = new OpenTelemetryContainerManagerDecorator(inner);
         var timeout = TimeSpan.FromSeconds(15);
 
         await traced.StopAsync("ctr1", timeout);
@@ -148,10 +148,10 @@ public class OpenTelemetryInstrumentationTests
     }
 
     [Fact]
-    public async Task TracedContainerManager_RemoveAsync_DelegatesToInner()
+    public async Task OpenTelemetryContainerManagerDecorator_RemoveAsync_DelegatesToInner()
     {
         var inner = Substitute.For<IContainerManager>();
-        var traced = new TracedContainerManager(inner);
+        var traced = new OpenTelemetryContainerManagerDecorator(inner);
 
         await traced.RemoveAsync("ctr1", force: true);
 
@@ -159,23 +159,23 @@ public class OpenTelemetryInstrumentationTests
     }
 
     [Fact]
-    public async Task TracedContainerManager_GetLogsAsync_DelegatesToInner()
+    public async Task OpenTelemetryContainerManagerDecorator_GetLogsAsync_DelegatesToInner()
     {
         var inner = Substitute.For<IContainerManager>();
         inner.GetLogsAsync(Arg.Any<string>(), Arg.Any<bool>(), Arg.Any<bool>(), Arg.Any<CancellationToken>())
              .Returns("log output");
 
-        var traced = new TracedContainerManager(inner);
+        var traced = new OpenTelemetryContainerManagerDecorator(inner);
         var logs = await traced.GetLogsAsync("ctr1");
 
         logs.ShouldBe("log output");
     }
 
     [Fact]
-    public async Task TracedContainerManager_ScaleAsync_DelegatesToInner()
+    public async Task OpenTelemetryContainerManagerDecorator_ScaleAsync_DelegatesToInner()
     {
         var inner = Substitute.For<IContainerManager>();
-        var traced = new TracedContainerManager(inner);
+        var traced = new OpenTelemetryContainerManagerDecorator(inner);
 
         await traced.ScaleAsync("ctr1", 3);
 
@@ -183,10 +183,10 @@ public class OpenTelemetryInstrumentationTests
     }
 
     [Fact]
-    public async Task TracedImageManager_PullAsync_DelegatesToInner()
+    public async Task OpenTelemetryImageManagerDecorator_PullAsync_DelegatesToInner()
     {
         var inner = Substitute.For<IImageManager>();
-        var traced = new TracedImageManager(inner);
+        var traced = new OpenTelemetryImageManagerDecorator(inner);
         var request = new PullImageRequest { Image = "nginx", Tag = "latest" };
 
         await traced.PullAsync(request);
@@ -195,13 +195,13 @@ public class OpenTelemetryInstrumentationTests
     }
 
     [Fact]
-    public async Task TracedNetworkManager_CreateAsync_DelegatesToInner()
+    public async Task OpenTelemetryNetworkManagerDecorator_CreateAsync_DelegatesToInner()
     {
         var inner = Substitute.For<INetworkManager>();
         inner.CreateAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
              .Returns("net-id");
 
-        var traced = new TracedNetworkManager(inner);
+        var traced = new OpenTelemetryNetworkManagerDecorator(inner);
         var id = await traced.CreateAsync("my-net", "bridge");
 
         id.ShouldBe("net-id");
@@ -209,13 +209,13 @@ public class OpenTelemetryInstrumentationTests
     }
 
     [Fact]
-    public async Task TracedVolumeManager_CreateAsync_DelegatesToInner()
+    public async Task OpenTelemetryVolumeManagerDecorator_CreateAsync_DelegatesToInner()
     {
         var inner = Substitute.For<IVolumeManager>();
         inner.CreateAsync(Arg.Any<string>(), Arg.Any<string?>(), Arg.Any<CancellationToken>())
              .Returns(new VolumeInfo { Name = "vol1" });
 
-        var traced = new TracedVolumeManager(inner);
+        var traced = new OpenTelemetryVolumeManagerDecorator(inner);
         var vol = await traced.CreateAsync("vol1");
 
         vol.Name.ShouldBe("vol1");
