@@ -1,5 +1,8 @@
+using Bielu.Microservices.Orchestrator.Abstractions;
 using Bielu.Microservices.Orchestrator.Configuration;
+using Bielu.Microservices.Orchestrator.Storage;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 
 namespace Bielu.Microservices.Orchestrator.Extensions;
 
@@ -23,6 +26,9 @@ public static class ServiceCollectionExtensions
         configure?.Invoke(builder);
 
         services.AddSingleton(options);
+
+        // Register the default in-memory instance store if no store was registered by the builder
+        services.TryAddSingleton<IInstanceStore, InMemoryInstanceStore>();
 
         return services;
     }

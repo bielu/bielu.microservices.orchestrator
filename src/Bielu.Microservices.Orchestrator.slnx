@@ -22,4 +22,5 @@
   <Project Path="Bielu.Microservices.Orchestrator.Kubernetes/Bielu.Microservices.Orchestrator.Kubernetes.csproj" />
   <Project Path="Bielu.Microservices.Orchestrator.OpenTelemetry/Bielu.Microservices.Orchestrator.OpenTelemetry.csproj" />
   <Project Path="Bielu.Microservices.Orchestrator.HealthChecks/Bielu.Microservices.Orchestrator.HealthChecks.csproj" />
+  <Project Path="Bielu.Microservices.Orchestrator.Storage.File/Bielu.Microservices.Orchestrator.Storage.File.csproj" />
 </Solution>
