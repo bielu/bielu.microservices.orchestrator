@@ -7,7 +7,7 @@ namespace Bielu.Microservices.Orchestrator.OpenTelemetry.Instrumentation;
 /// <summary>
 /// Decorator for <see cref="IContainerManager"/> that adds OpenTelemetry tracing and metrics to all operations.
 /// </summary>
-public class TracedContainerManager(IContainerManager inner) : IContainerManager
+public class OpenTelemetryContainerManagerDecorator(IContainerManager inner) : IContainerManager
 {
     /// <inheritdoc />
     public async Task<IReadOnlyList<ContainerInfo>> ListAsync(bool all = false, CancellationToken cancellationToken = default)

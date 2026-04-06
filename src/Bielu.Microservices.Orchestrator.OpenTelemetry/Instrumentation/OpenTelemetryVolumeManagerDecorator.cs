@@ -7,7 +7,7 @@ namespace Bielu.Microservices.Orchestrator.OpenTelemetry.Instrumentation;
 /// <summary>
 /// Decorator for <see cref="IVolumeManager"/> that adds OpenTelemetry tracing and metrics to all operations.
 /// </summary>
-public class TracedVolumeManager(IVolumeManager inner) : IVolumeManager
+public class OpenTelemetryVolumeManagerDecorator(IVolumeManager inner) : IVolumeManager
 {
     /// <inheritdoc />
     public async Task<IReadOnlyList<VolumeInfo>> ListAsync(CancellationToken cancellationToken = default)

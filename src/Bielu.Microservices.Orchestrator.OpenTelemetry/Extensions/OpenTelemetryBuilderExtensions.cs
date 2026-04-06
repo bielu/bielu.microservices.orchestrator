@@ -20,10 +20,10 @@ public static class OpenTelemetryBuilderExtensions
     /// <returns>The orchestrator builder for chaining.</returns>
     public static OrchestratorBuilder AddOpenTelemetryInstrumentation(this OrchestratorBuilder builder)
     {
-        builder.Services.Decorate<IContainerManager, TracedContainerManager>();
-        builder.Services.Decorate<IImageManager, TracedImageManager>();
-        builder.Services.Decorate<INetworkManager, TracedNetworkManager>();
-        builder.Services.Decorate<IVolumeManager, TracedVolumeManager>();
+        builder.Services.Decorate<IContainerManager, OpenTelemetryContainerManagerDecorator>();
+        builder.Services.Decorate<IImageManager, OpenTelemetryImageManagerDecorator>();
+        builder.Services.Decorate<INetworkManager, OpenTelemetryNetworkManagerDecorator>();
+        builder.Services.Decorate<IVolumeManager, OpenTelemetryVolumeManagerDecorator>();
 
         return builder;
     }

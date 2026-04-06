@@ -7,7 +7,7 @@ namespace Bielu.Microservices.Orchestrator.OpenTelemetry.Instrumentation;
 /// <summary>
 /// Decorator for <see cref="IImageManager"/> that adds OpenTelemetry tracing and metrics to all operations.
 /// </summary>
-public class TracedImageManager(IImageManager inner) : IImageManager
+public class OpenTelemetryImageManagerDecorator(IImageManager inner) : IImageManager
 {
     /// <inheritdoc />
     public async Task<IReadOnlyList<ImageInfo>> ListAsync(CancellationToken cancellationToken = default)

@@ -7,7 +7,7 @@ namespace Bielu.Microservices.Orchestrator.OpenTelemetry.Instrumentation;
 /// <summary>
 /// Decorator for <see cref="INetworkManager"/> that adds OpenTelemetry tracing and metrics to all operations.
 /// </summary>
-public class TracedNetworkManager(INetworkManager inner) : INetworkManager
+public class OpenTelemetryNetworkManagerDecorator(INetworkManager inner) : INetworkManager
 {
     /// <inheritdoc />
     public async Task<IReadOnlyList<NetworkInfo>> ListAsync(CancellationToken cancellationToken = default)
