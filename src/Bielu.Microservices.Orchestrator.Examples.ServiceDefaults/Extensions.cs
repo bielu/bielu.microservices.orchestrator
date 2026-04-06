@@ -26,6 +26,12 @@ public static class Extensions
         return builder;
     }
 
+    /// <summary>
+    /// Configures OpenTelemetry tracing and metrics for the application,
+    /// including orchestrator instrumentation and ASP.NET Core instrumentation.
+    /// </summary>
+    /// <param name="builder">The host application builder.</param>
+    /// <returns>The host application builder for chaining.</returns>
     public static IHostApplicationBuilder ConfigureOpenTelemetry(this IHostApplicationBuilder builder)
     {
         builder.Services.AddOpenTelemetry()
