@@ -15,6 +15,11 @@ public class StateTrackingContainerManagerDecorator(
     IContainerOrchestrator orchestrator,
     ILogger<StateTrackingContainerManagerDecorator> logger) : IContainerManager
 {
+    /// <summary>
+    /// Deferred decorator priority for the state-tracking decorator.
+    /// Applied close to the provider (low value = inner wrapper).
+    /// </summary>
+    public const int DecoratorPriority = 100;
     /// <inheritdoc />
     public Task<IReadOnlyList<ContainerInfo>> ListAsync(bool all = false, CancellationToken cancellationToken = default)
         => inner.ListAsync(all, cancellationToken);

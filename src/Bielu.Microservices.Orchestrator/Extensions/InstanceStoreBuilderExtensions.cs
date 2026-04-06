@@ -29,12 +29,21 @@ public static class InstanceStoreBuilderExtensions
     /// automatically persisted to the registered <see cref="IInstanceStore"/>.
     /// Also registers the <see cref="InstanceRecoveryService"/> hosted service
     /// for startup reconciliation.
+    /// <para>
+    /// The state-tracking decorator is applied at
+    /// <see cref="StateTrackingContainerManagerDecorator.DecoratorPriority"/>
+    /// priority, ensuring it always wraps closest to the provider regardless of
+    /// registration order relative to other decorators.
+    /// </para>
     /// </summary>
     /// <param name="builder">The orchestrator builder.</param>
     /// <returns>The builder for chaining.</returns>
     public static OrchestratorBuilder WithStateTracking(this OrchestratorBuilder builder)
     {
-        builder.Services.Decorate<IContainerManager, StateTrackingContainerManagerDecorator>();
+        builder.AddDeferredDecorator(
+            StateTrackingContainerManagerDecorator.DecoratorPriority,
+            services => services.Decorate<IContainerManager, StateTrackingContainerManagerDecorator>());
+
         builder.Services.AddHostedService<InstanceRecoveryService>();
         return builder;
     }
