@@ -176,21 +176,11 @@ public class TracedContainerManager(IContainerManager inner) : IContainerManager
         }
     }
 
-    private static void RecordSuccess(string operation, long startTimestamp)
-    {
-        var duration = Stopwatch.GetElapsedTime(startTimestamp).TotalSeconds;
-        var tags = new TagList { { "operation", operation }, { "status", "success" } };
-        OrchestratorMetrics.ContainerOperationCount.Add(1, tags);
-        OrchestratorMetrics.ContainerOperationDuration.Record(duration, tags);
-    }
+    private static void RecordSuccess(string operation, long startTimestamp) =>
+        MetricsHelper.RecordSuccess(operation, startTimestamp,
+            OrchestratorMetrics.ContainerOperationCount, OrchestratorMetrics.ContainerOperationDuration);
 
-    private static void RecordError(string operation, long startTimestamp, Activity? activity, Exception ex)
-    {
-        var duration = Stopwatch.GetElapsedTime(startTimestamp).TotalSeconds;
-        var tags = new TagList { { "operation", operation }, { "status", "error" } };
-        OrchestratorMetrics.ContainerOperationCount.Add(1, tags);
-        OrchestratorMetrics.ContainerOperationDuration.Record(duration, tags);
-        OrchestratorMetrics.OperationErrorCount.Add(1, new TagList { { "operation", operation } });
-        activity?.SetStatus(ActivityStatusCode.Error, ex.Message);
-    }
+    private static void RecordError(string operation, long startTimestamp, Activity? activity, Exception ex) =>
+        MetricsHelper.RecordError(operation, startTimestamp, activity, ex,
+            OrchestratorMetrics.ContainerOperationCount, OrchestratorMetrics.ContainerOperationDuration);
 }

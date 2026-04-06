@@ -110,21 +110,11 @@ public class TracedImageManager(IImageManager inner) : IImageManager
         }
     }
 
-    private static void RecordSuccess(string operation, long startTimestamp)
-    {
-        var duration = Stopwatch.GetElapsedTime(startTimestamp).TotalSeconds;
-        var tags = new TagList { { "operation", operation }, { "status", "success" } };
-        OrchestratorMetrics.ImageOperationCount.Add(1, tags);
-        OrchestratorMetrics.ImageOperationDuration.Record(duration, tags);
-    }
+    private static void RecordSuccess(string operation, long startTimestamp) =>
+        MetricsHelper.RecordSuccess(operation, startTimestamp,
+            OrchestratorMetrics.ImageOperationCount, OrchestratorMetrics.ImageOperationDuration);
 
-    private static void RecordError(string operation, long startTimestamp, Activity? activity, Exception ex)
-    {
-        var duration = Stopwatch.GetElapsedTime(startTimestamp).TotalSeconds;
-        var tags = new TagList { { "operation", operation }, { "status", "error" } };
-        OrchestratorMetrics.ImageOperationCount.Add(1, tags);
-        OrchestratorMetrics.ImageOperationDuration.Record(duration, tags);
-        OrchestratorMetrics.OperationErrorCount.Add(1, new TagList { { "operation", operation } });
-        activity?.SetStatus(ActivityStatusCode.Error, ex.Message);
-    }
+    private static void RecordError(string operation, long startTimestamp, Activity? activity, Exception ex) =>
+        MetricsHelper.RecordError(operation, startTimestamp, activity, ex,
+            OrchestratorMetrics.ImageOperationCount, OrchestratorMetrics.ImageOperationDuration);
 }
