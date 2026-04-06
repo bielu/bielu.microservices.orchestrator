@@ -1,0 +1,19 @@
+  Determining projects to restore...
+  All projects are up-to-date for restore.
+  Bielu.Microservices.Orchestrator -> /home/runner/work/bielu.microservices.orchestrator/bielu.microservices.orchestrator/src/Bielu.Microservices.Orchestrator/bin/Debug/net10.0/Bielu.Microservices.Orchestrator.dll
+  Bielu.Microservices.Orchestrator.Kubernetes -> /home/runner/work/bielu.microservices.orchestrator/bielu.microservices.orchestrator/src/Bielu.Microservices.Orchestrator.Kubernetes/bin/Debug/net10.0/Bielu.Microservices.Orchestrator.Kubernetes.dll
+  Bielu.Microservices.Orchestrator.Storage.File -> /home/runner/work/bielu.microservices.orchestrator/bielu.microservices.orchestrator/src/Bielu.Microservices.Orchestrator.Storage.File/bin/Debug/net10.0/Bielu.Microservices.Orchestrator.Storage.File.dll
+  Bielu.Microservices.Orchestrator.HealthChecks -> /home/runner/work/bielu.microservices.orchestrator/bielu.microservices.orchestrator/src/Bielu.Microservices.Orchestrator.HealthChecks/bin/Debug/net10.0/Bielu.Microservices.Orchestrator.HealthChecks.dll
+  Bielu.Microservices.Orchestrator.Containerd -> /home/runner/work/bielu.microservices.orchestrator/bielu.microservices.orchestrator/src/Bielu.Microservices.Orchestrator.Containerd/bin/Debug/net10.0/Bielu.Microservices.Orchestrator.Containerd.dll
+  Bielu.Microservices.Orchestrator.Storage.EfCore -> /home/runner/work/bielu.microservices.orchestrator/bielu.microservices.orchestrator/src/Bielu.Microservices.Orchestrator.Storage.EfCore/bin/Debug/net10.0/Bielu.Microservices.Orchestrator.Storage.EfCore.dll
+  Bielu.Microservices.Orchestrator.Docker -> /home/runner/work/bielu.microservices.orchestrator/bielu.microservices.orchestrator/src/Bielu.Microservices.Orchestrator.Docker/bin/Debug/net10.0/Bielu.Microservices.Orchestrator.Docker.dll
+  Bielu.Microservices.Orchestrator.OpenTelemetry -> /home/runner/work/bielu.microservices.orchestrator/bielu.microservices.orchestrator/src/Bielu.Microservices.Orchestrator.OpenTelemetry/bin/Debug/net10.0/Bielu.Microservices.Orchestrator.OpenTelemetry.dll
+  Bielu.Microservices.Orchestrator.Podman -> /home/runner/work/bielu.microservices.orchestrator/bielu.microservices.orchestrator/src/Bielu.Microservices.Orchestrator.Podman/bin/Debug/net10.0/Bielu.Microservices.Orchestrator.Podman.dll
+  Bielu.Microservices.Orchestrator.Examples.ServiceDefaults -> /home/runner/work/bielu.microservices.orchestrator/bielu.microservices.orchestrator/src/Bielu.Microservices.Orchestrator.Examples.ServiceDefaults/bin/Debug/net10.0/Bielu.Microservices.Orchestrator.Examples.ServiceDefaults.dll
+  Bielu.Microservices.Orchestrator.Examples.Api -> /home/runner/work/bielu.microservices.orchestrator/bielu.microservices.orchestrator/src/Bielu.Microservices.Orchestrator.Examples.Api/bin/Debug/net10.0/Bielu.Microservices.Orchestrator.Examples.Api.dll
+  Bielu.Microservices.Orchestrator.Examples.AppHost -> /home/runner/work/bielu.microservices.orchestrator/bielu.microservices.orchestrator/src/Bielu.Microservices.Orchestrator.Examples.AppHost/bin/Debug/net10.0/Bielu.Microservices.Orchestrator.Examples.AppHost.dll
+  Bielu.Microservices.Orchestrator.Tests -> /home/runner/work/bielu.microservices.orchestrator/bielu.microservices.orchestrator/src/Bielu.Microservices.Orchestrator.Tests/bin/Debug/net10.0/Bielu.Microservices.Orchestrator.Tests.dll
+Test run for /home/runner/work/bielu.microservices.orchestrator/bielu.microservices.orchestrator/src/Bielu.Microservices.Orchestrator.Tests/bin/Debug/net10.0/Bielu.Microservices.Orchestrator.Tests.dll (.NETCoreApp,Version=v10.0)
+A total of 1 test files matched the specified pattern.
+
+Passed!  - Failed:     0, Passed:   155, Skipped:     0, Total:   155, Duration: 2 s - Bielu.Microservices.Orchestrator.Tests.dll (net10.0)

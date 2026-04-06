@@ -63,16 +63,10 @@ public class StateTrackingContainerManagerDecorator(
     /// <inheritdoc />
     public async Task RemoveAsync(string containerId, bool force = false, CancellationToken cancellationToken = default)
     {
-        // Update store before removal to avoid phantom records if removal succeeds but store update fails
+        // Remove from store before runtime removal to avoid phantom records
         try
         {
-            var existing = await instanceStore.GetAsync(containerId, cancellationToken);
-            if (existing != null)
-            {
-                existing.DesiredState = DesiredState.Removed;
-                existing.UpdatedAt = DateTimeOffset.UtcNow;
-                await instanceStore.RemoveAsync(containerId, cancellationToken);
-            }
+            await instanceStore.RemoveAsync(containerId, cancellationToken);
         }
         catch (Exception ex)
         {
