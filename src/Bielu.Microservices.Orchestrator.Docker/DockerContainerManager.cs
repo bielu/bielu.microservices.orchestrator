@@ -1,4 +1,5 @@
 using Bielu.Microservices.Orchestrator.Abstractions;
+using Bielu.Microservices.Orchestrator.Configuration;
 using Bielu.Microservices.Orchestrator.Models;
 using Bielu.Microservices.Orchestrator.Utilities;
 using Docker.DotNet;
@@ -12,12 +13,25 @@ namespace Bielu.Microservices.Orchestrator.Docker;
 /// </summary>
 public class DockerContainerManager(
     DockerClient client,
+    OrchestratorOptions orchestratorOptions,
     ILogger<DockerContainerManager> logger) : IContainerManager
 {
     public async Task<IReadOnlyList<ContainerInfo>> ListAsync(bool all = false, CancellationToken cancellationToken = default)
     {
-        var containers = await client.Containers.ListContainersAsync(
-            new ContainersListParameters { All = all }, cancellationToken);
+        var listParams = new ContainersListParameters { All = all };
+
+        if (orchestratorOptions.ManagedContainersOnly)
+        {
+            listParams.Filters = new Dictionary<string, IDictionary<string, bool>>
+            {
+                ["label"] = new Dictionary<string, bool>
+                {
+                    [$"{OrchestratorLabels.ManagedBy}={OrchestratorLabels.ManagedByValue}"] = true
+                }
+            };
+        }
+
+        var containers = await client.Containers.ListContainersAsync(listParams, cancellationToken);
 
         return containers.Select(c => new ContainerInfo
         {
@@ -80,8 +94,8 @@ public class DockerContainerManager(
             var replicaName = $"{groupName}-{i}";
             var replicaLabels = new Dictionary<string, string>(request.Labels)
             {
-                ["orchestrator.group"] = groupName,
-                ["orchestrator.replica-index"] = i.ToString()
+                [OrchestratorLabels.Group] = groupName,
+                [OrchestratorLabels.ReplicaIndex] = i.ToString()
             };
 
             var id = await CreateSingleContainerAsync(request, replicaName, cancellationToken, replicaLabels);
@@ -151,7 +165,7 @@ public class DockerContainerManager(
             Image = request.Image,
             Name = containerName,
             Env = request.EnvironmentVariables.Select(kv => $"{kv.Key}={kv.Value}").ToList(),
-            Labels = overrideLabels ?? new Dictionary<string, string>(request.Labels),
+            Labels = AddManagedByLabel(overrideLabels ?? new Dictionary<string, string>(request.Labels)),
             HostConfig = new HostConfig
             {
                 PortBindings = request.Ports.ToDictionary(
@@ -205,5 +219,11 @@ public class DockerContainerManager(
             }
         }
         return result;
+    }
+
+    private static Dictionary<string, string> AddManagedByLabel(Dictionary<string, string> labels)
+    {
+        labels[OrchestratorLabels.ManagedBy] = OrchestratorLabels.ManagedByValue;
+        return labels;
     }
 }

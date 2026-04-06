@@ -27,6 +27,28 @@ public class ServiceRegistrationTests
         var provider = services.BuildServiceProvider();
         var options = provider.GetService<Microsoft.Extensions.Options.IOptions<OrchestratorOptions>>();
         options.ShouldNotBeNull();
+        var orchestratorOptions = provider.GetService<OrchestratorOptions>();
+        orchestratorOptions.ShouldNotBeNull();
+        orchestratorOptions.ManagedContainersOnly.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void AddMicroservicesOrchestrator_OptionsCanBeConfiguredViaBuilder()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+
+        // Act
+        services.AddMicroservicesOrchestrator(builder =>
+        {
+            builder.Options.ManagedContainersOnly = false;
+        });
+
+        // Assert
+        var provider = services.BuildServiceProvider();
+        var orchestratorOptions = provider.GetService<OrchestratorOptions>();
+        orchestratorOptions.ShouldNotBeNull();
+        orchestratorOptions.ManagedContainersOnly.ShouldBeFalse();
     }
 
     [Fact]
