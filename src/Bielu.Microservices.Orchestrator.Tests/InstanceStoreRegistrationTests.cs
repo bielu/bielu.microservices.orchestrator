@@ -1,5 +1,6 @@
 using Bielu.Microservices.Orchestrator.Abstractions;
 using Bielu.Microservices.Orchestrator.Configuration;
+using Bielu.Microservices.Orchestrator.Docker.Extensions;
 using Bielu.Microservices.Orchestrator.Extensions;
 using Bielu.Microservices.Orchestrator.Models;
 using Bielu.Microservices.Orchestrator.Storage;
@@ -169,8 +170,12 @@ public class InstanceStoreRegistrationTests
     [Fact]
     public void WithStateTracking_ReturnsBuilderForChaining()
     {
+        var services = new ServiceCollection();
+        services.AddLogging();
         var options = new OrchestratorOptions();
-        var builder = new OrchestratorBuilder(new ServiceCollection(), options);
+        var builder = new OrchestratorBuilder(services, options);
+        // WithStateTracking uses Scrutor Decorate which requires IContainerManager to be registered
+        builder.AddDocker();
 
         var result = builder.WithStateTracking();
 
