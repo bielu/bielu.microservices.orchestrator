@@ -34,7 +34,7 @@ public class OpenTelemetryInstrumentationTests
             b.AddOpenTelemetryInstrumentation();
         });
 
-        var provider = services.BuildServiceProvider();
+       using var provider = services.BuildServiceProvider();
         var manager = provider.GetRequiredService<IContainerManager>();
         manager.ShouldBeOfType<OpenTelemetryContainerManagerDecorator>();
     }
@@ -51,7 +51,7 @@ public class OpenTelemetryInstrumentationTests
             b.AddOpenTelemetryInstrumentation();
         });
 
-        var provider = services.BuildServiceProvider();
+       using var provider = services.BuildServiceProvider();
         var manager = provider.GetRequiredService<IImageManager>();
         manager.ShouldBeOfType<OpenTelemetryImageManagerDecorator>();
     }
@@ -68,7 +68,7 @@ public class OpenTelemetryInstrumentationTests
             b.AddOpenTelemetryInstrumentation();
         });
 
-        var provider = services.BuildServiceProvider();
+       using var provider = services.BuildServiceProvider();
         var manager = provider.GetRequiredService<INetworkManager>();
         manager.ShouldBeOfType<OpenTelemetryNetworkManagerDecorator>();
     }
@@ -85,7 +85,7 @@ public class OpenTelemetryInstrumentationTests
             b.AddOpenTelemetryInstrumentation();
         });
 
-        var provider = services.BuildServiceProvider();
+       using var provider = services.BuildServiceProvider();
         var manager = provider.GetRequiredService<IVolumeManager>();
         manager.ShouldBeOfType<OpenTelemetryVolumeManagerDecorator>();
     }
@@ -256,7 +256,7 @@ public class OpenTelemetryInstrumentationTests
             b.WithStateTracking();
         });
 
-        var provider = services.BuildServiceProvider();
+       using var provider = services.BuildServiceProvider();
         var manager = provider.GetRequiredService<IContainerManager>();
         manager.ShouldBeOfType<OpenTelemetryContainerManagerDecorator>();
     }
@@ -274,7 +274,7 @@ public class OpenTelemetryInstrumentationTests
             b.AddOpenTelemetryInstrumentation();
         });
 
-        var provider = services.BuildServiceProvider();
+       using var provider = services.BuildServiceProvider();
         var manager = provider.GetRequiredService<IContainerManager>();
         manager.ShouldBeOfType<OpenTelemetryContainerManagerDecorator>();
     }
