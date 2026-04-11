@@ -39,7 +39,7 @@ public static class Extensions
     public static IHostApplicationBuilder ConfigureOpenTelemetry(this IHostApplicationBuilder builder)
     {
         var otel = builder.Services.AddOpenTelemetry();
-
+        otel.WithLogging();
 // Add Metrics for ASP.NET Core and our custom metrics and export via OTLP
         otel.WithMetrics(metrics =>
         {
