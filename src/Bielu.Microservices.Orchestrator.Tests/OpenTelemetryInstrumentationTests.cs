@@ -238,4 +238,44 @@ public class OpenTelemetryInstrumentationTests
         OrchestratorActivitySource.Source.ShouldNotBeNull();
         OrchestratorActivitySource.Source.Name.ShouldBe(OrchestratorActivitySource.Name);
     }
+
+    // -----------------------------------------------------------------------
+    // Decorator ordering — OTel must always be outermost regardless of call order
+    // -----------------------------------------------------------------------
+
+    [Fact]
+    public void OTelBeforeStateTracking_OTelIsOutermost()
+    {
+        var services = new ServiceCollection();
+        services.AddLogging();
+
+        services.AddMicroservicesOrchestrator(b =>
+        {
+            b.AddDocker();
+            b.AddOpenTelemetryInstrumentation();
+            b.WithStateTracking();
+        });
+
+        var provider = services.BuildServiceProvider();
+        var manager = provider.GetRequiredService<IContainerManager>();
+        manager.ShouldBeOfType<OpenTelemetryContainerManagerDecorator>();
+    }
+
+    [Fact]
+    public void StateTrackingBeforeOTel_OTelIsStillOutermost()
+    {
+        var services = new ServiceCollection();
+        services.AddLogging();
+
+        services.AddMicroservicesOrchestrator(b =>
+        {
+            b.AddDocker();
+            b.WithStateTracking();
+            b.AddOpenTelemetryInstrumentation();
+        });
+
+        var provider = services.BuildServiceProvider();
+        var manager = provider.GetRequiredService<IContainerManager>();
+        manager.ShouldBeOfType<OpenTelemetryContainerManagerDecorator>();
+    }
 }
