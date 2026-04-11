@@ -40,4 +40,9 @@
     </PackageReference>
   </ItemGroup>
 
+  <ItemGroup>
+    <Compile Remove="AspireIntegrationTests.cs" />
+    <None Include="AspireIntegrationTests.cs" />
+  </ItemGroup>
+
 </Project>
