@@ -14,6 +14,7 @@ namespace Bielu.Microservices.Orchestrator.Docker;
 public class DockerContainerManager(
     DockerClient client,
     OrchestratorOptions orchestratorOptions,
+    IImageManager imageManager,
     ILogger<DockerContainerManager> logger) : IContainerManager
 {
     public async Task<IReadOnlyList<ContainerInfo>> ListAsync(bool all = false, CancellationToken cancellationToken = default)
@@ -160,6 +161,9 @@ public class DockerContainerManager(
         CancellationToken cancellationToken,
         Dictionary<string, string>? overrideLabels = null)
     {
+        // Check if image exists locally, if not pull it
+        await EnsureImageExistsAsync(request.Image, cancellationToken);
+
         var labels = overrideLabels != null
             ? new Dictionary<string, string>(overrideLabels)
             : new Dictionary<string, string>(request.Labels);
@@ -193,6 +197,19 @@ public class DockerContainerManager(
         logger.LogInformation("Created container {ContainerId} from image {Image}",
             LogSanitizer.Sanitize(response.ID), LogSanitizer.Sanitize(request.Image));
         return response.ID;
+    }
+
+    private async Task EnsureImageExistsAsync(string image, CancellationToken cancellationToken)
+    {
+        var images = await imageManager.ListAsync(cancellationToken);
+        var imageExists = images.Any(img => img.Tags?.Contains(image) == true);
+
+        if (!imageExists)
+        {
+            logger.LogInformation("Image {Image} not found locally, pulling from registry", LogSanitizer.Sanitize(image));
+            await imageManager.PullAsync(new Models.PullImageRequest { Image = image }, cancellationToken);
+            logger.LogInformation("Successfully pulled image {Image}", LogSanitizer.Sanitize(image));
+        }
     }
 
     private static Models.ContainerState MapState(string state)

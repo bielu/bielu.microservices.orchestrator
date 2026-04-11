@@ -1,0 +1,254 @@
+{
+  "containers": {
+    "create_nginx": {
+      "description": "Create a single nginx container with port mapping",
+      "method": "POST",
+      "url": "/api/containers",
+      "body": {
+        "image": "nginx:latest",
+        "name": "my-nginx",
+        "ports": [
+          {
+            "containerPort": 80,
+            "hostPort": 8080,
+            "protocol": "tcp",
+            "hostIp": "0.0.0.0"
+          }
+        ],
+        "environmentVariables": {
+          "NGINX_HOST": "localhost",
+          "NGINX_PORT": "80"
+        },
+        "labels": {
+          "app": "demo",
+          "environment": "dev"
+        }
+      }
+    },
+    "create_redis": {
+      "description": "Create a Redis container with volume mount",
+      "method": "POST",
+      "url": "/api/containers",
+      "body": {
+        "image": "redis:alpine",
+        "name": "my-redis",
+        "ports": [
+          {
+            "containerPort": 6379,
+            "hostPort": 6379,
+            "protocol": "tcp"
+          }
+        ],
+        "volumes": [
+          "redis-data:/data"
+        ],
+        "environmentVariables": {
+          "REDIS_PASSWORD": "secret123"
+        }
+      }
+    },
+    "create_replicas": {
+      "description": "Create 3 replicas of a postgres container",
+      "method": "POST",
+      "url": "/api/containers",
+      "body": {
+        "image": "postgres:16-alpine",
+        "name": "postgres-cluster",
+        "replicas": 3,
+        "environmentVariables": {
+          "POSTGRES_PASSWORD": "postgres",
+          "POSTGRES_USER": "admin",
+          "POSTGRES_DB": "testdb"
+        },
+        "volumes": [
+          "postgres-data:/var/lib/postgresql/data"
+        ]
+      }
+    },
+    "create_with_command": {
+      "description": "Create a container with custom command",
+      "method": "POST",
+      "url": "/api/containers",
+      "body": {
+        "image": "alpine:latest",
+        "name": "alpine-test",
+        "command": [
+          "sh",
+          "-c",
+          "echo 'Hello from Alpine' && sleep 3600"
+        ],
+        "autoRemove": true
+      }
+    },
+    "start_container": {
+      "description": "Start a container by ID",
+      "method": "POST",
+      "url": "/api/containers/{containerId}/start",
+      "note": "Replace {containerId} with actual container ID"
+    },
+    "stop_container": {
+      "description": "Stop a container by ID",
+      "method": "POST",
+      "url": "/api/containers/{containerId}/stop?timeout=10",
+      "note": "Replace {containerId} with actual container ID"
+    },
+    "list_all": {
+      "description": "List all containers (including stopped)",
+      "method": "GET",
+      "url": "/api/containers?all=true"
+    },
+    "get_container": {
+      "description": "Get container details by ID",
+      "method": "GET",
+      "url": "/api/containers/{containerId}",
+      "note": "Replace {containerId} with actual container ID"
+    },
+    "get_logs": {
+      "description": "Get container logs",
+      "method": "GET",
+      "url": "/api/containers/{containerId}/logs",
+      "note": "Replace {containerId} with actual container ID"
+    },
+    "remove_container": {
+      "description": "Remove a container (force if running)",
+      "method": "DELETE",
+      "url": "/api/containers/{containerId}?force=true",
+      "note": "Replace {containerId} with actual container ID"
+    }
+  },
+  "images": {
+    "pull_image": {
+      "description": "Pull an image from registry",
+      "method": "POST",
+      "url": "/api/images/pull",
+      "body": {
+        "imageNameWithTag": "nginx:alpine"
+      }
+    },
+    "list_images": {
+      "description": "List all images",
+      "method": "GET",
+      "url": "/api/images"
+    },
+    "remove_image": {
+      "description": "Remove an image by name/tag",
+      "method": "DELETE",
+      "url": "/api/images/{imageNameOrId}",
+      "note": "Replace {imageNameOrId} with image name like 'nginx:latest'"
+    }
+  },
+  "networks": {
+    "create_network": {
+      "description": "Create a custom bridge network",
+      "method": "POST",
+      "url": "/api/networks",
+      "body": {
+        "name": "my-custom-network",
+        "driver": "bridge",
+        "labels": {
+          "project": "demo"
+        }
+      }
+    },
+    "list_networks": {
+      "description": "List all networks",
+      "method": "GET",
+      "url": "/api/networks"
+    },
+    "remove_network": {
+      "description": "Remove a network by ID",
+      "method": "DELETE",
+      "url": "/api/networks/{networkId}",
+      "note": "Replace {networkId} with actual network ID"
+    }
+  },
+  "volumes": {
+    "create_volume": {
+      "description": "Create a named volume",
+      "method": "POST",
+      "url": "/api/volumes",
+      "body": {
+        "name": "my-data-volume",
+        "labels": {
+          "app": "demo",
+          "type": "persistent"
+        }
+      }
+    },
+    "list_volumes": {
+      "description": "List all volumes",
+      "method": "GET",
+      "url": "/api/volumes"
+    },
+    "remove_volume": {
+      "description": "Remove a volume by name",
+      "method": "DELETE",
+      "url": "/api/volumes/{volumeName}?force=false",
+      "note": "Replace {volumeName} with actual volume name"
+    }
+  },
+  "complete_workflow_example": {
+    "description": "Complete workflow: create volume, network, then container",
+    "steps": [
+      {
+        "step": 1,
+        "description": "Create a volume for data persistence",
+        "method": "POST",
+        "url": "/api/volumes",
+        "body": {
+          "name": "app-data",
+          "labels": {
+            "app": "myapp"
+          }
+        }
+      },
+      {
+        "step": 2,
+        "description": "Create a custom network",
+        "method": "POST",
+        "url": "/api/networks",
+        "body": {
+          "name": "app-network",
+          "driver": "bridge"
+        }
+      },
+      {
+        "step": 3,
+        "description": "Pull the image first",
+        "method": "POST",
+        "url": "/api/images/pull",
+        "body": {
+          "imageNameWithTag": "nginx:alpine"
+        }
+      },
+      {
+        "step": 4,
+        "description": "Create container with the volume and network",
+        "method": "POST",
+        "url": "/api/containers",
+        "body": {
+          "image": "nginx:alpine",
+          "name": "myapp-web",
+          "ports": [
+            {
+              "containerPort": 80,
+              "hostPort": 8080
+            }
+          ],
+          "volumes": [
+            "app-data:/usr/share/nginx/html"
+          ],
+          "environmentVariables": {
+            "ENV": "production"
+          }
+        }
+      },
+      {
+        "step": 5,
+        "description": "Start the container (use container ID from step 4 response)",
+        "method": "POST",
+        "url": "/api/containers/{containerId}/start"
+      }
+    ]
+  }
+}

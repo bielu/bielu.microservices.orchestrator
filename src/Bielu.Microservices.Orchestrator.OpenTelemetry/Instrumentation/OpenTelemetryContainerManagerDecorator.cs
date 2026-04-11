@@ -5,10 +5,31 @@ using Bielu.Microservices.Orchestrator.Models;
 namespace Bielu.Microservices.Orchestrator.OpenTelemetry.Instrumentation;
 
 /// <summary>
-/// Decorator for <see cref="IContainerManager"/> that adds OpenTelemetry tracing and metrics to all operations.
+/// Decorator for <see cref="IContainerManager"/> that adds OpenTelemetry tracing and metrics to all operations,
+/// and automatically injects OTEL environment variables into containers for distributed tracing.
 /// </summary>
 public class OpenTelemetryContainerManagerDecorator(IContainerManager inner) : IContainerManager
 {
+    private static readonly string[] OtelEnvironmentVariables =
+    [
+        "OTEL_BLRP_SCHEDULE_DELAY",
+        "OTEL_BSP_SCHEDULE_DELAY",
+        "OTEL_DOTNET_EXPERIMENTAL_ASPNETCORE_DISABLE_URL_QUERY_REDACTION",
+        "OTEL_DOTNET_EXPERIMENTAL_HTTPCLIENT_DISABLE_URL_QUERY_REDACTION",
+        "OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY",
+        "OTEL_EXPORTER_OTLP_ENDPOINT",
+        "OTEL_EXPORTER_OTLP_HEADERS",
+        "OTEL_EXPORTER_OTLP_PROTOCOL",
+        "OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT",
+        "OTEL_METRIC_EXPORT_INTERVAL",
+        "OTEL_METRICS_EXEMPLAR_FILTER" ,
+        "OTEL_RESOURCE_ATTRIBUTES",
+        "OTEL_SERVICE_NAME",
+        "OTEL_TRACES_SAMPLER"
+    ];
+   
+
+
     /// <inheritdoc />
     public async Task<IReadOnlyList<ContainerInfo>> ListAsync(bool all = false, CancellationToken cancellationToken = default)
     {
@@ -53,6 +74,16 @@ public class OpenTelemetryContainerManagerDecorator(IContainerManager inner) : I
     /// <inheritdoc />
     public async Task<string> CreateAsync(CreateContainerRequest request, CancellationToken cancellationToken = default)
     {
+        // Inject OTEL environment variables from the host into the container
+        foreach (var envVar in OtelEnvironmentVariables)
+        {
+            var value = Environment.GetEnvironmentVariable(envVar);
+            if (!string.IsNullOrEmpty(value) && !request.EnvironmentVariables.ContainsKey(envVar))
+            {
+                request.EnvironmentVariables[envVar] = value;
+            }
+        }
+
         using var activity = OrchestratorActivitySource.Source.StartActivity(OrchestratorActivitySource.ContainerCreate);
         activity?.SetTag(OrchestratorActivitySource.AttributeContainerImage, request.Image);
         activity?.SetTag("container.name", request.Name);

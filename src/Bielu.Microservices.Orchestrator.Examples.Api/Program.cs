@@ -53,6 +53,8 @@ builder.Services.AddControllers();
 
 var app = builder.Build();
 
+app.MapOpenApi();
+
 app.MapDefaultEndpoints();
 
 // Liveness  — always reports the process is alive

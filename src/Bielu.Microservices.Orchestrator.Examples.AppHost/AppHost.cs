@@ -1,5 +1,5 @@
 var builder = DistributedApplication.CreateBuilder(args);
 
-var api = builder.AddProject<Projects.Bielu_Microservices_Orchestrator_Examples_Api>("api");
+var api = builder.AddProject<Projects.Bielu_Microservices_Orchestrator_Examples_Api>("api").WithHttpsEndpoint().WithHttpEndpoint();
 
 builder.Build().Run();
