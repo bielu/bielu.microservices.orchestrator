@@ -1,5 +1,40 @@
 {
   "containers": {
+    "create_example_worker": {
+      "description": "Create our custom .NET worker container (built by Aspire)",
+      "method": "POST",
+      "url": "/api/containers",
+      "body": {
+        "image": "example-worker:latest",
+        "name": "orchestrator-worker",
+        "environmentVariables": {
+          "WORKER_ID": "worker-001",
+          "ENVIRONMENT": "production"
+        },
+        "labels": {
+          "app": "orchestrator-demo",
+          "environment": "production",
+          "component": "worker"
+        }
+      }
+    },
+    "create_worker_replicas": {
+      "description": "Create 3 replicas of the example worker",
+      "method": "POST",
+      "url": "/api/containers",
+      "body": {
+        "image": "example-worker:latest",
+        "name": "worker-cluster",
+        "replicas": 3,
+        "environmentVariables": {
+          "ENVIRONMENT": "production"
+        },
+        "labels": {
+          "app": "orchestrator-demo",
+          "component": "worker-cluster"
+        }
+      }
+    },
     "create_nginx": {
       "description": "Create a single nginx container with port mapping",
       "method": "POST",

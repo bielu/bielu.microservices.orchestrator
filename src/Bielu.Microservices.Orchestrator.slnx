@@ -6,6 +6,7 @@
     <Project Path="Bielu.Microservices.Orchestrator.Examples.AppHost/Bielu.Microservices.Orchestrator.Examples.AppHost.csproj" />
     <Project Path="Bielu.Microservices.Orchestrator.Examples.ServiceDefaults/Bielu.Microservices.Orchestrator.Examples.ServiceDefaults.csproj" />
     <Project Path="Bielu.Microservices.Orchestrator.Examples.Api/Bielu.Microservices.Orchestrator.Examples.Api.csproj" />
+    <Project Path="Bielu.Microservices.Orchestrator.Examples.Worker/Bielu.Microservices.Orchestrator.Examples.Worker.csproj" />
   </Folder>
   <Folder Name="/Solution Files/">
     <File Path="../.gitignore" />

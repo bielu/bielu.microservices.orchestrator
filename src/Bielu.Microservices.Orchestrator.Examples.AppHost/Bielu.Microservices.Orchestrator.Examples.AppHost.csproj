@@ -11,6 +11,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="Aspire.Hosting.PostgreSQL" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\Bielu.Microservices.Orchestrator.Examples.Api\Bielu.Microservices.Orchestrator.Examples.Api.csproj" />
     <ProjectReference Include="..\Bielu.Microservices.Orchestrator.Examples.ServiceDefaults\Bielu.Microservices.Orchestrator.Examples.ServiceDefaults.csproj" IsAspireProjectResource="false" />
   </ItemGroup>

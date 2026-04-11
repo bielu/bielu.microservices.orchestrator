@@ -94,6 +94,7 @@ public class OpenTelemetryContainerManagerDecorator(IContainerManager inner) : I
             var containerId = await inner.CreateAsync(request, cancellationToken);
             activity?.SetTag(OrchestratorActivitySource.AttributeContainerId, containerId);
             RecordSuccess(OrchestratorActivitySource.ContainerCreate, startTimestamp);
+            RecordContainerStateChange("created", request.Image);
             return containerId;
         }
         catch (Exception ex)
@@ -114,6 +115,7 @@ public class OpenTelemetryContainerManagerDecorator(IContainerManager inner) : I
         {
             await inner.StartAsync(containerId, cancellationToken);
             RecordSuccess(OrchestratorActivitySource.ContainerStart, startTimestamp);
+            RecordContainerStateChange("started");
         }
         catch (Exception ex)
         {
@@ -137,6 +139,7 @@ public class OpenTelemetryContainerManagerDecorator(IContainerManager inner) : I
         {
             await inner.StopAsync(containerId, timeout, cancellationToken);
             RecordSuccess(OrchestratorActivitySource.ContainerStop, startTimestamp);
+            RecordContainerStateChange("stopped");
         }
         catch (Exception ex)
         {
@@ -157,6 +160,7 @@ public class OpenTelemetryContainerManagerDecorator(IContainerManager inner) : I
         {
             await inner.RemoveAsync(containerId, force, cancellationToken);
             RecordSuccess(OrchestratorActivitySource.ContainerRemove, startTimestamp);
+            RecordContainerStateChange("removed");
         }
         catch (Exception ex)
         {
@@ -214,4 +218,14 @@ public class OpenTelemetryContainerManagerDecorator(IContainerManager inner) : I
     private static void RecordError(string operation, long startTimestamp, Activity? activity, Exception ex) =>
         MetricsHelper.RecordError(operation, startTimestamp, activity, ex,
             OrchestratorMetrics.ContainerOperationCount, OrchestratorMetrics.ContainerOperationDuration);
+
+    private static void RecordContainerStateChange(string state, string? image = null)
+    {
+        var tags = new TagList { { "state", state } };
+        if (!string.IsNullOrEmpty(image))
+        {
+            tags.Add("image", image);
+        }
+        OrchestratorMetrics.ContainerStateChangeCount.Add(1, tags);
+    }
 }
