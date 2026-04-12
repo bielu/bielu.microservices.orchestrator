@@ -19,7 +19,9 @@ public static class OpenTelemetryBuilderExtensions
     public const int DecoratorPriority = 900;
 
     /// <summary>
-    /// Adds OpenTelemetry tracing and metrics decorators around all registered manager interfaces.
+    /// Adds OpenTelemetry tracing and metrics decorators around all registered manager interfaces,
+    /// and registers the <see cref="OrchestratorMetricsCollector"/> hosted service that periodically
+    /// collects gauge-style metrics (managed instance counts, host CPU/RAM, etc.).
     /// Call this after registering a runtime provider (e.g., <c>AddDocker()</c>).
     /// <para>
     /// The OTel decorators are applied at <see cref="DecoratorPriority"/>
@@ -40,6 +42,8 @@ public static class OpenTelemetryBuilderExtensions
                 services.Decorate<INetworkManager, OpenTelemetryNetworkManagerDecorator>();
                 services.Decorate<IVolumeManager, OpenTelemetryVolumeManagerDecorator>();
             });
+
+        builder.Services.AddHostedService<OrchestratorMetricsCollector>();
 
         return builder;
     }
