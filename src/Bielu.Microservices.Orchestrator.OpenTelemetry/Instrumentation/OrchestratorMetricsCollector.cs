@@ -126,30 +126,33 @@ public sealed class OrchestratorMetricsCollector(
             () => _totalDesiredReplicas,
             description: "Total number of desired replicas across all managed instances");
 
-        // Host gauges
+        // Host gauges — these measure system-wide resources, not just this .NET process.
+        // Process-level metrics are already provided by .NET's built-in System.Runtime meter
+        // (e.g. dotnet.process.cpu.time, dotnet.process.memory.working_set) and
+        // Microsoft.Extensions.Diagnostics.ResourceMonitoring (e.g. process.cpu.utilization).
         _cpuUsageGauge = meter.CreateObservableGauge(
             "orchestrator.host.cpu.usage",
             () => _cpuUsagePercent,
             unit: "%",
-            description: "Host CPU usage percentage");
+            description: "Host-level (system-wide) CPU usage percentage — not process-level");
 
         _memoryUsageGauge = meter.CreateObservableGauge(
             "orchestrator.host.memory.usage",
             () => _memoryUsagePercent,
             unit: "%",
-            description: "Host memory usage percentage");
+            description: "Host-level (system-wide) memory usage percentage — not process-level");
 
         _memoryAvailableGauge = meter.CreateObservableGauge(
             "orchestrator.host.memory.available_bytes",
             () => _memoryAvailableBytes,
             unit: "By",
-            description: "Available host memory in bytes");
+            description: "Available host memory in bytes (system-wide, not process-level)");
 
         _memoryTotalGauge = meter.CreateObservableGauge(
             "orchestrator.host.memory.total_bytes",
             () => _memoryTotalBytes,
             unit: "By",
-            description: "Total host memory in bytes");
+            description: "Total host physical memory in bytes (system-wide)");
 
         // Tagged breakdown gauges
         _instancesByStateGauge = meter.CreateObservableGauge(

@@ -4,9 +4,21 @@ using System.Runtime.InteropServices;
 namespace Bielu.Microservices.Orchestrator.OpenTelemetry.Instrumentation;
 
 /// <summary>
-/// Provides cross-platform host-level CPU and memory metrics.
-/// On Linux, reads from <c>/proc/stat</c> and <c>/proc/meminfo</c>.
-/// On other platforms, falls back to process-level approximations.
+/// Provides cross-platform <strong>host-level</strong> (system-wide) CPU and memory metrics.
+/// <para>
+/// These metrics deliberately measure the entire host, not just the current .NET process.
+/// This is intentional: the orchestrator needs visibility into total system resource pressure
+/// across all managed containers. For process-level metrics, .NET already provides built-in
+/// instruments such as <c>dotnet.process.cpu.time</c> and <c>dotnet.process.memory.working_set</c>
+/// (via the <c>System.Runtime</c> meter) and <c>process.cpu.utilization</c> (via
+/// <c>Microsoft.Extensions.Diagnostics.ResourceMonitoring</c>). Those process-level metrics
+/// are not duplicated here.
+/// </para>
+/// <para>
+/// On Linux, reads from <c>/proc/stat</c> (CPU) and <c>/proc/meminfo</c> (memory).
+/// On other platforms, falls back to process-level approximations (which may undercount
+/// system-wide usage).
+/// </para>
 /// </summary>
 internal sealed class HostMetricsProvider
 {
