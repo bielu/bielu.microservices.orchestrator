@@ -30,7 +30,7 @@ internal sealed class HostMetricsProvider
     /// <summary>
     /// Gets the total physical memory of the host in bytes.
     /// </summary>
-    internal static long GetTotalMemoryBytes()
+    internal long GetTotalMemoryBytes()
     {
         if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
         {
@@ -45,7 +45,7 @@ internal sealed class HostMetricsProvider
     /// <summary>
     /// Gets the available (free) memory of the host in bytes.
     /// </summary>
-    internal static long GetAvailableMemoryBytes()
+    internal long GetAvailableMemoryBytes()
     {
         if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
         {
@@ -63,7 +63,7 @@ internal sealed class HostMetricsProvider
     /// <summary>
     /// Gets the host memory usage as a percentage (0–100).
     /// </summary>
-    internal static double GetMemoryUsagePercent()
+    internal double GetMemoryUsagePercent()
     {
         var total = GetTotalMemoryBytes();
         if (total <= 0)
@@ -87,7 +87,8 @@ internal sealed class HostMetricsProvider
                 return _lastCpuUsagePercent;
 
             // Fields: cpu user nice system idle iowait irq softirq steal guest guest_nice
-            long idle = long.Parse(parts[4]);
+            if (!long.TryParse(parts[4], out long idle))
+                return _lastCpuUsagePercent;
             long total = 0;
             for (var i = 1; i < parts.Length; i++)
             {

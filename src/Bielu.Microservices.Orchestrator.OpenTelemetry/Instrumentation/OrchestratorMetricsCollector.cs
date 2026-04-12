@@ -296,9 +296,9 @@ public sealed class OrchestratorMetricsCollector(
     private void CollectHostMetrics()
     {
         _cpuUsagePercent = _hostMetrics.GetCpuUsagePercent();
-        _memoryUsagePercent = HostMetricsProvider.GetMemoryUsagePercent();
-        _memoryAvailableBytes = HostMetricsProvider.GetAvailableMemoryBytes();
-        _memoryTotalBytes = HostMetricsProvider.GetTotalMemoryBytes();
+        _memoryUsagePercent = _hostMetrics.GetMemoryUsagePercent();
+        _memoryAvailableBytes = _hostMetrics.GetAvailableMemoryBytes();
+        _memoryTotalBytes = _hostMetrics.GetTotalMemoryBytes();
     }
 
     /// <summary>
