@@ -13,6 +13,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <InternalsVisibleTo Include="Bielu.Microservices.Orchestrator.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\Bielu.Microservices.Orchestrator\Bielu.Microservices.Orchestrator.csproj" />
   </ItemGroup>
 
@@ -20,6 +24,8 @@
     <PackageReference Include="OpenTelemetry.Api" />
     <PackageReference Include="Scrutor" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
+    <PackageReference Include="Microsoft.Extensions.Hosting" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
   </ItemGroup>
 
 </Project>
