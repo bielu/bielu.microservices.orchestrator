@@ -13,6 +13,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\Bielu.Microservices.Orchestrator\Bielu.Microservices.Orchestrator.csproj" />
     <ProjectReference Include="..\Bielu.Microservices.Orchestrator.Gateway.Contracts\Bielu.Microservices.Orchestrator.Gateway.Contracts.csproj" />
   </ItemGroup>
 

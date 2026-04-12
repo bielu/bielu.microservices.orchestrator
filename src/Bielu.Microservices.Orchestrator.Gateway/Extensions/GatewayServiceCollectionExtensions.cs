@@ -31,6 +31,9 @@ public static class GatewayServiceCollectionExtensions
         if (string.IsNullOrWhiteSpace(options.ApiKey))
             throw new ArgumentException("ApiKey must be configured for gateway authentication.", nameof(configure));
 
+        if (string.Equals(options.ApiKey, "CHANGE-ME-TO-A-STRONG-KEY", StringComparison.Ordinal))
+            throw new ArgumentException("Default placeholder API key must be changed before running the gateway.", nameof(configure));
+
         services.AddSingleton(options);
 
         // Authentication

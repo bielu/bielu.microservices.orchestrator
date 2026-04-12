@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using Bielu.Microservices.Orchestrator.Utilities;
 using Microsoft.Extensions.Logging;
 
 namespace Bielu.Microservices.Orchestrator.Gateway.Services;
@@ -49,14 +50,19 @@ public sealed class OrchestratorRegistrationStore(ILogger<OrchestratorRegistrati
     {
         ArgumentNullException.ThrowIfNull(instance);
 
-        var isNew = !_instances.ContainsKey(instance.InstanceId);
-        _instances[instance.InstanceId] = instance;
+        var isNew = _instances.TryAdd(instance.InstanceId, instance);
+        if (!isNew)
+        {
+            _instances[instance.InstanceId] = instance;
+        }
 
+        var sanitizedId = LogSanitizer.Sanitize(instance.InstanceId);
+        var sanitizedAddress = LogSanitizer.Sanitize(instance.Address);
         logger.LogInformation(
             "Instance {InstanceId} {Action} at {Address}",
-            instance.InstanceId,
+            sanitizedId,
             isNew ? "registered" : "re-registered",
-            instance.Address);
+            sanitizedAddress);
 
         OnChange?.Invoke();
         return isNew;
@@ -88,7 +94,7 @@ public sealed class OrchestratorRegistrationStore(ILogger<OrchestratorRegistrati
         if (!_instances.TryRemove(instanceId, out _))
             return false;
 
-        logger.LogInformation("Instance {InstanceId} deregistered", instanceId);
+        logger.LogInformation("Instance {InstanceId} deregistered", LogSanitizer.Sanitize(instanceId));
         OnChange?.Invoke();
         return true;
     }
@@ -106,7 +112,8 @@ public sealed class OrchestratorRegistrationStore(ILogger<OrchestratorRegistrati
         {
             if (kvp.Value.ExpiresAt <= now && _instances.TryRemove(kvp.Key, out _))
             {
-                logger.LogWarning("Instance {InstanceId} expired (TTL exceeded)", kvp.Key);
+                logger.LogWarning("Instance {InstanceId} expired (TTL exceeded)",
+                    LogSanitizer.Sanitize(kvp.Key));
                 removed++;
             }
         }
