@@ -108,12 +108,17 @@ public sealed class OrchestratorRegistrationStore(ILogger<OrchestratorRegistrati
         var now = DateTimeOffset.UtcNow;
         var removed = 0;
 
-        foreach (var kvp in _instances)
+        var expiredKeys = _instances
+            .Where(kvp => kvp.Value.ExpiresAt <= now)
+            .Select(kvp => kvp.Key)
+            .ToList();
+
+        foreach (var key in expiredKeys)
         {
-            if (kvp.Value.ExpiresAt <= now && _instances.TryRemove(kvp.Key, out _))
+            if (_instances.TryRemove(key, out _))
             {
                 logger.LogWarning("Instance {InstanceId} expired (TTL exceeded)",
-                    LogSanitizer.Sanitize(kvp.Key));
+                    LogSanitizer.Sanitize(key));
                 removed++;
             }
         }

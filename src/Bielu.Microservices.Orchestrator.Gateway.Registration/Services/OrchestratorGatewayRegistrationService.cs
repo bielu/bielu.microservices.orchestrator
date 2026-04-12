@@ -167,7 +167,7 @@ public sealed class OrchestratorGatewayRegistrationService(
         try
         {
             var totalProcessorTime = process.TotalProcessorTime;
-            var uptime = DateTime.UtcNow - process.StartTime.ToUniversalTime();
+            var uptime = DateTimeOffset.UtcNow - process.StartTime.ToUniversalTime();
             if (uptime.TotalMilliseconds > 0)
             {
                 cpuPercent = totalProcessorTime.TotalMilliseconds /
