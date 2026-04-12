@@ -28,6 +28,10 @@ internal sealed class HostMetricsProvider
 
     /// <summary>
     /// Gets the current host CPU usage as a percentage (0–100).
+    /// On Linux, reads from <c>/proc/stat</c> for true host-level data.
+    /// On other platforms, falls back to a process-level approximation based on
+    /// <see cref="Process.TotalProcessorTime"/>, which may significantly undercount
+    /// system-wide usage.
     /// </summary>
     internal double GetCpuUsagePercent()
     {
@@ -41,6 +45,10 @@ internal sealed class HostMetricsProvider
 
     /// <summary>
     /// Gets the total physical memory of the host in bytes.
+    /// On Linux, reads <c>MemTotal</c> from <c>/proc/meminfo</c>.
+    /// On other platforms, falls back to <see cref="GC.GetGCMemoryInfo()"/>'s
+    /// <c>TotalAvailableMemoryBytes</c>, which reflects the GC-visible memory limit
+    /// and may not equal total physical RAM.
     /// </summary>
     internal long GetTotalMemoryBytes()
     {
@@ -56,6 +64,10 @@ internal sealed class HostMetricsProvider
 
     /// <summary>
     /// Gets the available (free) memory of the host in bytes.
+    /// On Linux, reads <c>MemAvailable</c> from <c>/proc/meminfo</c>.
+    /// On other platforms, falls back to a process-level approximation:
+    /// <c>GC.TotalAvailableMemoryBytes - Process.WorkingSet64</c>, which may not
+    /// reflect true system-wide availability.
     /// </summary>
     internal long GetAvailableMemoryBytes()
     {
@@ -68,12 +80,15 @@ internal sealed class HostMetricsProvider
 
         // Fallback: total minus current process working set
         var total = GC.GetGCMemoryInfo().TotalAvailableMemoryBytes;
-        var processUsed = Process.GetCurrentProcess().WorkingSet64;
+        using var process = Process.GetCurrentProcess();
+        var processUsed = process.WorkingSet64;
         return Math.Max(0, total - processUsed);
     }
 
     /// <summary>
     /// Gets the host memory usage as a percentage (0–100).
+    /// Accuracy depends on the platform; see <see cref="GetTotalMemoryBytes"/> and
+    /// <see cref="GetAvailableMemoryBytes"/> for platform-specific details.
     /// </summary>
     internal double GetMemoryUsagePercent()
     {
@@ -130,7 +145,7 @@ internal sealed class HostMetricsProvider
     {
         try
         {
-            var process = Process.GetCurrentProcess();
+            using var process = Process.GetCurrentProcess();
             // Rough approximation: ratio of process CPU time to uptime × processor count
             var cpuTime = process.TotalProcessorTime.TotalMilliseconds;
             var uptime = (DateTime.UtcNow - process.StartTime.ToUniversalTime()).TotalMilliseconds;

@@ -13,9 +13,8 @@ namespace Bielu.Microservices.Orchestrator.OpenTelemetry.Instrumentation;
 public sealed class OrchestratorMetricsCollector(
     IInstanceStore instanceStore,
     IContainerManager containerManager,
-    ILogger<OrchestratorMetricsCollector> logger) : IHostedService, IDisposable
+    ILogger<OrchestratorMetricsCollector> logger) : BackgroundService
 {
-    private Timer? _timer;
     private readonly HostMetricsProvider _hostMetrics = new();
 
     // --- Cached snapshot values (read by observable gauge callbacks) ---
@@ -64,26 +63,27 @@ public sealed class OrchestratorMetricsCollector(
     internal static readonly TimeSpan DefaultInterval = TimeSpan.FromSeconds(30);
 
     /// <inheritdoc />
-    public Task StartAsync(CancellationToken cancellationToken)
+    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         logger.LogInformation("Orchestrator metrics collector starting with {Interval}s interval", DefaultInterval.TotalSeconds);
         RegisterGauges();
-        _timer = new Timer(CollectMetricsCallback, null, TimeSpan.Zero, DefaultInterval);
-        return Task.CompletedTask;
-    }
 
-    /// <inheritdoc />
-    public Task StopAsync(CancellationToken cancellationToken)
-    {
+        try
+        {
+            await CollectMetricsAsync();
+
+            using var periodicTimer = new PeriodicTimer(DefaultInterval);
+            while (await periodicTimer.WaitForNextTickAsync(stoppingToken))
+            {
+                await CollectMetricsAsync();
+            }
+        }
+        catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
+        {
+            // Expected during shutdown
+        }
+
         logger.LogInformation("Orchestrator metrics collector stopping");
-        _timer?.Change(Timeout.Infinite, 0);
-        return Task.CompletedTask;
-    }
-
-    /// <inheritdoc />
-    public void Dispose()
-    {
-        _timer?.Dispose();
     }
 
     // --- Internal accessors for testing ---
@@ -176,12 +176,6 @@ public sealed class OrchestratorMetricsCollector(
             description: "Number of containers grouped by container state");
     }
 
-    private void CollectMetricsCallback(object? state)
-    {
-        // Fire-and-forget; exceptions are logged but do not crash the timer
-        _ = CollectMetricsAsync();
-    }
-
     internal async Task CollectMetricsAsync()
     {
         try
@@ -229,8 +223,8 @@ public sealed class OrchestratorMetricsCollector(
         }
         catch (Exception ex)
         {
-            logger.LogWarning(ex, "Failed to list containers for metrics; using cached values");
-            return;
+            logger.LogWarning(ex, "Failed to list containers for metrics; resetting container-derived values for this cycle");
+            containers = Array.Empty<ContainerInfo>();
         }
 
         _totalContainers = containers.Count;
@@ -245,19 +239,23 @@ public sealed class OrchestratorMetricsCollector(
                 new KeyValuePair<string, object?>("state", kvp.Key)))
             .ToList();
 
-        // Containers by image (with image and version tags for filtering)
+        // Containers by image (group by parsed name+version to merge equivalent refs like nginx vs nginx:latest)
         var cByImage = containers
-            .GroupBy(c => c.Image)
-            .ToDictionary(g => g.Key, g => g.Count());
-        _containersByImage = cByImage;
-        _containersByImageMeasurements = cByImage
-            .Select(kvp =>
+            .Select(c =>
             {
-                ParseImageAndVersion(kvp.Key, out var imageName, out var imageVersion);
-                return new Measurement<int>(kvp.Value,
-                    new KeyValuePair<string, object?>("image", imageName),
-                    new KeyValuePair<string, object?>("version", imageVersion));
+                ParseImageAndVersion(c.Image, out var imageName, out var imageVersion);
+                return new { ImageName = imageName, ImageVersion = imageVersion };
             })
+            .GroupBy(x => new { x.ImageName, x.ImageVersion })
+            .Select(g => new { g.Key.ImageName, g.Key.ImageVersion, Count = g.Count() })
+            .ToList();
+        _containersByImage = cByImage.ToDictionary(
+            x => $"{x.ImageName}:{x.ImageVersion}",
+            x => x.Count);
+        _containersByImageMeasurements = cByImage
+            .Select(x => new Measurement<int>(x.Count,
+                new KeyValuePair<string, object?>("image", x.ImageName),
+                new KeyValuePair<string, object?>("version", x.ImageVersion)))
             .ToList();
 
         // Determine healthy instances: all containers for the instance are Running
