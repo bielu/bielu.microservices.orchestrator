@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <Description>Bielu.Microservices.Orchestrator.Gateway - YARP-based reverse proxy gateway with dynamic orchestrator registration</Description>
+    <TargetFramework>net10.0</TargetFramework>
+    <LangVersion>14</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AssemblyName>Bielu.Microservices.Orchestrator.Gateway</AssemblyName>
+    <PackageId>Bielu.Microservices.Orchestrator.Gateway</PackageId>
+    <PackageTags>container;gateway;yarp;reverse-proxy;orchestrator;microservices</PackageTags>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Bielu.Microservices.Orchestrator.Gateway.Contracts\Bielu.Microservices.Orchestrator.Gateway.Contracts.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Yarp.ReverseProxy" />
+  </ItemGroup>
+
+</Project>
