@@ -32,6 +32,8 @@
     <PackageVersion Include="Grpc.Net.Client" Version="2.76.0" />
     <PackageVersion Include="Google.Protobuf" Version="3.34.1" />
     <PackageVersion Include="Grpc.Tools" Version="2.80.0" />
+    <!-- Gateway / YARP -->
+    <PackageVersion Include="Yarp.ReverseProxy" Version="2.3.0" />
     <!-- Aspire -->
     <PackageVersion Include="Aspire.Hosting" Version="13.2.2" />
     <PackageVersion Include="Aspire.Hosting.PostgreSQL" Version="13.2.2" />
