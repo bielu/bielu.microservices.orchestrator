@@ -37,6 +37,12 @@ public static class OrchestratorMetrics
         unit: "s",
         description: "Duration of container operations");
 
+    internal static readonly Counter<long> ContainerStateChangeCount = Meter.CreateCounter<long>(
+        "orchestrator.container.state.changes",
+        description: "Total number of container state changes (created, started, stopped, removed)");
+
+
+
     // ---- Image metrics ----
 
     internal static readonly Counter<long> ImageOperationCount = Meter.CreateCounter<long>(

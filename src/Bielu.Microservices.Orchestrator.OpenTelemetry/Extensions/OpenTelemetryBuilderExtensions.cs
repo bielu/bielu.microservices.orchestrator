@@ -13,17 +13,37 @@ namespace Bielu.Microservices.Orchestrator.OpenTelemetry.Extensions;
 public static class OpenTelemetryBuilderExtensions
 {
     /// <summary>
-    /// Adds OpenTelemetry tracing and metrics decorators around all registered manager interfaces.
+    /// Deferred decorator priority for OpenTelemetry instrumentation.
+    /// Applied as the outermost wrapper (high value = outer).
+    /// </summary>
+    public const int DecoratorPriority = 900;
+
+    /// <summary>
+    /// Adds OpenTelemetry tracing and metrics decorators around all registered manager interfaces,
+    /// and registers the <see cref="OrchestratorMetricsCollector"/> hosted service that periodically
+    /// collects gauge-style metrics (managed instance counts, host CPU/RAM, etc.).
     /// Call this after registering a runtime provider (e.g., <c>AddDocker()</c>).
+    /// <para>
+    /// The OTel decorators are applied at <see cref="DecoratorPriority"/>
+    /// priority, ensuring they are always the outermost wrappers in the call chain
+    /// regardless of registration order relative to state tracking or other decorators.
+    /// </para>
     /// </summary>
     /// <param name="builder">The orchestrator builder.</param>
     /// <returns>The orchestrator builder for chaining.</returns>
     public static OrchestratorBuilder AddOpenTelemetryInstrumentation(this OrchestratorBuilder builder)
     {
-        builder.Services.Decorate<IContainerManager, OpenTelemetryContainerManagerDecorator>();
-        builder.Services.Decorate<IImageManager, OpenTelemetryImageManagerDecorator>();
-        builder.Services.Decorate<INetworkManager, OpenTelemetryNetworkManagerDecorator>();
-        builder.Services.Decorate<IVolumeManager, OpenTelemetryVolumeManagerDecorator>();
+        builder.AddDeferredDecorator(
+            DecoratorPriority,
+            services =>
+            {
+                services.Decorate<IContainerManager, OpenTelemetryContainerManagerDecorator>();
+                services.Decorate<IImageManager, OpenTelemetryImageManagerDecorator>();
+                services.Decorate<INetworkManager, OpenTelemetryNetworkManagerDecorator>();
+                services.Decorate<IVolumeManager, OpenTelemetryVolumeManagerDecorator>();
+            });
+
+        builder.Services.AddHostedService<OrchestratorMetricsCollector>();
 
         return builder;
     }

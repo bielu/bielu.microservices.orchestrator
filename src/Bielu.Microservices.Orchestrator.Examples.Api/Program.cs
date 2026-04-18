@@ -2,7 +2,10 @@ using Bielu.Microservices.Orchestrator.Docker.Extensions;
 using Bielu.Microservices.Orchestrator.Extensions;
 using Bielu.Microservices.Orchestrator.HealthChecks.Extensions;
 using Bielu.Microservices.Orchestrator.OpenTelemetry.Extensions;
+using Bielu.Microservices.Orchestrator.Storage.EfCore;
+using Bielu.Microservices.Orchestrator.Storage.EfCore.Extensions;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -10,11 +13,14 @@ var builder = WebApplication.CreateBuilder(args);
 builder.AddServiceDefaults();
 
 // -------------------------------------------------------------------------
-// 1. Orchestrator — register Docker provider + decorate with tracing
+// 1. Orchestrator — register Docker provider + storage + tracing
 // -------------------------------------------------------------------------
 // The Docker provider manages containers, images, networks, and volumes
 // via the Docker socket. Swap AddDocker() for AddPodman() / AddKubernetes()
 // to target a different runtime with zero changes to the rest of the code.
+//
+// AddEfCoreInstanceStore() enables persistent storage of container instances
+// in PostgreSQL, allowing the orchestrator to track containers across restarts.
 //
 // AddOpenTelemetryInstrumentation() wraps every manager interface with a
 // thin decorator that opens an Activity span and records metrics around
@@ -29,6 +35,12 @@ builder.Services.AddMicroservicesOrchestrator(orchestrator =>
             //          npipe://./pipe/docker_engine on Windows.
             // Override via DOCKER_HOST env var or explicit assignment:
             //   options.Endpoint = "tcp://remote-host:2376";
+        })
+        .UseEfCoreInstanceStore(x =>
+        {
+            var connectionString = builder.Configuration.GetConnectionString("orchestratordb")
+                ?? "Host=localhost;Port=5432;Database=orchestratordb;Username=postgres;Password=postgres";
+            x.UseNpgsql(connectionString);
         })
         .AddOpenTelemetryInstrumentation(); // must come after the provider
 });
@@ -52,6 +64,15 @@ builder.Services.AddHealthChecks()
 builder.Services.AddControllers();
 
 var app = builder.Build();
+
+// Apply database migrations on startup
+using (var scope = app.Services.CreateScope())
+{
+    var dbContext = scope.ServiceProvider.GetRequiredService<InstanceStoreDbContext>();
+    await dbContext.Database.EnsureCreatedAsync();
+}
+
+app.MapOpenApi();
 
 app.MapDefaultEndpoints();
 

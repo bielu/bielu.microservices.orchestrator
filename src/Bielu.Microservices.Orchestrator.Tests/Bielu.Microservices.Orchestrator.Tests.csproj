@@ -17,6 +17,8 @@
     <ProjectReference Include="..\Bielu.Microservices.Orchestrator.Kubernetes\Bielu.Microservices.Orchestrator.Kubernetes.csproj" />
     <ProjectReference Include="..\Bielu.Microservices.Orchestrator.OpenTelemetry\Bielu.Microservices.Orchestrator.OpenTelemetry.csproj" />
     <ProjectReference Include="..\Bielu.Microservices.Orchestrator.HealthChecks\Bielu.Microservices.Orchestrator.HealthChecks.csproj" />
+    <ProjectReference Include="..\Bielu.Microservices.Orchestrator.Storage.File\Bielu.Microservices.Orchestrator.Storage.File.csproj" />
+    <ProjectReference Include="..\Bielu.Microservices.Orchestrator.Storage.EfCore\Bielu.Microservices.Orchestrator.Storage.EfCore.csproj" />
     <ProjectReference Include="..\Bielu.Microservices.Orchestrator.Examples.AppHost\Bielu.Microservices.Orchestrator.Examples.AppHost.csproj" />
   </ItemGroup>
 
@@ -31,10 +33,18 @@
     </PackageReference>
     <PackageReference Include="Shouldly" />
     <PackageReference Include="NSubstitute" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.InMemory" />
     <PackageReference Include="coverlet.collector">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Remove="AspireIntegrationTests.cs" />
+    <None Include="AspireIntegrationTests.cs" />
+    <Compile Remove="OpenTelemetryInstrumentationTests.cs" />
+    <None Include="OpenTelemetryInstrumentationTests.cs" />
   </ItemGroup>
 
 </Project>

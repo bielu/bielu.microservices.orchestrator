@@ -1,4 +1,4 @@
-<Project Sdk="Aspire.AppHost.Sdk/13.2.1">
+<Project Sdk="Aspire.AppHost.Sdk/13.2.2">
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
@@ -9,6 +9,11 @@
     <IsPackable>false</IsPackable>
     <UserSecretsId>d4f8c5e7-8a3b-4e9d-b6c1-2f7a9e0d5b3c</UserSecretsId>
   </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Aspire.Hosting.PostgreSQL" />
+    <PackageReference Include="CommunityToolkit.Aspire.Hosting.OpenTelemetryCollector" />
+  </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\Bielu.Microservices.Orchestrator.Examples.Api\Bielu.Microservices.Orchestrator.Examples.Api.csproj" />

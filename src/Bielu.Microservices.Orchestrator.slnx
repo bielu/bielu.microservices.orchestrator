@@ -6,6 +6,7 @@
     <Project Path="Bielu.Microservices.Orchestrator.Examples.AppHost/Bielu.Microservices.Orchestrator.Examples.AppHost.csproj" />
     <Project Path="Bielu.Microservices.Orchestrator.Examples.ServiceDefaults/Bielu.Microservices.Orchestrator.Examples.ServiceDefaults.csproj" />
     <Project Path="Bielu.Microservices.Orchestrator.Examples.Api/Bielu.Microservices.Orchestrator.Examples.Api.csproj" />
+    <Project Path="Bielu.Microservices.Orchestrator.Examples.Worker/Bielu.Microservices.Orchestrator.Examples.Worker.csproj" />
   </Folder>
   <Folder Name="/Solution Files/">
     <File Path="../.gitignore" />
@@ -13,7 +14,8 @@
     <File Path="../LICENSE.md" />
     <File Path="../readme.md" />
     <File Path="../version.props" />
-    <File Path="../Directory.Packages.props" />
+    <File Path="./Directory.Packages.props" />
+    <File Path="Directory.Build.props" />
   </Folder>
   <Project Path="Bielu.Microservices.Orchestrator/Bielu.Microservices.Orchestrator.csproj" />
   <Project Path="Bielu.Microservices.Orchestrator.Docker/Bielu.Microservices.Orchestrator.Docker.csproj" />
@@ -25,4 +27,6 @@
   <Project Path="Bielu.Microservices.Orchestrator.Gateway.Contracts/Bielu.Microservices.Orchestrator.Gateway.Contracts.csproj" />
   <Project Path="Bielu.Microservices.Orchestrator.Gateway.Registration/Bielu.Microservices.Orchestrator.Gateway.Registration.csproj" />
   <Project Path="Bielu.Microservices.Orchestrator.Gateway/Bielu.Microservices.Orchestrator.Gateway.csproj" />
+  <Project Path="Bielu.Microservices.Orchestrator.Storage.File/Bielu.Microservices.Orchestrator.Storage.File.csproj" />
+  <Project Path="Bielu.Microservices.Orchestrator.Storage.EfCore/Bielu.Microservices.Orchestrator.Storage.EfCore.csproj" />
 </Solution>
