@@ -5,7 +5,9 @@ using Bielu.Microservices.Orchestrator.Models;
 using Bielu.Microservices.Orchestrator.Storage.EfCore;
 using Bielu.Microservices.Orchestrator.Storage.EfCore.Extensions;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Internal;
 using Microsoft.Extensions.DependencyInjection;
+using NSubstitute;
 using Shouldly;
 using Xunit;
 
@@ -24,10 +26,14 @@ public class EfCoreInstanceStoreTests : IDisposable
         var options = new DbContextOptionsBuilder<InstanceStoreDbContext>()
             .UseInMemoryDatabase(databaseName: $"orchestrator-test-{Guid.NewGuid()}")
             .Options;
-
+        
         _dbContext = new InstanceStoreDbContext(options);
-        _dbContext.Database.EnsureCreated();
-        _store = new EfCoreInstanceStore(_dbContext);
+        _dbContext.Database.MigrateAsync();
+        var factory = Substitute.For<IDbContextFactory<InstanceStoreDbContext>>();
+
+        factory.CreateDbContextAsync(Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(_dbContext));
+        _store = new EfCoreInstanceStore(factory);
     }
 
     public void Dispose()
