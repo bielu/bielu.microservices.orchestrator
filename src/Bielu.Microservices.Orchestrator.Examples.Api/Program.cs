@@ -1,4 +1,5 @@
 using Bielu.Microservices.Orchestrator.Docker.Extensions;
+using Bielu.Microservices.Orchestrator.Examples.Api.Controllers;
 using Bielu.Microservices.Orchestrator.Extensions;
 using Bielu.Microservices.Orchestrator.HealthChecks.Extensions;
 using Bielu.Microservices.Orchestrator.OpenTelemetry.Extensions;
@@ -40,7 +41,8 @@ builder.Services.AddMicroservicesOrchestrator(orchestrator =>
         {
             var connectionString = builder.Configuration.GetConnectionString("orchestratordb")
                 ?? "Host=localhost;Port=5432;Database=orchestratordb;Username=postgres;Password=postgres";
-            x.UseNpgsql(connectionString);
+            x.UseNpgsql(connectionString, b => b.MigrationsAssembly(typeof(ContainersController).Assembly));
+            
         })
         .AddOpenTelemetryInstrumentation(); // must come after the provider
 });
@@ -61,7 +63,9 @@ builder.Services.AddHealthChecks()
 // -------------------------------------------------------------------------
 // 3. Controllers — register MVC controllers for API endpoints
 // -------------------------------------------------------------------------
+builder.Services.AddRouting();
 builder.Services.AddControllers();
+builder.Services.AddEndpointsApiExplorer();
 
 var app = builder.Build();
 
@@ -69,7 +73,7 @@ var app = builder.Build();
 using (var scope = app.Services.CreateScope())
 {
     var dbContext = scope.ServiceProvider.GetRequiredService<InstanceStoreDbContext>();
-    await dbContext.Database.EnsureCreatedAsync();
+    await dbContext.Database.MigrateAsync();
 }
 
 app.MapOpenApi();

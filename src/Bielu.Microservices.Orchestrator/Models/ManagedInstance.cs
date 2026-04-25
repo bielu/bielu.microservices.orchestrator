@@ -10,7 +10,7 @@ public class ManagedInstance
     /// Unique instance or group identifier.
     /// </summary>
     public string Id { get; set; } = string.Empty;
-
+    public Guid OrchestratorId { get; set; } = Guid.Empty;
     /// <summary>
     /// Runtime container IDs associated with this instance (for reconnection).
     /// </summary>

@@ -18,6 +18,8 @@ public class KubernetesContainerManager(
     OrchestratorOptions orchestratorOptions,
     ILogger<KubernetesContainerManager> logger) : IContainerManager
 {
+    //todo: figure out how to get the host address
+    public string HostAddress => "localhost";
 
     public async Task<IReadOnlyList<ContainerInfo>> ListAsync(bool all = false, CancellationToken cancellationToken = default)
     {

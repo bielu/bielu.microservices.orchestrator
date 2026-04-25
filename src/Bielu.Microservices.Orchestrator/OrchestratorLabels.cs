@@ -24,4 +24,6 @@ public static class OrchestratorLabels
     /// Label key for the zero-based replica index within a group.
     /// </summary>
     public const string ReplicaIndex = "orchestrator.replica-index";
+
+    public const string ManagedById  = "orchestrator.managed-by-id";
 }

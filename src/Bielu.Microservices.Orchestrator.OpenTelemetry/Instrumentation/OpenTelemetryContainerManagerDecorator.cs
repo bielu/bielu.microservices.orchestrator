@@ -27,8 +27,9 @@ public class OpenTelemetryContainerManagerDecorator(IContainerManager inner) : I
         "OTEL_SERVICE_NAME",
         "OTEL_TRACES_SAMPLER"
     ];
-   
 
+
+    public string HostAddress  => inner.HostAddress;
 
     /// <inheritdoc />
     public async Task<IReadOnlyList<ContainerInfo>> ListAsync(bool all = false, CancellationToken cancellationToken = default)
@@ -80,6 +81,10 @@ public class OpenTelemetryContainerManagerDecorator(IContainerManager inner) : I
             var value = Environment.GetEnvironmentVariable(envVar);
             if (!string.IsNullOrEmpty(value) && !request.EnvironmentVariables.ContainsKey(envVar))
             {
+                if (value.Contains("localhost") || value.Contains("127.0.0.1"))
+                {
+                    value = value.Replace("localhost", HostAddress).Replace("127.0.0.1",HostAddress);
+                }
                 request.EnvironmentVariables[envVar] = value;
             }
         }

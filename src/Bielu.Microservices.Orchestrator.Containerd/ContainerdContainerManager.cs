@@ -40,6 +40,9 @@ public class ContainerdContainerManager(
     private const uint SigTerm = 15;
     private const uint SigKill = 9;
 
+    //todo: confirm default address
+    public string HostAddress => "172.17.0.1";
+
     public async Task<IReadOnlyList<ContainerInfo>> ListAsync(bool all = false, CancellationToken cancellationToken = default)
     {
         logger.LogDebug("Listing containerd containers in namespace {Namespace}", LogSanitizer.Sanitize(options.Namespace));

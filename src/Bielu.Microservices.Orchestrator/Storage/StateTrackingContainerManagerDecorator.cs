@@ -21,6 +21,9 @@ public class StateTrackingContainerManagerDecorator(
     /// Applied close to the provider (low value = inner wrapper).
     /// </summary>
     public const int DecoratorPriority = 100;
+
+    public string HostAddress  => inner.HostAddress;
+
     /// <inheritdoc />
     public Task<IReadOnlyList<ContainerInfo>> ListAsync(bool all = false, CancellationToken cancellationToken = default)
         => inner.ListAsync(all, cancellationToken);
@@ -37,6 +40,7 @@ public class StateTrackingContainerManagerDecorator(
         var instance = new ManagedInstance
         {
             Id = request.Name ?? containerId,
+            OrchestratorId = Guid.NewGuid(), //todo: make this configurable and stick to machine
             ContainerIds = [containerId],
             OriginalRequest = request,
             DesiredState = DesiredState.Running,

@@ -17,6 +17,8 @@ public class DockerContainerManager(
     IImageManager imageManager,
     ILogger<DockerContainerManager> logger) : IContainerManager
 {
+    //todo: confirm default address
+    public string HostAddress => "host.docker.internal";
     public async Task<IReadOnlyList<ContainerInfo>> ListAsync(bool all = false, CancellationToken cancellationToken = default)
     {
         var listParams = new ContainersListParameters { All = all };
@@ -168,7 +170,7 @@ public class DockerContainerManager(
             ? new Dictionary<string, string>(overrideLabels)
             : new Dictionary<string, string>(request.Labels);
         labels[OrchestratorLabels.ManagedBy] = OrchestratorLabels.ManagedByValue;
-
+        labels[OrchestratorLabels.ManagedById] = Guid.NewGuid().ToString();
         var createParams = new CreateContainerParameters
         {
             Image = request.Image,
