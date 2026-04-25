@@ -28,7 +28,7 @@ public class EfCoreInstanceStoreTests : IDisposable
             .Options;
         
         _dbContext = new InstanceStoreDbContext(options);
-        _dbContext.Database.MigrateAsync();
+        _dbContext.Database.EnsureCreated();
         var factory = Substitute.For<IDbContextFactory<InstanceStoreDbContext>>();
 
         factory.CreateDbContextAsync(Arg.Any<CancellationToken>())
