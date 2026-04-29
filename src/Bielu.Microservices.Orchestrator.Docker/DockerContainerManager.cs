@@ -15,6 +15,7 @@ public class DockerContainerManager(
     DockerClient client,
     OrchestratorOptions orchestratorOptions,
     IImageManager imageManager,
+    INetworkManager networkManager,
     ILogger<DockerContainerManager> logger) : IContainerManager
 {
     //todo: confirm default address
@@ -67,7 +68,7 @@ public class DockerContainerManager(
                 State = MapState(response.State.Status),
                 CreatedAt = new DateTimeOffset(response.Created),
                 Labels = response.Config.Labels != null ? new Dictionary<string, string>(response.Config.Labels) : new Dictionary<string, string>(),
-                EnvironmentVariables = ParseEnvironmentVariables(response.Config.Env)
+                EnvironmentVariables = ParseEnvironmentVariables(response.Config.Env),
             };
         }
         catch (DockerContainerNotFoundException)
@@ -187,12 +188,6 @@ public class DockerContainerManager(
                     }),
                 Binds = request.Volumes.ToList(),
                 AutoRemove = request.AutoRemove
-            },
-            NetworkingConfig = new NetworkingConfig
-            {
-                EndpointsConfig = request.Networks.ToDictionary(
-                    n => n,
-                    n => new EndpointSettings())
             }
         };
 
@@ -202,6 +197,16 @@ public class DockerContainerManager(
         }
 
         var response = await client.Containers.CreateContainerAsync(createParams, cancellationToken);
+
+        // Connect to networks after creation
+        if (request.Networks is { Count: > 0 })
+        {
+            foreach (var network in request.Networks)
+            {
+                await networkManager.ConnectAsync(network, response.ID, cancellationToken);
+            }
+        }
+
         logger.LogInformation("Created container {ContainerId} from image {Image}",
             LogSanitizer.Sanitize(response.ID), LogSanitizer.Sanitize(request.Image));
         return response.ID;
