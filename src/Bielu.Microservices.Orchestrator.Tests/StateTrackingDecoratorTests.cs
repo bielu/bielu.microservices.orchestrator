@@ -24,7 +24,8 @@ public class StateTrackingDecoratorTests
     {
         _orchestrator.ProviderName.Returns("Docker");
         var logger = Substitute.For<Microsoft.Extensions.Logging.ILogger<StateTrackingContainerManagerDecorator>>();
-        _decorator = new StateTrackingContainerManagerDecorator(_inner, _store, _orchestrator, logger);
+        var options = new OrchestratorOptions { OrchestratorId = Guid.Parse("11111111-1111-1111-1111-111111111111") };
+        _decorator = new StateTrackingContainerManagerDecorator(_inner, _store, _orchestrator, options, logger);
     }
 
     // -----------------------------------------------------------------------

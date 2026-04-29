@@ -174,7 +174,14 @@ public class DockerContainerManager(
         labels[OrchestratorLabels.ManagedBy] = OrchestratorLabels.ManagedByValue;
         labels[OrchestratorLabels.ManagedById] = Guid.NewGuid().ToString();
 
+        // Validate that all requested user-defined networks exist before attempting to create the container.
+        // This produces a clearer error than the Docker daemon's generic 404 on container create.
+        await EnsureNetworksExistAsync(request.Networks, cancellationToken);
+
         var primaryNetwork = request.Networks?.FirstOrDefault();
+        var primaryIsSpecialMode = primaryNetwork != null && IsSpecialNetworkMode(primaryNetwork.NetworkName);
+        var primaryIsAttachable = primaryNetwork != null && !primaryIsSpecialMode;
+
         var createParams = new CreateContainerParameters
         {
             Image = request.Image,
@@ -194,13 +201,15 @@ public class DockerContainerManager(
                 // Use the first requested network as primary, or let the runtime choose the default.
                 NetworkMode = primaryNetwork?.NetworkName
             },
-            // Set aliases for the primary network during creation.
-            NetworkingConfig = primaryNetwork != null
+            // Set aliases for the primary network during creation. Aliases are only valid on
+            // user-defined networks, never on special modes (host/none/container:*) or the
+            // default 'bridge' network.
+            NetworkingConfig = primaryIsAttachable && CanUseAliases(primaryNetwork!.NetworkName, primaryNetwork.Aliases)
                 ? new NetworkingConfig
                 {
                     EndpointsConfig = new Dictionary<string, EndpointSettings>
                     {
-                        [primaryNetwork.NetworkName] = new EndpointSettings { Aliases = primaryNetwork.Aliases.ToList() }
+                        [primaryNetwork!.NetworkName] = new EndpointSettings { Aliases = primaryNetwork.Aliases.ToList() }
                     }
                 }
                 : null
@@ -213,21 +222,91 @@ public class DockerContainerManager(
 
         var response = await client.Containers.CreateContainerAsync(createParams, cancellationToken);
 
-        // Connect ALL requested networks after creation, starting from index 0.
-        // This is the only reliable approach across Docker, Rancher Desktop and Podman.
-        if (request.Networks?.Count > 0)
+        // Connect any additional networks after creation. The primary network is already attached
+        // at create time via NetworkMode/NetworkingConfig, so we skip it here to avoid a redundant
+        // 409 Conflict round-trip. Special modes (host/none/container:*) cannot be connected to
+        // additional networks, so we skip the post-create loop entirely in that case.
+        if (request.Networks?.Count > 0 && !primaryIsSpecialMode)
         {
-            foreach (var network in request.Networks)
+            foreach (var network in request.Networks.Skip(1))
             {
+                if (IsSpecialNetworkMode(network.NetworkName))
+                {
+                    logger.LogWarning(
+                        "Skipping connection of container {ContainerId} to network {Network}: special network modes (host/none/container:*) cannot be used as additional networks.",
+                        LogSanitizer.Sanitize(response.ID), LogSanitizer.Sanitize(network.NetworkName));
+                    continue;
+                }
+
+                var aliases = CanUseAliases(network.NetworkName, network.Aliases) ? network.Aliases : null;
                 logger.LogInformation("Connecting container {ContainerId} to network {Network}",
                     LogSanitizer.Sanitize(response.ID), LogSanitizer.Sanitize(network.NetworkName));
-                await networkManager.ConnectAsync(network.NetworkName, response.ID, network.Aliases, cancellationToken);
+                await networkManager.ConnectAsync(network.NetworkName, response.ID, aliases, cancellationToken);
             }
         }
 
         logger.LogInformation("Created container {ContainerId} from image {Image}",
             LogSanitizer.Sanitize(response.ID), LogSanitizer.Sanitize(request.Image));
         return response.ID;
+    }
+
+    private async Task EnsureNetworksExistAsync(IList<Models.NetworkAttachment>? networks, CancellationToken cancellationToken)
+    {
+        if (networks == null || networks.Count == 0)
+        {
+            return;
+        }
+
+        // Special modes (host/none/container:*) are not real networks and don't need to exist.
+        var toCheck = networks
+            .Select(n => n.NetworkName)
+            .Where(n => !string.IsNullOrWhiteSpace(n) && !IsSpecialNetworkMode(n))
+            .Distinct(StringComparer.Ordinal)
+            .ToList();
+
+        if (toCheck.Count == 0)
+        {
+            return;
+        }
+
+        var existing = await networkManager.ListAsync(cancellationToken);
+        var existingNames = new HashSet<string>(existing.Select(n => n.Name), StringComparer.Ordinal);
+        var existingIds = new HashSet<string>(existing.Select(n => n.Id), StringComparer.Ordinal);
+
+        var missing = toCheck
+            .Where(n => !existingNames.Contains(n) && !existingIds.Contains(n))
+            .ToList();
+
+        if (missing.Count > 0)
+        {
+            var joined = string.Join(", ", missing);
+            throw new InvalidOperationException(
+                $"The following Docker network(s) do not exist and must be created before attaching a container: {joined}.");
+        }
+    }
+
+    private static bool IsSpecialNetworkMode(string networkName)
+    {
+        if (string.IsNullOrWhiteSpace(networkName))
+        {
+            return false;
+        }
+
+        return networkName.Equals("host", StringComparison.OrdinalIgnoreCase)
+               || networkName.Equals("none", StringComparison.OrdinalIgnoreCase)
+               || networkName.Equals("default", StringComparison.OrdinalIgnoreCase)
+               || networkName.StartsWith("container:", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static bool CanUseAliases(string networkName, IList<string>? aliases)
+    {
+        if (aliases == null || aliases.Count == 0)
+        {
+            return false;
+        }
+
+        // Docker disallows network-scoped aliases on the default 'bridge' network.
+        return !networkName.Equals("bridge", StringComparison.OrdinalIgnoreCase);
     }
 
     private async Task EnsureImageExistsAsync(string image, CancellationToken cancellationToken)
