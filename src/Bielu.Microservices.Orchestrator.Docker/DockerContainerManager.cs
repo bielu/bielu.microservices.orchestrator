@@ -172,6 +172,7 @@ public class DockerContainerManager(
             : new Dictionary<string, string>(request.Labels);
         labels[OrchestratorLabels.ManagedBy] = OrchestratorLabels.ManagedByValue;
         labels[OrchestratorLabels.ManagedById] = Guid.NewGuid().ToString();
+
         var createParams = new CreateContainerParameters
         {
             Image = request.Image,
@@ -188,7 +189,17 @@ public class DockerContainerManager(
                     }),
                 Binds = request.Volumes.ToList(),
                 AutoRemove = request.AutoRemove
-            }
+            },
+            // Specify the first network during creation to avoid the default bridge network
+            NetworkingConfig = request.Networks?.Count > 0
+                ? new NetworkingConfig
+                {
+                    EndpointsConfig = new Dictionary<string, EndpointSettings>
+                    {
+                        [request.Networks[0]] = new EndpointSettings()
+                    }
+                }
+                : null
         };
 
         if (request.Command is { Count: > 0 })
@@ -198,12 +209,12 @@ public class DockerContainerManager(
 
         var response = await client.Containers.CreateContainerAsync(createParams, cancellationToken);
 
-        // Connect to networks after creation
-        if (request.Networks is { Count: > 0 })
+        // Connect to any additional networks after creation
+        if (request.Networks?.Count > 1)
         {
-            foreach (var network in request.Networks)
+            for (var i = 1; i < request.Networks.Count; i++)
             {
-                await networkManager.ConnectAsync(network, response.ID, cancellationToken);
+                await networkManager.ConnectAsync(request.Networks[i], response.ID, cancellationToken);
             }
         }
 

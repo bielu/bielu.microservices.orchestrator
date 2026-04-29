@@ -44,7 +44,7 @@ public class DockerNetworkManager(
     public async Task ConnectAsync(string networkId, string containerId, CancellationToken cancellationToken = default)
     {
         await client.Networks.ConnectNetworkAsync(networkId,
-            new NetworkConnectParameters { Container = containerId }, cancellationToken);
+            new NetworkConnectParameters { Container = containerId, EndpointConfig = new EndpointSettings(){} }, cancellationToken);
         logger.LogInformation("Connected container {ContainerId} to network {NetworkId}", containerId, networkId);
     }
 
