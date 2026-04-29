@@ -48,8 +48,8 @@ public class DockerContainerManager(
             Labels = c.Labels != null ? new Dictionary<string, string>(c.Labels) : new Dictionary<string, string>(),
             Ports = c.Ports?.Select(p => new PortMapping
             {
-                ContainerPort = (int)p.PrivatePort,
-                HostPort = (int)p.PublicPort,
+                ContainerPort = p.PrivatePort,
+                HostPort = p.PublicPort,
                 Protocol = p.Type,
                 HostIp = p.IP ?? "0.0.0.0"
             }).ToList() ?? new List<PortMapping>()
@@ -174,12 +174,7 @@ public class DockerContainerManager(
         labels[OrchestratorLabels.ManagedBy] = OrchestratorLabels.ManagedByValue;
         labels[OrchestratorLabels.ManagedById] = Guid.NewGuid().ToString();
 
-        string? primaryNetwork = null;
-        if (request.Networks?.Count > 0)
-        {
-            primaryNetwork = request.Networks[0];
-        }
-
+        var primaryNetwork = request.Networks?.FirstOrDefault();
         var createParams = new CreateContainerParameters
         {
             Image = request.Image,
@@ -196,19 +191,16 @@ public class DockerContainerManager(
                     }),
                 Binds = request.Volumes.ToList(),
                 AutoRemove = request.AutoRemove,
-                // FIX: When a custom network is specified, do NOT set NetworkMode to the network name.
-                // Setting both NetworkMode and NetworkingConfig.EndpointsConfig to the same network
-                // causes Docker to attempt a double-attachment, which fails. Leave NetworkMode null
-                // when using NetworkingConfig so Docker infers connectivity from the endpoint config.
-                NetworkMode = primaryNetwork != null ? null : "bridge"
+                // Use the first requested network as primary, or let the runtime choose the default.
+                NetworkMode = primaryNetwork?.NetworkName
             },
-            // Configure NetworkingConfig for the primary network
+            // Set aliases for the primary network during creation.
             NetworkingConfig = primaryNetwork != null
                 ? new NetworkingConfig
                 {
                     EndpointsConfig = new Dictionary<string, EndpointSettings>
                     {
-                        [primaryNetwork] = new EndpointSettings()
+                        [primaryNetwork.NetworkName] = new EndpointSettings { Aliases = primaryNetwork.Aliases.ToList() }
                     }
                 }
                 : null
@@ -221,12 +213,15 @@ public class DockerContainerManager(
 
         var response = await client.Containers.CreateContainerAsync(createParams, cancellationToken);
 
-        // Connect to any additional networks after creation
-        if (request.Networks?.Count > 1)
+        // Connect ALL requested networks after creation, starting from index 0.
+        // This is the only reliable approach across Docker, Rancher Desktop and Podman.
+        if (request.Networks?.Count > 0)
         {
-            for (var i = 1; i < request.Networks.Count; i++)
+            foreach (var network in request.Networks)
             {
-                await networkManager.ConnectAsync(request.Networks[i], response.ID, cancellationToken);
+                logger.LogInformation("Connecting container {ContainerId} to network {Network}",
+                    LogSanitizer.Sanitize(response.ID), LogSanitizer.Sanitize(network.NetworkName));
+                await networkManager.ConnectAsync(network.NetworkName, response.ID, network.Aliases, cancellationToken);
             }
         }
 
@@ -243,14 +238,14 @@ public class DockerContainerManager(
         if (!imageExists)
         {
             logger.LogInformation("Image {Image} not found locally, pulling from registry", LogSanitizer.Sanitize(image));
-            await imageManager.PullAsync(new Models.PullImageRequest { Image = image }, cancellationToken);
+            await imageManager.PullAsync(new PullImageRequest { Image = image }, cancellationToken);
             logger.LogInformation("Successfully pulled image {Image}", LogSanitizer.Sanitize(image));
         }
     }
 
     private static Models.ContainerState MapState(string state)
     {
-        return state?.ToLowerInvariant() switch
+        return state.ToLowerInvariant() switch
         {
             "created" => Models.ContainerState.Created,
             "running" => Models.ContainerState.Running,

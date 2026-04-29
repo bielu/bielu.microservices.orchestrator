@@ -52,7 +52,7 @@ public class CreateContainerRequest
     public int Replicas { get; set; } = 1;
 
     /// <summary>
-    /// List of network names to connect the container to.
+    /// List of network attachments for the container.
     /// </summary>
-    public IList<string> Networks { get; set; } = new List<string>();
+    public IList<NetworkAttachment> Networks { get; set; } = new List<NetworkAttachment>();
 }

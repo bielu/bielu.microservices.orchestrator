@@ -25,7 +25,7 @@ public interface INetworkManager
     /// <summary>
     /// Connects a container to a network.
     /// </summary>
-    Task ConnectAsync(string networkId, string containerId, CancellationToken cancellationToken = default);
+    Task ConnectAsync(string networkId, string containerId, IEnumerable<string>? aliases = null, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Disconnects a container from a network.

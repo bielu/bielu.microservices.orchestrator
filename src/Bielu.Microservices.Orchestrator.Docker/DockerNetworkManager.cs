@@ -41,11 +41,23 @@ public class DockerNetworkManager(
         logger.LogInformation("Removed network {NetworkId}", networkId);
     }
 
-    public async Task ConnectAsync(string networkId, string containerId, CancellationToken cancellationToken = default)
+    public async Task ConnectAsync(string networkId, string containerId, IEnumerable<string>? aliases = null, CancellationToken cancellationToken = default)
     {
-        await client.Networks.ConnectNetworkAsync(networkId,
-            new NetworkConnectParameters { Container = containerId, EndpointConfig = new EndpointSettings(){} }, cancellationToken);
-        logger.LogInformation("Connected container {ContainerId} to network {NetworkId}", containerId, networkId);
+        try
+        {
+            await client.Networks.ConnectNetworkAsync(networkId,
+                new NetworkConnectParameters
+                {
+                    Container = containerId,
+                    EndpointConfig = new EndpointSettings { Aliases = aliases?.ToList() }
+                }, cancellationToken);
+            logger.LogInformation("Connected container {ContainerId} to network {NetworkId}", containerId, networkId);
+        }
+        catch (DockerApiException ex) when (ex.StatusCode == System.Net.HttpStatusCode.Conflict)
+        {
+            // Already connected, this is fine
+            logger.LogDebug("Container {ContainerId} already connected to network {NetworkId}", containerId, networkId);
+        }
     }
 
     public async Task DisconnectAsync(string networkId, string containerId, CancellationToken cancellationToken = default)

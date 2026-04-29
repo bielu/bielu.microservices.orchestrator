@@ -216,7 +216,7 @@ public class ContainerdNetworkManager(
     /// into the container's network namespace. The container must have a running task so that its
     /// PID—and therefore its network namespace at <c>/proc/{pid}/ns/net</c>—can be resolved.
     /// </remarks>
-    public async Task ConnectAsync(string networkId, string containerId, CancellationToken cancellationToken = default)
+    public async Task ConnectAsync(string networkId, string containerId, IEnumerable<string>? aliases = null, CancellationToken cancellationToken = default)
     {
         logger.LogInformation(
             "Connecting container {ContainerId} to CNI network {NetworkId} (ADD)",

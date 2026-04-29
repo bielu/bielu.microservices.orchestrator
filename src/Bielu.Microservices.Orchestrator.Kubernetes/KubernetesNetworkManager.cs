@@ -57,7 +57,7 @@ public class KubernetesNetworkManager(
         logger.LogInformation("Removed Kubernetes service {ServiceName}", networkId);
     }
 
-    public Task ConnectAsync(string networkId, string containerId, CancellationToken cancellationToken = default)
+    public Task ConnectAsync(string networkId, string containerId, IEnumerable<string>? aliases = null, CancellationToken cancellationToken = default)
     {
         logger.LogInformation("Kubernetes uses label selectors for service routing. Service: {ServiceName}, Pod: {PodName}", networkId, containerId);
         return Task.CompletedTask;
