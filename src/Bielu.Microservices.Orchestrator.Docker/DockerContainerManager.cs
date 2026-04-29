@@ -187,6 +187,12 @@ public class DockerContainerManager(
                     }),
                 Binds = request.Volumes.ToList(),
                 AutoRemove = request.AutoRemove
+            },
+            NetworkingConfig = new NetworkingConfig
+            {
+                EndpointsConfig = request.Networks.ToDictionary(
+                    n => n,
+                    n => new EndpointSettings())
             }
         };
 

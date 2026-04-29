@@ -50,4 +50,9 @@ public class CreateContainerRequest
     /// When greater than 1, each container is named with a numeric suffix (e.g., my-app-0, my-app-1).
     /// </summary>
     public int Replicas { get; set; } = 1;
+
+    /// <summary>
+    /// List of network names to connect the container to.
+    /// </summary>
+    public IList<string> Networks { get; set; } = new List<string>();
 }
