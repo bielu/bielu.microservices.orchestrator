@@ -20,6 +20,7 @@ public class DockerContainerManager(
 {
     //todo: confirm default address
     public string HostAddress => "host.docker.internal";
+
     public async Task<IReadOnlyList<ContainerInfo>> ListAsync(bool all = false, CancellationToken cancellationToken = default)
     {
         var listParams = new ContainersListParameters { All = all };
@@ -173,6 +174,12 @@ public class DockerContainerManager(
         labels[OrchestratorLabels.ManagedBy] = OrchestratorLabels.ManagedByValue;
         labels[OrchestratorLabels.ManagedById] = Guid.NewGuid().ToString();
 
+        string? primaryNetwork = null;
+        if (request.Networks?.Count > 0)
+        {
+            primaryNetwork = request.Networks[0];
+        }
+
         var createParams = new CreateContainerParameters
         {
             Image = request.Image,
@@ -188,15 +195,20 @@ public class DockerContainerManager(
                         new() { HostPort = p.HostPort.ToString(), HostIP = p.HostIp }
                     }),
                 Binds = request.Volumes.ToList(),
-                AutoRemove = request.AutoRemove
+                AutoRemove = request.AutoRemove,
+                // FIX: When a custom network is specified, do NOT set NetworkMode to the network name.
+                // Setting both NetworkMode and NetworkingConfig.EndpointsConfig to the same network
+                // causes Docker to attempt a double-attachment, which fails. Leave NetworkMode null
+                // when using NetworkingConfig so Docker infers connectivity from the endpoint config.
+                NetworkMode = primaryNetwork != null ? null : "bridge"
             },
-            // Specify the first network during creation to avoid the default bridge network
-            NetworkingConfig = request.Networks?.Count > 0
+            // Configure NetworkingConfig for the primary network
+            NetworkingConfig = primaryNetwork != null
                 ? new NetworkingConfig
                 {
                     EndpointsConfig = new Dictionary<string, EndpointSettings>
                     {
-                        [request.Networks[0]] = new EndpointSettings()
+                        [primaryNetwork] = new EndpointSettings()
                     }
                 }
                 : null
