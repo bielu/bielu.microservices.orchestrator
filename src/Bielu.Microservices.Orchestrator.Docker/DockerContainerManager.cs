@@ -174,14 +174,26 @@ public class DockerContainerManager(
         labels[OrchestratorLabels.ManagedBy] = OrchestratorLabels.ManagedByValue;
         labels[OrchestratorLabels.ManagedById] = Guid.NewGuid().ToString();
 
+        // Aspire/DCP parity: when the caller did not request any networks and the orchestrator
+        // is configured to use a default network, auto-create (if missing) a shared session
+        // network and attach the container to it with the container name as a DNS alias. This
+        // mirrors how .NET Aspire's DCP creates a single 'aspire-session-network-*' per session
+        // and joins every container resource to it so they can resolve each other by name.
+        await EnsureDefaultNetworkAttachmentAsync(request, containerName, cancellationToken);
+
         // Validate that all requested user-defined networks exist before attempting to create the container.
         // This produces a clearer error than the Docker daemon's generic 404 on container create.
         await EnsureNetworksExistAsync(request.Networks, cancellationToken);
 
         var primaryNetwork = request.Networks?.FirstOrDefault();
         var primaryIsSpecialMode = primaryNetwork != null && IsSpecialNetworkMode(primaryNetwork.NetworkName);
-        var primaryIsAttachable = primaryNetwork != null && !primaryIsSpecialMode;
 
+        // For special network modes (host/none/container:*) we MUST set NetworkMode at create time —
+        // they cannot be applied via post-create ConnectAsync. For user-defined networks we deliberately
+        // leave NetworkMode unset and connect via ConnectAsync after creation: this is the only
+        // reliable approach across Docker, Rancher Desktop and Podman. Setting NetworkMode to a
+        // user-defined network combined with NetworkingConfig has been observed to silently leave
+        // the container on the default 'bridge' network on some runtimes (e.g. Aspire scenario).
         var createParams = new CreateContainerParameters
         {
             Image = request.Image,
@@ -198,21 +210,9 @@ public class DockerContainerManager(
                     }),
                 Binds = request.Volumes.ToList(),
                 AutoRemove = request.AutoRemove,
-                // Use the first requested network as primary, or let the runtime choose the default.
-                NetworkMode = primaryNetwork?.NetworkName
+                NetworkMode = primaryIsSpecialMode ? primaryNetwork!.NetworkName : null
             },
-            // Set aliases for the primary network during creation. Aliases are only valid on
-            // user-defined networks, never on special modes (host/none/container:*) or the
-            // default 'bridge' network.
-            NetworkingConfig = primaryIsAttachable && CanUseAliases(primaryNetwork!.NetworkName, primaryNetwork.Aliases)
-                ? new NetworkingConfig
-                {
-                    EndpointsConfig = new Dictionary<string, EndpointSettings>
-                    {
-                        [primaryNetwork!.NetworkName] = new EndpointSettings { Aliases = primaryNetwork.Aliases.ToList() }
-                    }
-                }
-                : null
+            NetworkingConfig = null
         };
 
         if (request.Command is { Count: > 0 })
@@ -222,13 +222,15 @@ public class DockerContainerManager(
 
         var response = await client.Containers.CreateContainerAsync(createParams, cancellationToken);
 
-        // Connect any additional networks after creation. The primary network is already attached
-        // at create time via NetworkMode/NetworkingConfig, so we skip it here to avoid a redundant
-        // 409 Conflict round-trip. Special modes (host/none/container:*) cannot be connected to
-        // additional networks, so we skip the post-create loop entirely in that case.
+        // Connect ALL requested user-defined networks after creation, starting from index 0.
+        // ConnectAsync on the primary network will also implicitly disconnect the container
+        // from the default bridge on Docker, ensuring the container actually ends up on the
+        // requested network (e.g. the Aspire session network) rather than the default bridge.
+        // Special-mode entries are skipped here; the primary special mode is already applied
+        // via NetworkMode at create time, and special modes cannot be used as secondary networks.
         if (request.Networks?.Count > 0 && !primaryIsSpecialMode)
         {
-            foreach (var network in request.Networks.Skip(1))
+            foreach (var network in request.Networks)
             {
                 if (IsSpecialNetworkMode(network.NetworkName))
                 {
@@ -243,11 +245,77 @@ public class DockerContainerManager(
                     LogSanitizer.Sanitize(response.ID), LogSanitizer.Sanitize(network.NetworkName));
                 await networkManager.ConnectAsync(network.NetworkName, response.ID, aliases, cancellationToken);
             }
+
+            // After connecting to user-defined networks, disconnect from the default 'bridge'
+            // network that Docker auto-attaches on create. This ensures the container's only
+            // active networks are the ones the caller explicitly requested (matching the
+            // behaviour users see when they run `docker run --network <name>`).
+            try
+            {
+                await networkManager.DisconnectAsync("bridge", response.ID, cancellationToken);
+            }
+            catch (Exception ex)
+            {
+                // Container might not be on bridge (e.g. daemon configured differently); not fatal.
+                logger.LogDebug(ex, "Could not disconnect container {ContainerId} from default bridge network (likely not attached).",
+                    LogSanitizer.Sanitize(response.ID));
+            }
         }
 
         logger.LogInformation("Created container {ContainerId} from image {Image}",
             LogSanitizer.Sanitize(response.ID), LogSanitizer.Sanitize(request.Image));
         return response.ID;
+    }
+
+    private async Task EnsureDefaultNetworkAttachmentAsync(
+        CreateContainerRequest request,
+        string? containerName,
+        CancellationToken cancellationToken)
+    {
+        if (!orchestratorOptions.UseDefaultNetwork)
+        {
+            return;
+        }
+
+        // Only fall back to the default network when the caller did not specify any.
+        // If the user explicitly chose networks (including special modes like 'host'),
+        // respect that choice and do not silently add a second one.
+        if (request.Networks is { Count: > 0 })
+        {
+            return;
+        }
+
+        var defaultNetwork = orchestratorOptions.ResolveDefaultNetworkName();
+        if (string.IsNullOrWhiteSpace(defaultNetwork))
+        {
+            return;
+        }
+
+        // Auto-create the network if it doesn't exist yet (idempotent).
+        var existing = await networkManager.ListAsync(cancellationToken);
+        if (!existing.Any(n =>
+                string.Equals(n.Name, defaultNetwork, StringComparison.Ordinal) ||
+                string.Equals(n.Id, defaultNetwork, StringComparison.Ordinal)))
+        {
+            logger.LogInformation("Auto-creating default orchestrator network {Network}",
+                LogSanitizer.Sanitize(defaultNetwork));
+            await networkManager.CreateAsync(defaultNetwork, cancellationToken: cancellationToken);
+        }
+
+        // DCP parity: register the container's name as a DNS alias on the shared
+        // network so other containers on the same network can resolve it by name.
+        var aliases = new List<string>();
+        if (!string.IsNullOrWhiteSpace(containerName))
+        {
+            aliases.Add(containerName);
+        }
+
+        request.Networks ??= new List<Models.NetworkAttachment>();
+        request.Networks.Add(new Models.NetworkAttachment
+        {
+            NetworkName = defaultNetwork,
+            Aliases = aliases
+        });
     }
 
     private async Task EnsureNetworksExistAsync(IList<Models.NetworkAttachment>? networks, CancellationToken cancellationToken)
