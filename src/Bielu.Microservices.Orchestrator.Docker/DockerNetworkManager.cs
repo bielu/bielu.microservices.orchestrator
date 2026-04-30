@@ -45,6 +45,15 @@ public class DockerNetworkManager(
     {
         try
         {
+            var container = await client.Containers.InspectContainerAsync(containerId, cancellationToken);
+            if (container?.NetworkSettings?.Networks != null &&
+                (container.NetworkSettings.Networks.ContainsKey(networkId) ||
+                 container.NetworkSettings.Networks.Values.Any(n => n.NetworkID == networkId)))
+            {
+                logger.LogDebug("Container {ContainerId} already connected to network {NetworkId}", containerId, networkId);
+                return;
+            }
+
             var aliasList = aliases?.ToList();
             await client.Networks.ConnectNetworkAsync(networkId,
                 new NetworkConnectParameters

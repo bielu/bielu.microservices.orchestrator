@@ -223,19 +223,20 @@ public class DockerContainerManager(
                 var primaryAliases = CanUseAliases(primaryName, primaryNetwork.Aliases)
                     ? primaryNetwork.Aliases.ToList()
                     : null;
-var networkInfo = existingNetworks.FirstOrDefault(n =>n.Id == primaryId);
+
                 networkingConfig = new NetworkingConfig
                 {
                     EndpointsConfig = new Dictionary<string, EndpointSettings>
                     {
-                        [primaryName] = new EndpointSettings
+                        [primaryId] = new EndpointSettings
                         {
                             NetworkID = primaryId,
-                            EndpointID = Guid.NewGuid().ToString(), // Docker will ignore this and generate its own ID, but it must be set to a non-empty value to be included in the create request
                             Aliases = primaryAliases ?? new List<string>()
                         }
                     }
                 };
+                
+                networkMode = primaryId;
                 
                 logger.LogDebug("Configuring primary network {NetworkId} ({NetworkName}) with aliases {Aliases}", 
                     LogSanitizer.Sanitize(primaryId),
@@ -260,6 +261,7 @@ var networkInfo = existingNetworks.FirstOrDefault(n =>n.Id == primaryId);
                     }),
                 Binds = request.Volumes.ToList(),
                 AutoRemove = request.AutoRemove,
+                NetworkMode = networkMode ?? string.Empty
             },
             NetworkingConfig = networkingConfig
         };
@@ -271,7 +273,29 @@ var networkInfo = existingNetworks.FirstOrDefault(n =>n.Id == primaryId);
 
         var response = await client.Containers.CreateContainerAsync(createParams, cancellationToken);
 
-        
+        // Attach additional networks (and re-attach primary to ensure aliases/config)
+        if (request.Networks != null)
+        {
+            foreach (var network in request.Networks)
+            {
+                if (IsSpecialNetworkMode(network.NetworkName))
+                {
+                    continue;
+                }
+
+                var resolved = existingNetworks.FirstOrDefault(n =>
+                    string.Equals(n.Id, network.NetworkName, StringComparison.Ordinal) ||
+                    string.Equals(n.Name, network.NetworkName, StringComparison.Ordinal));
+                var networkId = resolved?.Id ?? network.NetworkName;
+                var networkName = resolved?.Name ?? network.NetworkName;
+
+                var aliases = CanUseAliases(networkName, network.Aliases) ? network.Aliases : null;
+                logger.LogInformation("Connecting container {ContainerId} to network {NetworkId} ({NetworkName})",
+                    LogSanitizer.Sanitize(response.ID), LogSanitizer.Sanitize(networkId), LogSanitizer.Sanitize(networkName));
+                await networkManager.ConnectAsync(networkId, response.ID, aliases, cancellationToken);
+            }
+        }
+
         logger.LogInformation("Created container {ContainerId} from image {Image}",
             LogSanitizer.Sanitize(response.ID), LogSanitizer.Sanitize(request.Image));
         return response.ID;
