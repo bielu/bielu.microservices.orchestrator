@@ -1,5 +1,6 @@
 using Bielu.Microservices.Orchestrator.Docker.Extensions;
 using Bielu.Microservices.Orchestrator.Examples.Api.Controllers;
+using Bielu.Microservices.Orchestrator.Examples.Api.Services;
 using Bielu.Microservices.Orchestrator.Extensions;
 using Bielu.Microservices.Orchestrator.HealthChecks.Extensions;
 using Bielu.Microservices.Orchestrator.OpenTelemetry.Extensions;
@@ -40,10 +41,11 @@ builder.Services.AddMicroservicesOrchestrator(orchestrator =>
         .UseEfCoreInstanceStore(x =>
         {
             var connectionString = builder.Configuration.GetConnectionString("orchestratordb")
-                ?? "Host=localhost;Port=5432;Database=orchestratordb;Username=postgres;Password=postgres";
+                                   ??
+                                   "Host=localhost;Port=5432;Database=orchestratordb;Username=postgres;Password=postgres";
             x.UseNpgsql(connectionString, b => b.MigrationsAssembly(typeof(ContainersController).Assembly));
-            
         })
+      .WithManagedContainersOnly()
         .AddOpenTelemetryInstrumentation(); // must come after the provider
 });
 
@@ -66,15 +68,10 @@ builder.Services.AddHealthChecks()
 builder.Services.AddRouting();
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddHostedService<WorkerStartupService>();
 
 var app = builder.Build();
 
-// Apply database migrations on startup
-using (var scope = app.Services.CreateScope())
-{
-    var dbContext = scope.ServiceProvider.GetRequiredService<InstanceStoreDbContext>();
-    await dbContext.Database.MigrateAsync();
-}
 
 app.MapOpenApi();
 
@@ -88,5 +85,14 @@ app.MapHealthChecks("/health/ready", new HealthCheckOptions
 });
 
 app.MapControllers();
+// Apply database migrations on startup
+using (var scope = app.Services.CreateScope())
+{
+    var dbContext = scope.ServiceProvider.GetRequiredService<InstanceStoreDbContext>();
+    if ((await dbContext.Database.GetPendingMigrationsAsync()).Any())
+    {
+        await dbContext.Database.MigrateAsync();
+    }
+}
 
 app.Run();

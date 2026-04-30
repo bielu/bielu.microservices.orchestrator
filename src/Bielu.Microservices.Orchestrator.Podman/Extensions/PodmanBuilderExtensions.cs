@@ -28,11 +28,7 @@ public static class PodmanBuilderExtensions
         configure?.Invoke(options);
 
         builder.Services.AddSingleton(options);
-        builder.Services.AddSingleton<DockerClient>(_ =>
-        {
-            var config = new DockerClientConfiguration(new Uri(options.Endpoint));
-            return config.CreateClient();
-        });
+        builder.Services.AddSingleton<DockerClient>(_ => new DockerClientBuilder().WithEndpoint(new Uri(options.Endpoint)).Build());
 
         // Podman uses Docker-compatible API, reuse Docker managers
         builder.Services.TryAddSingleton<IContainerManager, DockerContainerManager>();

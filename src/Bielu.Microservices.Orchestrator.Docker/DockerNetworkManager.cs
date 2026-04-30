@@ -45,18 +45,29 @@ public class DockerNetworkManager(
     {
         try
         {
+            var aliasList = aliases?.ToList();
             await client.Networks.ConnectNetworkAsync(networkId,
                 new NetworkConnectParameters
                 {
                     Container = containerId,
-                    EndpointConfig = new EndpointSettings { Aliases = aliases?.ToList() }
+                    EndpointConfig = new EndpointSettings
+                    {
+                        NetworkID = networkId,
+                        Aliases = aliasList ?? new List<string>()
+                    }
                 }, cancellationToken);
-            logger.LogInformation("Connected container {ContainerId} to network {NetworkId}", containerId, networkId);
+            logger.LogInformation("Connected container {ContainerId} to network {NetworkId} with aliases {Aliases}", 
+                containerId, networkId, aliasList != null ? string.Join(", ", aliasList) : "none");
         }
         catch (DockerApiException ex) when (ex.StatusCode == System.Net.HttpStatusCode.Conflict)
         {
             // Already connected, this is fine
             logger.LogDebug("Container {ContainerId} already connected to network {NetworkId}", containerId, networkId);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Failed to connect container {ContainerId} to network {NetworkId}", containerId, networkId);
+            throw;
         }
     }
 

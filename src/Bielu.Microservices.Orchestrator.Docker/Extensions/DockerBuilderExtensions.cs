@@ -26,11 +26,7 @@ public static class DockerBuilderExtensions
         configure?.Invoke(options);
 
         builder.Services.AddSingleton(options);
-        builder.Services.AddSingleton<DockerClient>(_ =>
-        {
-            var config = new DockerClientConfiguration(new Uri(options.Endpoint));
-            return config.CreateClient();
-        });
+        builder.Services.AddSingleton<DockerClient>(_ => new DockerClientBuilder().WithEndpoint(new Uri(options.Endpoint)).Build());
 
         builder.Services.TryAddSingleton<IContainerManager, DockerContainerManager>();
         builder.Services.TryAddSingleton<IImageManager, DockerImageManager>();

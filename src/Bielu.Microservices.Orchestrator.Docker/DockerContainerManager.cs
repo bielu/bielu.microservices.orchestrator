@@ -49,7 +49,7 @@ public class DockerContainerManager(
             Ports = c.Ports?.Select(p => new PortMapping
             {
                 ContainerPort = p.PrivatePort,
-                HostPort = p.PublicPort,
+                HostPort = (int)(p.PublicPort ?? 0),
                 Protocol = p.Type,
                 HostIp = p.IP ?? "0.0.0.0"
             }).ToList() ?? new List<PortMapping>()
@@ -65,11 +65,11 @@ public class DockerContainerManager(
             {
                 Id = response.ID,
                 Name = response.Name.TrimStart('/'),
-                Image = response.Config.Image,
-                State = MapState(response.State.Status),
+                Image = response.Config?.Image ?? string.Empty,
+                State = MapState(response.State?.Status ?? "unknown"),
                 CreatedAt = new DateTimeOffset(response.Created),
-                Labels = response.Config.Labels != null ? new Dictionary<string, string>(response.Config.Labels) : new Dictionary<string, string>(),
-                EnvironmentVariables = ParseEnvironmentVariables(response.Config.Env),
+                Labels = response.Config?.Labels != null ? new Dictionary<string, string>(response.Config.Labels) : new Dictionary<string, string>(),
+                EnvironmentVariables = ParseEnvironmentVariables(response.Config?.Env),
             };
         }
         catch (DockerContainerNotFoundException)
@@ -153,7 +153,7 @@ public class DockerContainerManager(
             ShowStderr = stderr
         };
 
-        using var logStream = await client.Containers.GetContainerLogsAsync(containerId, false, logParams, cancellationToken);
+        using var logStream = await client.Containers.GetContainerLogsAsync(containerId, logParams, cancellationToken);
         using var memoryStream = new MemoryStream();
         await logStream.CopyOutputToAsync(Stream.Null, memoryStream, Stream.Null, cancellationToken);
         return System.Text.Encoding.UTF8.GetString(memoryStream.ToArray());
@@ -183,17 +183,66 @@ public class DockerContainerManager(
 
         // Validate that all requested user-defined networks exist before attempting to create the container.
         // This produces a clearer error than the Docker daemon's generic 404 on container create.
-        await EnsureNetworksExistAsync(request.Networks, cancellationToken);
+        var existingNetworks = await EnsureNetworksExistAsync(request.Networks, cancellationToken);
 
         var primaryNetwork = request.Networks?.FirstOrDefault();
         var primaryIsSpecialMode = primaryNetwork != null && IsSpecialNetworkMode(primaryNetwork.NetworkName);
 
-        // For special network modes (host/none/container:*) we MUST set NetworkMode at create time —
-        // they cannot be applied via post-create ConnectAsync. For user-defined networks we deliberately
-        // leave NetworkMode unset and connect via ConnectAsync after creation: this is the only
-        // reliable approach across Docker, Rancher Desktop and Podman. Setting NetworkMode to a
-        // user-defined network combined with NetworkingConfig has been observed to silently leave
-        // the container on the default 'bridge' network on some runtimes (e.g. Aspire scenario).
+        // Networking strategy — match what `docker run --network <name> [--network <name2> ...]` does:
+        //
+        // 1. For special modes (host/none/container:*) we set HostConfig.NetworkMode at create time;
+        //    these cannot be attached via post-create ConnectAsync.
+        // 2. For user-defined networks we set BOTH HostConfig.NetworkMode = <primary> AND
+        //    NetworkingConfig.EndpointsConfig[<primary>] at create time. This is what the Docker CLI
+        //    does and is the only reliable way to ensure the container actually lands on the requested
+        //    network on all runtimes (Docker Engine, Docker Desktop, Rancher Desktop, Podman). Without
+        //    EndpointsConfig at create time, the daemon attaches to the default 'bridge', and a
+        //    subsequent ConnectAsync may end up showing the container on bridge in some inspect paths.
+        // 3. Any additional (secondary) networks are attached via ConnectAsync after creation, since
+        //    Docker only allows a single endpoint to be specified at create time.
+        NetworkingConfig? networkingConfig = null;
+        string? networkMode = null;
+
+        if (primaryNetwork != null)
+        {
+            if (primaryIsSpecialMode)
+            {
+                networkMode = primaryNetwork.NetworkName;
+            }
+            else
+            {
+                // For custom networks, use the ID as the key and also set it in EndpointSettings.
+                // This follows the recommended pattern for Docker.DotNet and ensures compatibility.
+                var resolvedPrimary = existingNetworks.FirstOrDefault(n =>
+                    string.Equals(n.Id, primaryNetwork.NetworkName, StringComparison.Ordinal) ||
+                    string.Equals(n.Name, primaryNetwork.NetworkName, StringComparison.Ordinal));
+                var primaryId = resolvedPrimary?.Id ?? primaryNetwork.NetworkName;
+                var primaryName = resolvedPrimary?.Name ?? primaryNetwork.NetworkName;
+                networkMode = primaryName;
+
+                var primaryAliases = CanUseAliases(primaryName, primaryNetwork.Aliases)
+                    ? primaryNetwork.Aliases.ToList()
+                    : null;
+
+                networkingConfig = new NetworkingConfig
+                {
+                    EndpointsConfig = new Dictionary<string, EndpointSettings>
+                    {
+                        [primaryName] = new EndpointSettings
+                        {
+                            NetworkID = primaryId,
+                            Aliases = primaryAliases ?? new List<string>()
+                        }
+                    }
+                };
+                
+                logger.LogDebug("Configuring primary network {NetworkId} ({NetworkName}) with aliases {Aliases}", 
+                    LogSanitizer.Sanitize(primaryId),
+                    LogSanitizer.Sanitize(primaryName), 
+                    primaryAliases != null ? string.Join(", ", primaryAliases) : "none");
+            }
+        }
+
         var createParams = new CreateContainerParameters
         {
             Image = request.Image,
@@ -210,9 +259,8 @@ public class DockerContainerManager(
                     }),
                 Binds = request.Volumes.ToList(),
                 AutoRemove = request.AutoRemove,
-                NetworkMode = primaryIsSpecialMode ? primaryNetwork!.NetworkName : null
             },
-            NetworkingConfig = null
+            NetworkingConfig = networkingConfig
         };
 
         if (request.Command is { Count: > 0 })
@@ -222,46 +270,7 @@ public class DockerContainerManager(
 
         var response = await client.Containers.CreateContainerAsync(createParams, cancellationToken);
 
-        // Connect ALL requested user-defined networks after creation, starting from index 0.
-        // ConnectAsync on the primary network will also implicitly disconnect the container
-        // from the default bridge on Docker, ensuring the container actually ends up on the
-        // requested network (e.g. the Aspire session network) rather than the default bridge.
-        // Special-mode entries are skipped here; the primary special mode is already applied
-        // via NetworkMode at create time, and special modes cannot be used as secondary networks.
-        if (request.Networks?.Count > 0 && !primaryIsSpecialMode)
-        {
-            foreach (var network in request.Networks)
-            {
-                if (IsSpecialNetworkMode(network.NetworkName))
-                {
-                    logger.LogWarning(
-                        "Skipping connection of container {ContainerId} to network {Network}: special network modes (host/none/container:*) cannot be used as additional networks.",
-                        LogSanitizer.Sanitize(response.ID), LogSanitizer.Sanitize(network.NetworkName));
-                    continue;
-                }
-
-                var aliases = CanUseAliases(network.NetworkName, network.Aliases) ? network.Aliases : null;
-                logger.LogInformation("Connecting container {ContainerId} to network {Network}",
-                    LogSanitizer.Sanitize(response.ID), LogSanitizer.Sanitize(network.NetworkName));
-                await networkManager.ConnectAsync(network.NetworkName, response.ID, aliases, cancellationToken);
-            }
-
-            // After connecting to user-defined networks, disconnect from the default 'bridge'
-            // network that Docker auto-attaches on create. This ensures the container's only
-            // active networks are the ones the caller explicitly requested (matching the
-            // behaviour users see when they run `docker run --network <name>`).
-            try
-            {
-                await networkManager.DisconnectAsync("bridge", response.ID, cancellationToken);
-            }
-            catch (Exception ex)
-            {
-                // Container might not be on bridge (e.g. daemon configured differently); not fatal.
-                logger.LogDebug(ex, "Could not disconnect container {ContainerId} from default bridge network (likely not attached).",
-                    LogSanitizer.Sanitize(response.ID));
-            }
-        }
-
+        
         logger.LogInformation("Created container {ContainerId} from image {Image}",
             LogSanitizer.Sanitize(response.ID), LogSanitizer.Sanitize(request.Image));
         return response.ID;
@@ -318,11 +327,12 @@ public class DockerContainerManager(
         });
     }
 
-    private async Task EnsureNetworksExistAsync(IList<Models.NetworkAttachment>? networks, CancellationToken cancellationToken)
+    private async Task<IReadOnlyList<NetworkInfo>> EnsureNetworksExistAsync(IList<Models.NetworkAttachment>? networks, CancellationToken cancellationToken)
     {
+        var existing = await networkManager.ListAsync(cancellationToken);
         if (networks == null || networks.Count == 0)
         {
-            return;
+            return existing;
         }
 
         // Special modes (host/none/container:*) are not real networks and don't need to exist.
@@ -334,10 +344,9 @@ public class DockerContainerManager(
 
         if (toCheck.Count == 0)
         {
-            return;
+            return existing;
         }
 
-        var existing = await networkManager.ListAsync(cancellationToken);
         var existingNames = new HashSet<string>(existing.Select(n => n.Name), StringComparer.Ordinal);
         var existingIds = new HashSet<string>(existing.Select(n => n.Id), StringComparer.Ordinal);
 
@@ -351,6 +360,8 @@ public class DockerContainerManager(
             throw new InvalidOperationException(
                 $"The following Docker network(s) do not exist and must be created before attaching a container: {joined}.");
         }
+
+        return existing;
     }
 
     private static bool IsSpecialNetworkMode(string networkName)
@@ -362,7 +373,6 @@ public class DockerContainerManager(
 
         return networkName.Equals("host", StringComparison.OrdinalIgnoreCase)
                || networkName.Equals("none", StringComparison.OrdinalIgnoreCase)
-               || networkName.Equals("default", StringComparison.OrdinalIgnoreCase)
                || networkName.StartsWith("container:", StringComparison.OrdinalIgnoreCase);
     }
 

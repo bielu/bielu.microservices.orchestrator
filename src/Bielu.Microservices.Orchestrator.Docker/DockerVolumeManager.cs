@@ -3,6 +3,7 @@ using Bielu.Microservices.Orchestrator.Models;
 using Docker.DotNet;
 using Docker.DotNet.Models;
 using Microsoft.Extensions.Logging;
+using VolumeInfo = Bielu.Microservices.Orchestrator.Models.VolumeInfo;
 
 namespace Bielu.Microservices.Orchestrator.Docker;
 
