@@ -30,6 +30,7 @@ public class OpenTelemetryContainerManagerDecorator(IContainerManager inner) : I
 
 
     public string HostAddress  => inner.HostAddress;
+    public string ProviderName => inner.ProviderName;
 
     /// <inheritdoc />
     public async Task<IReadOnlyList<ContainerInfo>> ListAsync(bool all = false, CancellationToken cancellationToken = default)

@@ -17,15 +17,14 @@ public class StateTrackingDecoratorTests
 {
     private readonly IContainerManager _inner = Substitute.For<IContainerManager>();
     private readonly IInstanceStore _store = new InMemoryInstanceStore();
-    private readonly IContainerOrchestrator _orchestrator = Substitute.For<IContainerOrchestrator>();
     private readonly StateTrackingContainerManagerDecorator _decorator;
 
     public StateTrackingDecoratorTests()
     {
-        _orchestrator.ProviderName.Returns("Docker");
+        _inner.ProviderName.Returns("Docker");
         var logger = Substitute.For<Microsoft.Extensions.Logging.ILogger<StateTrackingContainerManagerDecorator>>();
         var options = new OrchestratorOptions { OrchestratorId = Guid.Parse("11111111-1111-1111-1111-111111111111") };
-        _decorator = new StateTrackingContainerManagerDecorator(_inner, _store, _orchestrator, options, logger);
+        _decorator = new StateTrackingContainerManagerDecorator(_inner, _store, options, logger);
     }
 
     // -----------------------------------------------------------------------

@@ -8,6 +8,7 @@ namespace Bielu.Microservices.Orchestrator.Abstractions;
 public interface IContainerManager
 {
     string HostAddress { get; }
+    string ProviderName { get; }
     /// <summary>
     /// Lists all containers.
     /// </summary>

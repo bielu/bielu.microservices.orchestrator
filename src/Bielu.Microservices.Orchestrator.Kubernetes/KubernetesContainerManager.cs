@@ -20,6 +20,7 @@ public class KubernetesContainerManager(
 {
     //todo: figure out how to get the host address
     public string HostAddress => "localhost";
+    public string ProviderName => "Kubernetes";
 
     public async Task<IReadOnlyList<ContainerInfo>> ListAsync(bool all = false, CancellationToken cancellationToken = default)
     {

@@ -42,6 +42,7 @@ public class ContainerdContainerManager(
 
     //todo: confirm default address
     public string HostAddress => "172.17.0.1";
+    public string ProviderName => "containerd";
 
     public async Task<IReadOnlyList<ContainerInfo>> ListAsync(bool all = false, CancellationToken cancellationToken = default)
     {

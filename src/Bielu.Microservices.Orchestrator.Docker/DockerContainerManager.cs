@@ -20,6 +20,7 @@ public class DockerContainerManager(
 {
     //todo: confirm default address
     public string HostAddress => "host.docker.internal";
+    public string ProviderName => "Docker";
 
     public async Task<IReadOnlyList<ContainerInfo>> ListAsync(bool all = false, CancellationToken cancellationToken = default)
     {
@@ -218,12 +219,11 @@ public class DockerContainerManager(
                     string.Equals(n.Name, primaryNetwork.NetworkName, StringComparison.Ordinal));
                 var primaryId = resolvedPrimary?.Id ?? primaryNetwork.NetworkName;
                 var primaryName = resolvedPrimary?.Name ?? primaryNetwork.NetworkName;
-                networkMode = primaryName;
 
                 var primaryAliases = CanUseAliases(primaryName, primaryNetwork.Aliases)
                     ? primaryNetwork.Aliases.ToList()
                     : null;
-
+var networkInfo = existingNetworks.FirstOrDefault(n =>n.Id == primaryId);
                 networkingConfig = new NetworkingConfig
                 {
                     EndpointsConfig = new Dictionary<string, EndpointSettings>
@@ -231,6 +231,7 @@ public class DockerContainerManager(
                         [primaryName] = new EndpointSettings
                         {
                             NetworkID = primaryId,
+                            EndpointID = Guid.NewGuid().ToString(), // Docker will ignore this and generate its own ID, but it must be set to a non-empty value to be included in the create request
                             Aliases = primaryAliases ?? new List<string>()
                         }
                     }

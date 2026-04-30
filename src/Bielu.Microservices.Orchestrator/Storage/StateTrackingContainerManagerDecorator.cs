@@ -23,7 +23,6 @@ namespace Bielu.Microservices.Orchestrator.Storage;
 public class StateTrackingContainerManagerDecorator(
     IContainerManager inner,
     IInstanceStore instanceStore,
-    IContainerOrchestrator orchestrator,
     OrchestratorOptions orchestratorOptions,
     ILogger<StateTrackingContainerManagerDecorator> logger) : IContainerManager
 {
@@ -34,6 +33,8 @@ public class StateTrackingContainerManagerDecorator(
     public const int DecoratorPriority = 100;
 
     public string HostAddress => inner.HostAddress;
+
+    public string ProviderName => inner.ProviderName;
 
     /// <inheritdoc />
     public Task<IReadOnlyList<ContainerInfo>> ListAsync(bool all = false, CancellationToken cancellationToken = default)
@@ -64,7 +65,7 @@ public class StateTrackingContainerManagerDecorator(
             OriginalRequest = request,
             DesiredState = DesiredState.Running,
             DesiredReplicas = request.Replicas,
-            ProviderName = orchestrator.ProviderName,
+            ProviderName = inner.ProviderName,
             CreatedAt = DateTimeOffset.UtcNow,
             UpdatedAt = DateTimeOffset.UtcNow
         };

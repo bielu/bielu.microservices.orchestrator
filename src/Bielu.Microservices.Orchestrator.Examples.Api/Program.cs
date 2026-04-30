@@ -45,7 +45,7 @@ builder.Services.AddMicroservicesOrchestrator(orchestrator =>
                                    "Host=localhost;Port=5432;Database=orchestratordb;Username=postgres;Password=postgres";
             x.UseNpgsql(connectionString, b => b.MigrationsAssembly(typeof(ContainersController).Assembly));
         })
-      .WithManagedContainersOnly()
+        .WithStateTracking()
         .AddOpenTelemetryInstrumentation(); // must come after the provider
 });
 
