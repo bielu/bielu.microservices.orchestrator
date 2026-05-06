@@ -180,13 +180,13 @@ public class DockerContainerManager(
         // network and attach the container to it with the container name as a DNS alias. This
         // mirrors how .NET Aspire's DCP creates a single 'aspire-session-network-*' per session
         // and joins every container resource to it so they can resolve each other by name.
-        await EnsureDefaultNetworkAttachmentAsync(request, containerName, cancellationToken);
+        var effectiveNetworks = await GetEffectiveNetworksAsync(request, containerName, cancellationToken);
 
         // Validate that all requested user-defined networks exist before attempting to create the container.
         // This produces a clearer error than the Docker daemon's generic 404 on container create.
-        var existingNetworks = await EnsureNetworksExistAsync(request.Networks, cancellationToken);
+        var existingNetworks = await EnsureNetworksExistAsync(effectiveNetworks, cancellationToken);
 
-        var primaryNetwork = request.Networks?.FirstOrDefault();
+        var primaryNetwork = effectiveNetworks?.FirstOrDefault();
         var primaryIsSpecialMode = primaryNetwork != null && IsSpecialNetworkMode(primaryNetwork.NetworkName);
 
         // Networking strategy — match what `docker run --network <name> [--network <name2> ...]` does:
@@ -224,24 +224,42 @@ public class DockerContainerManager(
                     ? primaryNetwork.Aliases.ToList()
                     : null;
 
+                // Build a sanitised attachment that strips aliases when they are not allowed
+                // for the resolved network (e.g. the default 'bridge' does not support them),
+                // and auto-populate gateway / driver options from the resolved network's
+                // NetworkResponse data when the caller has not supplied them explicitly.
+                var primaryAttachment = new Models.NetworkAttachment
+                {
+                    NetworkName = primaryNetwork.NetworkName,
+                    Aliases = primaryAliases ?? new List<string>(),
+                    IPv4Address = primaryNetwork.IPv4Address,
+                    IPv6Address = primaryNetwork.IPv6Address,
+                    Gateway = primaryNetwork.Gateway,
+                    MacAddress = primaryNetwork.MacAddress,
+                    Links = primaryNetwork.Links,
+                    DriverOptions = primaryNetwork.DriverOptions,
+                    DnsNames = primaryNetwork.DnsNames
+                };
+                EnrichFromNetworkInfo(primaryAttachment, resolvedPrimary);
+                StripUnsupportedStaticAddressing(primaryAttachment, resolvedPrimary, primaryName);
+
                 networkingConfig = new NetworkingConfig
                 {
                     EndpointsConfig = new Dictionary<string, EndpointSettings>
                     {
-                        [primaryId] = new EndpointSettings
-                        {
-                            NetworkID = primaryId,
-                            Aliases = primaryAliases ?? new List<string>()
-                        }
+                        [primaryId] = DockerNetworkManager.BuildEndpointSettings(primaryId, primaryAttachment)
                     }
                 };
-                
+
                 networkMode = primaryId;
-                
-                logger.LogDebug("Configuring primary network {NetworkId} ({NetworkName}) with aliases {Aliases}", 
+
+                logger.LogDebug("Configuring primary network {NetworkId} ({NetworkName}) with aliases {Aliases}, IPv4 {IPv4}, IPv6 {IPv6}, Gateway {Gateway}",
                     LogSanitizer.Sanitize(primaryId),
-                    LogSanitizer.Sanitize(primaryName), 
-                    primaryAliases != null ? string.Join(", ", primaryAliases) : "none");
+                    LogSanitizer.Sanitize(primaryName),
+                    primaryAliases != null ? string.Join(", ", primaryAliases) : "none",
+                    primaryAttachment.IPv4Address ?? "auto",
+                    primaryAttachment.IPv6Address ?? "auto",
+                    primaryAttachment.Gateway ?? "auto");
             }
         }
 
@@ -259,9 +277,9 @@ public class DockerContainerManager(
                     {
                         new() { HostPort = p.HostPort.ToString(), HostIP = p.HostIp }
                     }),
-                Binds = request.Volumes.ToList(),
+                Binds = request.Volumes.Select(v => v.ToBindString()).ToList(),
                 AutoRemove = request.AutoRemove,
-                NetworkMode = networkMode ?? string.Empty
+                NetworkMode = networkMode
             },
             NetworkingConfig = networkingConfig
         };
@@ -274,9 +292,9 @@ public class DockerContainerManager(
         var response = await client.Containers.CreateContainerAsync(createParams, cancellationToken);
 
         // Attach additional networks (and re-attach primary to ensure aliases/config)
-        if (request.Networks != null)
+        if (effectiveNetworks != null)
         {
-            foreach (var network in request.Networks)
+            foreach (var network in effectiveNetworks)
             {
                 if (IsSpecialNetworkMode(network.NetworkName))
                 {
@@ -290,9 +308,24 @@ public class DockerContainerManager(
                 var networkName = resolved?.Name ?? network.NetworkName;
 
                 var aliases = CanUseAliases(networkName, network.Aliases) ? network.Aliases : null;
+                var connectAttachment = new Models.NetworkAttachment
+                {
+                    NetworkName = network.NetworkName,
+                    Aliases = aliases?.ToList() ?? new List<string>(),
+                    IPv4Address = network.IPv4Address,
+                    IPv6Address = network.IPv6Address,
+                    Gateway = network.Gateway,
+                    MacAddress = network.MacAddress,
+                    Links = network.Links,
+                    DriverOptions = network.DriverOptions,
+                    DnsNames = network.DnsNames
+                };
+                EnrichFromNetworkInfo(connectAttachment, resolved);
+                StripUnsupportedStaticAddressing(connectAttachment, resolved, networkName);
+
                 logger.LogInformation("Connecting container {ContainerId} to network {NetworkId} ({NetworkName})",
                     LogSanitizer.Sanitize(response.ID), LogSanitizer.Sanitize(networkId), LogSanitizer.Sanitize(networkName));
-                await networkManager.ConnectAsync(networkId, response.ID, aliases, cancellationToken);
+                await networkManager.ConnectAsync(networkId, response.ID, connectAttachment, cancellationToken);
             }
         }
 
@@ -301,28 +334,25 @@ public class DockerContainerManager(
         return response.ID;
     }
 
-    private async Task EnsureDefaultNetworkAttachmentAsync(
+    private async Task<IList<Models.NetworkAttachment>?> GetEffectiveNetworksAsync(
         CreateContainerRequest request,
         string? containerName,
         CancellationToken cancellationToken)
     {
-        if (!orchestratorOptions.UseDefaultNetwork)
-        {
-            return;
-        }
-
-        // Only fall back to the default network when the caller did not specify any.
-        // If the user explicitly chose networks (including special modes like 'host'),
-        // respect that choice and do not silently add a second one.
         if (request.Networks is { Count: > 0 })
         {
-            return;
+            return request.Networks;
+        }
+
+        if (!orchestratorOptions.UseDefaultNetwork)
+        {
+            return request.Networks;
         }
 
         var defaultNetwork = orchestratorOptions.ResolveDefaultNetworkName();
         if (string.IsNullOrWhiteSpace(defaultNetwork))
         {
-            return;
+            return request.Networks;
         }
 
         // Auto-create the network if it doesn't exist yet (idempotent).
@@ -344,12 +374,14 @@ public class DockerContainerManager(
             aliases.Add(containerName);
         }
 
-        request.Networks ??= new List<Models.NetworkAttachment>();
-        request.Networks.Add(new Models.NetworkAttachment
+        return new List<Models.NetworkAttachment>
         {
-            NetworkName = defaultNetwork,
-            Aliases = aliases
-        });
+            new Models.NetworkAttachment
+            {
+                NetworkName = defaultNetwork,
+                Aliases = aliases
+            }
+        };
     }
 
     private async Task<IReadOnlyList<NetworkInfo>> EnsureNetworksExistAsync(IList<Models.NetworkAttachment>? networks, CancellationToken cancellationToken)
@@ -410,6 +442,132 @@ public class DockerContainerManager(
 
         // Docker disallows network-scoped aliases on the default 'bridge' network.
         return !networkName.Equals("bridge", StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// Enriches a <see cref="Models.NetworkAttachment"/> with values that can be
+    /// derived from the resolved network's <see cref="NetworkInfo"/> (mapped from
+    /// <c>NetworkResponse</c>):
+    /// <list type="bullet">
+    ///   <item>the first IPAM gateway,</item>
+    ///   <item>network-level driver options,</item>
+    ///   <item>and — when no static IP was supplied — the first free IPv4 / IPv6
+    ///         address computed from the network's IPAM subnet(s) and the set of
+    ///         IPs already in use by attached endpoints.</item>
+    /// </list>
+    /// User-supplied values are always preserved and only missing fields are filled.
+    /// </summary>
+    private static void EnrichFromNetworkInfo(Models.NetworkAttachment attachment, NetworkInfo? info)
+    {
+        if (info == null)
+        {
+            return;
+        }
+
+        // Gateway: take the first IPAM gateway when the user didn't specify one.
+        // Only enrich when the network has user-configured subnets — otherwise Docker
+        // rejects the endpoint (see HasUserConfiguredSubnets remark below).
+        if (string.IsNullOrWhiteSpace(attachment.Gateway) && HasUserConfiguredSubnets(info.Ipam))
+        {
+            var ipamGateway = info.Ipam!.Config
+                .Select(c => c.Gateway)
+                .FirstOrDefault(g => !string.IsNullOrWhiteSpace(g));
+            if (!string.IsNullOrWhiteSpace(ipamGateway))
+            {
+                attachment.Gateway = ipamGateway;
+            }
+        }
+
+        // Driver options: merge network-level options as defaults.
+        if (info.Options is { Count: > 0 })
+        {
+            attachment.DriverOptions ??= new Dictionary<string, string>();
+            foreach (var kv in info.Options)
+            {
+                if (!attachment.DriverOptions.ContainsKey(kv.Key))
+                {
+                    attachment.DriverOptions[kv.Key] = kv.Value;
+                }
+            }
+        }
+
+        // First-free-IP allocation based on existing endpoints.
+        // Only auto-allocate when the network has user-configured subnets in its IPAM config.
+        // Docker rejects user-supplied IP addresses on networks whose subnets were not user-configured
+        // (e.g. networks created without explicit --subnet, such as Aspire's session network) with:
+        //   "user specified IP address is supported only when connecting to networks with user configured subnets"
+        // To stay safe, we require an explicit subnet entry before attempting to compute a static IP.
+        if (HasUserConfiguredSubnets(info.Ipam))
+        {
+            if (string.IsNullOrWhiteSpace(attachment.IPv4Address))
+            {
+                var inUseV4 = info.Containers?.Values
+                    .Select(c => c.IPv4Address)
+                    .Where(s => !string.IsNullOrWhiteSpace(s));
+                var nextV4 = IpAllocator.TryAllocateNextFreeIPv4(info.Ipam!.Config, inUseV4);
+                if (!string.IsNullOrWhiteSpace(nextV4))
+                {
+                    attachment.IPv4Address = nextV4;
+                }
+            }
+
+            if (info.EnableIPv6 && string.IsNullOrWhiteSpace(attachment.IPv6Address))
+            {
+                var inUseV6 = info.Containers?.Values
+                    .Select(c => c.IPv6Address)
+                    .Where(s => !string.IsNullOrWhiteSpace(s));
+                var nextV6 = IpAllocator.TryAllocateNextFreeIPv6(info.Ipam!.Config, inUseV6);
+                if (!string.IsNullOrWhiteSpace(nextV6))
+                {
+                    attachment.IPv6Address = nextV6;
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    /// Defensively clears static IPv4/IPv6/Gateway values from a <see cref="Models.NetworkAttachment"/>
+    /// when the resolved network does not have user-configured subnets in its IPAM
+    /// config. Docker rejects user-supplied IP addresses on such networks with:
+    ///   "user specified IP address is supported only when connecting to networks
+    ///    with user configured subnets".
+    /// This guards both create-time (<c>EndpointsConfig</c>) and connect-time
+    /// (<c>ConnectNetwork</c>) flows so that callers who pass an explicit static IP
+    /// for a network that does not allow it (e.g. Aspire's session network) still
+    /// succeed — the IP is silently dropped and the daemon allocates one.
+    /// </summary>
+    private void StripUnsupportedStaticAddressing(Models.NetworkAttachment attachment, NetworkInfo? info, string networkName)
+    {
+        if (info == null || HasUserConfiguredSubnets(info.Ipam))
+        {
+            return;
+        }
+
+        if (!string.IsNullOrWhiteSpace(attachment.IPv4Address)
+            || !string.IsNullOrWhiteSpace(attachment.IPv6Address)
+            || !string.IsNullOrWhiteSpace(attachment.Gateway))
+        {
+            logger.LogWarning(
+                "Network {NetworkName} has no user-configured subnets; dropping static IPv4 {IPv4}, IPv6 {IPv6}, Gateway {Gateway} from endpoint settings to avoid Docker BadRequest.",
+                LogSanitizer.Sanitize(networkName),
+                attachment.IPv4Address ?? "<none>",
+                attachment.IPv6Address ?? "<none>",
+                attachment.Gateway ?? "<none>");
+
+            attachment.IPv4Address = null;
+            attachment.IPv6Address = null;
+            attachment.Gateway = null;
+        }
+    }
+
+    private static bool HasUserConfiguredSubnets(NetworkIpamInfo? ipam)
+    {
+        if (ipam?.Config is not { Count: > 0 })
+        {
+            return false;
+        }
+
+        return ipam.Config.Any(c => !string.IsNullOrWhiteSpace(c.Subnet));
     }
 
     private async Task EnsureImageExistsAsync(string image, CancellationToken cancellationToken)

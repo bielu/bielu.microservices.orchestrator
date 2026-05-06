@@ -79,10 +79,43 @@ public static class CreateContainerRequestExtensions
     }
 
     /// <summary>
-    /// Adds a volume binding to the container (host:container format).
+    /// Adds a volume binding to the container using the Docker-style
+    /// <c>host:container[:ro|rw]</c> format.
     /// </summary>
     public static CreateContainerRequest WithVolume(this CreateContainerRequest request, string volume)
     {
+        request.Volumes.Add(VolumeMount.Parse(volume));
+        return request;
+    }
+
+    /// <summary>
+    /// Adds a volume mapping from a host path (or named volume) to a container path.
+    /// </summary>
+    /// <param name="request">The container request.</param>
+    /// <param name="hostPath">The host path or named volume.</param>
+    /// <param name="containerPath">The path inside the container.</param>
+    /// <param name="readOnly">Whether the mount should be read-only.</param>
+    public static CreateContainerRequest WithVolume(
+        this CreateContainerRequest request,
+        string hostPath,
+        string containerPath,
+        bool readOnly = false)
+    {
+        request.Volumes.Add(new VolumeMount
+        {
+            HostPath = hostPath,
+            ContainerPath = containerPath,
+            ReadOnly = readOnly
+        });
+        return request;
+    }
+
+    /// <summary>
+    /// Adds a structured volume mount to the container.
+    /// </summary>
+    public static CreateContainerRequest WithVolume(this CreateContainerRequest request, VolumeMount volume)
+    {
+        ArgumentNullException.ThrowIfNull(volume);
         request.Volumes.Add(volume);
         return request;
     }

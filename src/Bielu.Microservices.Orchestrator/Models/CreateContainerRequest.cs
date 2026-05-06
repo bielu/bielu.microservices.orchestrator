@@ -36,9 +36,9 @@ public class CreateContainerRequest
     public IDictionary<string, string> Labels { get; set; } = new Dictionary<string, string>();
 
     /// <summary>
-    /// Volume bindings (host:container format).
+    /// Volume mounts that map host paths (or named volumes) into the container.
     /// </summary>
-    public IList<string> Volumes { get; set; } = new List<string>();
+    public IList<VolumeMount> Volumes { get; set; } = new List<VolumeMount>();
 
     /// <summary>
     /// Whether to automatically remove the container when it stops.

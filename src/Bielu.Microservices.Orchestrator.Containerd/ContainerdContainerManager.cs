@@ -28,10 +28,12 @@ public class ContainerdContainerManager(
     Containers.ContainersClient containersClient,
     Tasks.TasksClient tasksClient,
     Snapshots.SnapshotsClient snapshotsClient,
+    INetworkManager networkManager,
     ContainerdOptions options,
     OrchestratorOptions orchestratorOptions,
     ILogger<ContainerdContainerManager> logger) : IContainerManager
 {
+    private const string NetworksLabel = "orchestrator.networks";
     private const string DefaultSnapshotter = "overlayfs";
     private const string OciSpecVersion = "1.0.2";
     private const string DefaultContainerPath = "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin";
@@ -144,6 +146,27 @@ public class ContainerdContainerManager(
         // Start the task
         await tasksClient.StartAsync(
             new StartRequest { ContainerId = containerId }, headers, cancellationToken: cancellationToken);
+
+        // Connect networks stored in labels
+        if (container.Labels.TryGetValue(NetworksLabel, out var networksJson))
+        {
+            try
+            {
+                var networks = JsonSerializer.Deserialize<List<Models.NetworkAttachment>>(networksJson);
+                if (networks != null)
+                {
+                    foreach (var network in networks)
+                    {
+                        await networkManager.ConnectAsync(network.NetworkName, containerId, network.Aliases, cancellationToken);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                logger.LogWarning(ex, "Failed to connect networks for containerd container {ContainerId} from labels",
+                    LogSanitizer.Sanitize(containerId));
+            }
+        }
 
         logger.LogInformation("Started containerd task for container {ContainerId}", LogSanitizer.Sanitize(containerId));
     }
@@ -268,6 +291,12 @@ public class ContainerdContainerManager(
         var labels = overrideLabels ?? new Dictionary<string, string>(request.Labels);
         labels[OrchestratorLabels.ManagedBy] = OrchestratorLabels.ManagedByValue;
 
+        var effectiveNetworks = await GetEffectiveNetworksAsync(request, containerId, cancellationToken);
+        if (effectiveNetworks != null)
+        {
+            labels[NetworksLabel] = JsonSerializer.Serialize(effectiveNetworks);
+        }
+
         var specJson = BuildOciSpec(request);
         var spec = new Any
         {
@@ -297,6 +326,54 @@ public class ContainerdContainerManager(
             LogSanitizer.Sanitize(response.Container.Id), LogSanitizer.Sanitize(request.Image), LogSanitizer.Sanitize(options.Namespace));
 
         return response.Container.Id;
+    }
+
+    private async Task<IList<Models.NetworkAttachment>?> GetEffectiveNetworksAsync(
+        CreateContainerRequest request,
+        string? containerName,
+        CancellationToken cancellationToken)
+    {
+        if (request.Networks is { Count: > 0 })
+        {
+            return request.Networks;
+        }
+
+        if (!orchestratorOptions.UseDefaultNetwork)
+        {
+            return request.Networks;
+        }
+
+        var defaultNetwork = orchestratorOptions.ResolveDefaultNetworkName();
+        if (string.IsNullOrWhiteSpace(defaultNetwork))
+        {
+            return request.Networks;
+        }
+
+        // Auto-create the network if it doesn't exist yet (idempotent).
+        var existing = await networkManager.ListAsync(cancellationToken);
+        if (!existing.Any(n =>
+                string.Equals(n.Name, defaultNetwork, StringComparison.Ordinal) ||
+                string.Equals(n.Id, defaultNetwork, StringComparison.Ordinal)))
+        {
+            logger.LogInformation("Auto-creating default orchestrator network {Network}",
+                LogSanitizer.Sanitize(defaultNetwork));
+            await networkManager.CreateAsync(defaultNetwork, cancellationToken: cancellationToken);
+        }
+
+        var aliases = new List<string>();
+        if (!string.IsNullOrWhiteSpace(containerName))
+        {
+            aliases.Add(containerName);
+        }
+
+        return new List<Models.NetworkAttachment>
+        {
+            new Models.NetworkAttachment
+            {
+                NetworkName = defaultNetwork,
+                Aliases = aliases
+            }
+        };
     }
 
     private async Task<Dictionary<string, TaskProcess>> GetTaskStatusMapAsync(Metadata headers, CancellationToken cancellationToken)
@@ -396,16 +473,12 @@ public class ContainerdContainerManager(
             .Prepend(DefaultContainerPath)
             .ToList();
 
-        var bindMounts = request.Volumes.Select(v =>
+        var bindMounts = request.Volumes.Select(v => new
         {
-            var parts = v.Split(':');
-            return new
-            {
-                destination = parts.Length > 1 ? parts[1] : parts[0],
-                type = "bind",
-                source = parts[0],
-                options = new[] { "rbind", "rw" }
-            };
+            destination = string.IsNullOrEmpty(v.ContainerPath) ? v.HostPath : v.ContainerPath,
+            type = "bind",
+            source = v.HostPath,
+            options = new[] { "rbind", v.ReadOnly ? "ro" : "rw" }
         }).ToList<object>();
 
         var spec = new

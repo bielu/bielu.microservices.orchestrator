@@ -155,8 +155,11 @@ public class FluentApiTests
             .WithVolume("/host/config:/container/config");
 
         request.Volumes.Count.ShouldBe(2);
-        request.Volumes[0].ShouldBe("/host/data:/container/data");
-        request.Volumes[1].ShouldBe("/host/config:/container/config");
+        request.Volumes[0].HostPath.ShouldBe("/host/data");
+        request.Volumes[0].ContainerPath.ShouldBe("/container/data");
+        request.Volumes[0].ReadOnly.ShouldBeFalse();
+        request.Volumes[1].HostPath.ShouldBe("/host/config");
+        request.Volumes[1].ContainerPath.ShouldBe("/container/config");
     }
 
     [Fact]

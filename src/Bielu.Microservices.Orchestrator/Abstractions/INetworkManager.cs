@@ -28,6 +28,13 @@ public interface INetworkManager
     Task ConnectAsync(string networkId, string containerId, IEnumerable<string>? aliases = null, CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Connects a container to a network using a full <see cref="NetworkAttachment"/>
+    /// description (aliases, static IP, gateway, MAC address, links, driver options, DNS names).
+    /// </summary>
+    Task ConnectAsync(string networkId, string containerId, NetworkAttachment attachment, CancellationToken cancellationToken = default)
+        => ConnectAsync(networkId, containerId, attachment?.Aliases, cancellationToken);
+
+    /// <summary>
     /// Disconnects a container from a network.
     /// </summary>
     Task DisconnectAsync(string networkId, string containerId, CancellationToken cancellationToken = default);
