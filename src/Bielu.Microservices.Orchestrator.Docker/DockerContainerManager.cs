@@ -464,19 +464,6 @@ public class DockerContainerManager(
             return;
         }
 
-        // Gateway: take the first IPAM gateway when the user didn't specify one.
-        // Only enrich when the network has user-configured subnets — otherwise Docker
-        // rejects the endpoint (see HasUserConfiguredSubnets remark below).
-        if (string.IsNullOrWhiteSpace(attachment.Gateway) && HasUserConfiguredSubnets(info.Ipam))
-        {
-            var ipamGateway = info.Ipam!.Config
-                .Select(c => c.Gateway)
-                .FirstOrDefault(g => !string.IsNullOrWhiteSpace(g));
-            if (!string.IsNullOrWhiteSpace(ipamGateway))
-            {
-                attachment.Gateway = ipamGateway;
-            }
-        }
 
         // Driver options: merge network-level options as defaults.
         if (info.Options is { Count: > 0 })
@@ -491,38 +478,6 @@ public class DockerContainerManager(
             }
         }
 
-        // First-free-IP allocation based on existing endpoints.
-        // Only auto-allocate when the network has user-configured subnets in its IPAM config.
-        // Docker rejects user-supplied IP addresses on networks whose subnets were not user-configured
-        // (e.g. networks created without explicit --subnet, such as Aspire's session network) with:
-        //   "user specified IP address is supported only when connecting to networks with user configured subnets"
-        // To stay safe, we require an explicit subnet entry before attempting to compute a static IP.
-        if (HasUserConfiguredSubnets(info.Ipam))
-        {
-            if (string.IsNullOrWhiteSpace(attachment.IPv4Address))
-            {
-                var inUseV4 = info.Containers?.Values
-                    .Select(c => c.IPv4Address)
-                    .Where(s => !string.IsNullOrWhiteSpace(s));
-                var nextV4 = IpAllocator.TryAllocateNextFreeIPv4(info.Ipam!.Config, inUseV4);
-                if (!string.IsNullOrWhiteSpace(nextV4))
-                {
-                    attachment.IPv4Address = nextV4;
-                }
-            }
-
-            if (info.EnableIPv6 && string.IsNullOrWhiteSpace(attachment.IPv6Address))
-            {
-                var inUseV6 = info.Containers?.Values
-                    .Select(c => c.IPv6Address)
-                    .Where(s => !string.IsNullOrWhiteSpace(s));
-                var nextV6 = IpAllocator.TryAllocateNextFreeIPv6(info.Ipam!.Config, inUseV6);
-                if (!string.IsNullOrWhiteSpace(nextV6))
-                {
-                    attachment.IPv6Address = nextV6;
-                }
-            }
-        }
     }
 
     /// <summary>
