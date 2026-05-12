@@ -24,6 +24,9 @@
   <Project Path="Bielu.Microservices.Orchestrator.Kubernetes/Bielu.Microservices.Orchestrator.Kubernetes.csproj" />
   <Project Path="Bielu.Microservices.Orchestrator.OpenTelemetry/Bielu.Microservices.Orchestrator.OpenTelemetry.csproj" />
   <Project Path="Bielu.Microservices.Orchestrator.HealthChecks/Bielu.Microservices.Orchestrator.HealthChecks.csproj" />
+  <Project Path="Bielu.Microservices.Orchestrator.Gateway.Contracts/Bielu.Microservices.Orchestrator.Gateway.Contracts.csproj" />
+  <Project Path="Bielu.Microservices.Orchestrator.Gateway.Registration/Bielu.Microservices.Orchestrator.Gateway.Registration.csproj" />
+  <Project Path="Bielu.Microservices.Orchestrator.Gateway/Bielu.Microservices.Orchestrator.Gateway.csproj" />
   <Project Path="Bielu.Microservices.Orchestrator.Storage.File/Bielu.Microservices.Orchestrator.Storage.File.csproj" />
   <Project Path="Bielu.Microservices.Orchestrator.Storage.EfCore/Bielu.Microservices.Orchestrator.Storage.EfCore.csproj" />
 </Solution>
