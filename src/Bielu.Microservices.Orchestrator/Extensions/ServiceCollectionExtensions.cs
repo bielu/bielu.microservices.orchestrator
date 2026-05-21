@@ -30,6 +30,9 @@ public static class ServiceCollectionExtensions
         // Register the default in-memory instance store if no store was registered by the builder
         services.TryAddSingleton<IInstanceStore, InMemoryInstanceStore>();
 
+        // Image update detection / on-demand container recreation when the image changed.
+        services.TryAddSingleton<IImageUpdateService, ImageUpdateService>();
+
         // Apply deferred decorators in deterministic priority order so that
         // registration ordering in the configure delegate does not matter.
         // E.g. state tracking is always inner, OTel is always outermost.

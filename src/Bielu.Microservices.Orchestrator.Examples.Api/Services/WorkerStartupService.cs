@@ -1,4 +1,5 @@
-﻿using Bielu.Microservices.Orchestrator.Abstractions;
+﻿using Bielu.Microservices.Orchestrator;
+using Bielu.Microservices.Orchestrator.Abstractions;
 using Bielu.Microservices.Orchestrator.Models;
 
 namespace Bielu.Microservices.Orchestrator.Examples.Api.Services;
@@ -105,7 +106,14 @@ public class WorkerStartupService(IContainerOrchestrator orchestrator, ILogger<W
                 }
             }
 
-            // 3) Define and create the worker container.
+            // 3) Look up the image digest so we can stamp it on the container and
+            //    later detect when a newer image is available via IImageUpdateService.
+            var localImage = (await orchestrator.Images.ListAsync(cancellationToken))
+                .FirstOrDefault(i => i.Tags.Any(t =>
+                    string.Equals(t, WorkerImage, StringComparison.OrdinalIgnoreCase)));
+            var imageDigest = localImage?.Id ?? string.Empty;
+
+            // 4) Define and create the worker container.
             var request = new CreateContainerRequest
             {
                 Name = WorkerName,
@@ -121,7 +129,10 @@ public class WorkerStartupService(IContainerOrchestrator orchestrator, ILogger<W
                 {
                     ["app"] = WorkerName,
                     [StartedByLabel] = StartedByValue,
-                    [NetworkLabel] = networkName ?? string.Empty
+                    [NetworkLabel] = networkName ?? string.Empty,
+                    [OrchestratorLabels.Image] = WorkerImage,
+                    [OrchestratorLabels.ImageDigest] = imageDigest,
+                    [OrchestratorLabels.InstanceId] = WorkerName
                 },
                 AutoRemove = true
             };
