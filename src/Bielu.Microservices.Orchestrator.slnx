@@ -10,6 +10,7 @@
   </Folder>
   <Folder Name="/Solution Files/">
     <File Path="../.gitignore" />
+    <File Path="../AGENT.md" />
     <File Path="../CODEOWNERS" />
     <File Path="../LICENSE.md" />
     <File Path="../readme.md" />
