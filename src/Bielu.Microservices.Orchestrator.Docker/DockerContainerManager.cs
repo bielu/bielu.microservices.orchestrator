@@ -171,10 +171,15 @@ public class DockerContainerManager(
 
                 if (mount.IsBindMount)
                 {
-                    if (Directory.Exists(mount.HostPath))
+                    try
                     {
-                        Directory.Delete(mount.HostPath, recursive: true);
-                        logger.LogInformation("Deleted bind-mount directory {Path}", mount.HostPath);
+                        await CleanBindMountAsync(mount.HostPath, cancellationToken);
+                        logger.LogInformation("Cleaned bind-mount directory {Path} via helper container", mount.HostPath);
+                    }
+                    catch (Exception ex)
+                    {
+                        // Best-effort: container is already gone, log and continue.
+                        logger.LogWarning(ex, "Failed to clean bind-mount directory {Path}", mount.HostPath);
                     }
                 }
                 else
@@ -575,6 +580,57 @@ public class DockerContainerManager(
         }
 
         return ipam.Config.Any(c => !string.IsNullOrWhiteSpace(c.Subnet));
+    }
+
+    // Runs a short-lived Alpine container to delete the contents of a bind-mount directory.
+    // Using a helper container rather than Directory.Delete means this works correctly when the
+    // orchestrator itself is running inside Docker (e.g. via socket mount on Docker Desktop / WSL2),
+    // because Docker resolves the host path from the host's perspective, not the orchestrator's.
+    private async Task CleanBindMountAsync(string hostPath, CancellationToken cancellationToken)
+    {
+        const string cleanupImage = "alpine";
+        const string cleanupTag = "latest";
+
+        // Ensure the image is available; pull if missing.
+        try
+        {
+            await client.Images.InspectImageAsync($"{cleanupImage}:{cleanupTag}", cancellationToken);
+        }
+        catch (DockerImageNotFoundException)
+        {
+            logger.LogInformation("Pulling {Image}:{Tag} for bind-mount cleanup", cleanupImage, cleanupTag);
+            await imageManager.PullAsync(
+                new PullImageRequest { Image = cleanupImage, Tag = cleanupTag }, cancellationToken);
+        }
+
+        var created = await client.Containers.CreateContainerAsync(new CreateContainerParameters
+        {
+            Image = $"{cleanupImage}:{cleanupTag}",
+            // find + delete removes all contents (including hidden files) without touching the mount point itself.
+            Cmd = ["find", "/cleanup", "-mindepth", "1", "-delete"],
+            HostConfig = new HostConfig
+            {
+                Binds = [$"{hostPath}:/cleanup"],
+                AutoRemove = false
+            }
+        }, cancellationToken);
+
+        try
+        {
+            await client.Containers.StartContainerAsync(created.ID, null, cancellationToken);
+            var result = await client.Containers.WaitContainerAsync(created.ID, cancellationToken);
+            if (result.StatusCode != 0)
+            {
+                logger.LogWarning(
+                    "Bind-mount cleanup container exited with code {Code} for path {Path}",
+                    result.StatusCode, hostPath);
+            }
+        }
+        finally
+        {
+            await client.Containers.RemoveContainerAsync(
+                created.ID, new ContainerRemoveParameters { Force = true }, cancellationToken);
+        }
     }
 
     private async Task EnsureImageExistsAsync(string image, CancellationToken cancellationToken)
