@@ -108,7 +108,7 @@ public class ImageUpdateServiceTests
 
         result.Updated.ShouldBeFalse();
         result.PreviousDigest.ShouldBe(OldDigest);
-        await _containers.DidNotReceive().RemoveAsync(Arg.Any<string>(), Arg.Any<bool>(), Arg.Any<CancellationToken>());
+        await _containers.DidNotReceive().RemoveAsync(Arg.Any<string>(), Arg.Any<bool>(), Arg.Any<bool>(), Arg.Any<CancellationToken>());
         await _containers.DidNotReceive().CreateAsync(Arg.Any<CreateContainerRequest>(), Arg.Any<CancellationToken>());
     }
 
@@ -128,7 +128,7 @@ public class ImageUpdateServiceTests
         result.NewDigest.ShouldBe(NewDigest);
         result.ContainerIds.ShouldContain("ctr-2");
 
-        await _containers.Received(1).RemoveAsync("ctr-1", true, Arg.Any<CancellationToken>());
+        await _containers.Received(1).RemoveAsync("ctr-1", true, false, Arg.Any<CancellationToken>());
         await _containers.Received(1).CreateAsync(
             Arg.Is<CreateContainerRequest>(r =>
                 r.Labels[OrchestratorLabels.ImageDigest] == NewDigest
@@ -153,7 +153,7 @@ public class ImageUpdateServiceTests
             new ImageUpdateOptions { Pull = false, Force = true });
 
         result.Updated.ShouldBeTrue();
-        await _containers.Received(1).RemoveAsync("ctr-1", true, Arg.Any<CancellationToken>());
+        await _containers.Received(1).RemoveAsync("ctr-1", true, false, Arg.Any<CancellationToken>());
         await _containers.Received(1).StartAsync("ctr-2", Arg.Any<CancellationToken>());
     }
 

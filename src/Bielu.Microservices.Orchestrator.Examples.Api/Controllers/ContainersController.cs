@@ -84,12 +84,14 @@ public class ContainersController(IContainerOrchestrator orchestrator) : Control
     }
 
     /// <summary>
-    /// Remove a container (use ?force=true to remove a running container).
+    /// Remove a container.
+    /// Use ?force=true to remove a running container.
+    /// Use ?removeVolumes=true to also delete all associated volume data (named volumes, bind-mount directories).
     /// </summary>
     [HttpDelete("{id}")]
-    public async Task<IActionResult> Remove(string id, bool force = false)
+    public async Task<IActionResult> Remove(string id, bool force = false, bool removeVolumes = false)
     {
-        await orchestrator.Containers.RemoveAsync(id, force);
+        await orchestrator.Containers.RemoveAsync(id, force, removeVolumes);
         return NoContent();
     }
 

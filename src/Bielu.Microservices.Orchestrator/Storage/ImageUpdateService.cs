@@ -108,7 +108,7 @@ public class ImageUpdateService(
         {
             try
             {
-                await orchestrator.Containers.RemoveAsync(containerId, force: true, cancellationToken);
+                await orchestrator.Containers.RemoveAsync(containerId, force: true, cancellationToken: cancellationToken);
             }
             catch (Exception ex)
             {

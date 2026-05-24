@@ -155,16 +155,17 @@ public class OpenTelemetryContainerManagerDecorator(IContainerManager inner) : I
     }
 
     /// <inheritdoc />
-    public async Task RemoveAsync(string containerId, bool force = false, CancellationToken cancellationToken = default)
+    public async Task RemoveAsync(string containerId, bool force = false, bool removeVolumes = false, CancellationToken cancellationToken = default)
     {
         using var activity = OrchestratorActivitySource.Source.StartActivity(OrchestratorActivitySource.ContainerRemove);
         activity?.SetTag(OrchestratorActivitySource.AttributeContainerId, containerId);
         activity?.SetTag("container.remove.force", force);
+        activity?.SetTag("container.remove.volumes", removeVolumes);
         var startTimestamp = Stopwatch.GetTimestamp();
 
         try
         {
-            await inner.RemoveAsync(containerId, force, cancellationToken);
+            await inner.RemoveAsync(containerId, force, removeVolumes, cancellationToken);
             RecordSuccess(OrchestratorActivitySource.ContainerRemove, startTimestamp);
             RecordContainerStateChange("removed");
         }

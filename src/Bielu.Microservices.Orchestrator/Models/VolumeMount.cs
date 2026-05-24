@@ -52,6 +52,16 @@ public class VolumeMount
     }
 
     /// <summary>
+    /// Returns <c>true</c> when <see cref="HostPath"/> is a host filesystem path (bind mount)
+    /// rather than a named volume. Rooted paths (<c>/data</c>, <c>C:\data</c>) and relative
+    /// paths (<c>./data</c>) are treated as bind mounts; plain names (<c>myvolume</c>) are not.
+    /// </summary>
+    public bool IsBindMount =>
+        Path.IsPathRooted(HostPath) ||
+        HostPath.StartsWith("./", StringComparison.Ordinal) ||
+        HostPath.StartsWith(".\\", StringComparison.Ordinal);
+
+    /// <summary>
     /// Serializes the volume mount into the Docker-style <c>host:container[:ro]</c> format.
     /// </summary>
     public string ToBindString()

@@ -36,8 +36,10 @@ public interface IContainerManager
 
     /// <summary>
     /// Removes a container.
+    /// When <paramref name="removeVolumes"/> is <c>true</c>, also deletes all data associated
+    /// with the container: anonymous volumes, named volumes, and bind-mounted host directories.
     /// </summary>
-    Task RemoveAsync(string containerId, bool force = false, CancellationToken cancellationToken = default);
+    Task RemoveAsync(string containerId, bool force = false, bool removeVolumes = false, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Gets the logs for a container.

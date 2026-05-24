@@ -131,12 +131,53 @@ public class KubernetesContainerManager(
         logger.LogInformation("Stopped (deleted) Kubernetes pod {PodName}", LogSanitizer.Sanitize(containerId));
     }
 
-    public async Task RemoveAsync(string containerId, bool force = false, CancellationToken cancellationToken = default)
+    public async Task RemoveAsync(string containerId, bool force = false, bool removeVolumes = false, CancellationToken cancellationToken = default)
     {
+        IList<k8s.Models.V1Volume> podVolumes = [];
+        if (removeVolumes)
+        {
+            try
+            {
+                var pod = await client.CoreV1.ReadNamespacedPodAsync(containerId, options.Namespace, cancellationToken: cancellationToken);
+                podVolumes = pod.Spec?.Volumes ?? [];
+            }
+            catch (k8s.Autorest.HttpOperationException ex) when (ex.Response.StatusCode == System.Net.HttpStatusCode.NotFound)
+            {
+                // Pod already gone — nothing to collect.
+            }
+        }
+
         await client.CoreV1.DeleteNamespacedPodAsync(
             containerId, options.Namespace,
             gracePeriodSeconds: force ? 0 : null,
             cancellationToken: cancellationToken);
+
+        if (removeVolumes)
+        {
+            foreach (var volume in podVolumes)
+            {
+                if (volume.PersistentVolumeClaim != null)
+                {
+                    try
+                    {
+                        await client.CoreV1.DeleteNamespacedPersistentVolumeClaimAsync(
+                            volume.PersistentVolumeClaim.ClaimName, options.Namespace, cancellationToken: cancellationToken);
+                        logger.LogInformation("Deleted PVC {ClaimName}", LogSanitizer.Sanitize(volume.PersistentVolumeClaim.ClaimName));
+                    }
+                    catch (k8s.Autorest.HttpOperationException ex) when (ex.Response.StatusCode == System.Net.HttpStatusCode.NotFound)
+                    {
+                        // Already gone.
+                    }
+                }
+                else if (volume.HostPath != null)
+                {
+                    logger.LogWarning(
+                        "Cannot delete hostPath volume at {Path} for pod {PodName}: hostPath volumes are node-local and must be cleaned up on the node directly.",
+                        volume.HostPath.Path, LogSanitizer.Sanitize(containerId));
+                }
+            }
+        }
+
         logger.LogInformation("Removed Kubernetes pod {PodName}", LogSanitizer.Sanitize(containerId));
     }
 

@@ -97,14 +97,14 @@ public class StateTrackingContainerManagerDecorator(
     }
 
     /// <inheritdoc />
-    public async Task RemoveAsync(string containerId, bool force = false, CancellationToken cancellationToken = default)
+    public async Task RemoveAsync(string containerId, bool force = false, bool removeVolumes = false, CancellationToken cancellationToken = default)
     {
         // Tombstone first: mark DesiredState=Removed so a crash between the runtime
         // call and the store delete still leaves a clear intent for reconciliation.
         await TryUpdateDesiredStateAsync(containerId, DesiredState.Removed, cancellationToken);
 
         // Then perform the actual runtime removal.
-        await inner.RemoveAsync(containerId, force, cancellationToken);
+        await inner.RemoveAsync(containerId, force, removeVolumes, cancellationToken);
 
         // Finally, drop the store record now that the runtime container is gone.
         try

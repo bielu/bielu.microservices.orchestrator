@@ -83,7 +83,7 @@ public class StateTrackingDecoratorTests
 
         await _decorator.RemoveAsync("web-app", force: true);
 
-        await _inner.Received(1).RemoveAsync("web-app", true, Arg.Any<CancellationToken>());
+        await _inner.Received(1).RemoveAsync("web-app", true, false, Arg.Any<CancellationToken>());
 
         var stored = await _store.GetAsync("web-app");
         stored.ShouldBeNull();

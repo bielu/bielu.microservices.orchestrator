@@ -88,7 +88,7 @@ public class WorkerStartupService(IContainerOrchestrator orchestrator, ILogger<W
                         WorkerName, previousNetwork ?? "<none>", networkName ?? "<none>");
                     try
                     {
-                        await orchestrator.Containers.RemoveAsync(existing.Id, force: true, cancellationToken);
+                        await orchestrator.Containers.RemoveAsync(existing.Id, force: true, cancellationToken: cancellationToken);
                     }
                     catch (Exception ex)
                     {

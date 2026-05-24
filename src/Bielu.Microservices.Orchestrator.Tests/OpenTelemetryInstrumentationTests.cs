@@ -155,7 +155,7 @@ public class OpenTelemetryInstrumentationTests
 
         await traced.RemoveAsync("ctr1", force: true);
 
-        await inner.Received(1).RemoveAsync("ctr1", true, Arg.Any<CancellationToken>());
+        await inner.Received(1).RemoveAsync("ctr1", true, false, Arg.Any<CancellationToken>());
     }
 
     [Fact]

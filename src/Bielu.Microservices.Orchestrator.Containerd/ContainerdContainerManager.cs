@@ -212,11 +212,18 @@ public class ContainerdContainerManager(
         }
     }
 
-    public async Task RemoveAsync(string containerId, bool force = false, CancellationToken cancellationToken = default)
+    public async Task RemoveAsync(string containerId, bool force = false, bool removeVolumes = false, CancellationToken cancellationToken = default)
     {
         logger.LogInformation("Removing containerd container {ContainerId}", LogSanitizer.Sanitize(containerId));
 
         var headers = NamespaceHeader();
+
+        IList<Models.VolumeMount> mounts = [];
+        if (removeVolumes)
+        {
+            var info = await GetAsync(containerId, cancellationToken);
+            mounts = info?.Volumes ?? [];
+        }
 
         // Kill and delete any running task first
         try
@@ -257,6 +264,18 @@ public class ContainerdContainerManager(
         await containersClient.DeleteAsync(
             new DeleteContainerRequest { Id = containerId },
             headers, cancellationToken: cancellationToken);
+
+        if (removeVolumes)
+        {
+            foreach (var mount in mounts)
+            {
+                if (!string.IsNullOrEmpty(mount.HostPath) && mount.IsBindMount && Directory.Exists(mount.HostPath))
+                {
+                    Directory.Delete(mount.HostPath, recursive: true);
+                    logger.LogInformation("Deleted bind-mount directory {Path}", mount.HostPath);
+                }
+            }
+        }
 
         logger.LogInformation("Removed containerd container {ContainerId}", LogSanitizer.Sanitize(containerId));
     }

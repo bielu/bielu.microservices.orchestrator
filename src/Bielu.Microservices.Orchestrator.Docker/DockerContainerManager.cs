@@ -151,10 +151,50 @@ public class DockerContainerManager(
         logger.LogInformation("Stopped container {ContainerId}", LogSanitizer.Sanitize(containerId));
     }
 
-    public async Task RemoveAsync(string containerId, bool force = false, CancellationToken cancellationToken = default)
+    public async Task RemoveAsync(string containerId, bool force = false, bool removeVolumes = false, CancellationToken cancellationToken = default)
     {
+        IList<VolumeMount> mounts = [];
+        if (removeVolumes)
+        {
+            var info = await GetAsync(containerId, cancellationToken);
+            mounts = info?.Volumes ?? [];
+        }
+
         await client.Containers.RemoveContainerAsync(containerId,
-            new ContainerRemoveParameters { Force = force }, cancellationToken);
+            new ContainerRemoveParameters { Force = force, RemoveVolumes = removeVolumes }, cancellationToken);
+
+        if (removeVolumes)
+        {
+            foreach (var mount in mounts)
+            {
+                if (string.IsNullOrEmpty(mount.HostPath)) continue;
+
+                if (mount.IsBindMount)
+                {
+                    if (Directory.Exists(mount.HostPath))
+                    {
+                        Directory.Delete(mount.HostPath, recursive: true);
+                        logger.LogInformation("Deleted bind-mount directory {Path}", mount.HostPath);
+                    }
+                }
+                else
+                {
+                    // Named volume — Docker's RemoveVolumes flag only removes anonymous ones.
+                    try
+                    {
+                        await client.Volumes.RemoveAsync(mount.HostPath, force, cancellationToken);
+                        logger.LogInformation("Removed named volume {Name}", LogSanitizer.Sanitize(mount.HostPath));
+                    }
+                    catch (DockerApiException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound
+                                                        || ex.StatusCode == System.Net.HttpStatusCode.Conflict)
+                    {
+                        // Volume already gone or still referenced by another container — skip.
+                        logger.LogDebug("Skipped volume {Name}: {Message}", LogSanitizer.Sanitize(mount.HostPath), ex.Message);
+                    }
+                }
+            }
+        }
+
         logger.LogInformation("Removed container {ContainerId}", LogSanitizer.Sanitize(containerId));
     }
 
