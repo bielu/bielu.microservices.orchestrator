@@ -96,6 +96,14 @@ public class ContainerdContainerManager(
             throw new ArgumentOutOfRangeException(nameof(request), "Replicas must be at least 1.");
         }
 
+        if (request.RestartPolicy != Models.RestartPolicy.No)
+        {
+            logger.LogWarning(
+                "containerd does not support restart policies natively. " +
+                "RestartPolicy {Policy} will be ignored; use a process supervisor (e.g. systemd) for automatic restarts.",
+                request.RestartPolicy);
+        }
+
         if (request.Replicas == 1)
         {
             return await CreateSingleContainerAsync(request, request.Name, cancellationToken);

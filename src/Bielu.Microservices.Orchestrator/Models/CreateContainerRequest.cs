@@ -46,6 +46,17 @@ public class CreateContainerRequest
     public bool AutoRemove { get; set; }
 
     /// <summary>
+    /// Restart policy for the container. Defaults to <see cref="RestartPolicy.No"/>.
+    /// </summary>
+    public RestartPolicy RestartPolicy { get; set; } = RestartPolicy.No;
+
+    /// <summary>
+    /// Maximum number of restart attempts when <see cref="RestartPolicy"/> is
+    /// <see cref="RestartPolicy.OnFailure"/>. Zero means unlimited retries.
+    /// </summary>
+    public int MaxRestartRetries { get; set; }
+
+    /// <summary>
     /// The number of container instances to create (default is 1).
     /// When greater than 1, each container is named with a numeric suffix (e.g., my-app-0, my-app-1).
     /// </summary>

@@ -5,6 +5,8 @@ using Bielu.Microservices.Orchestrator.Utilities;
 using Docker.DotNet;
 using Docker.DotNet.Models;
 using Microsoft.Extensions.Logging;
+using DockerRestartPolicy = Docker.DotNet.Models.RestartPolicy;
+using OrchestratorRestartPolicy = Bielu.Microservices.Orchestrator.Models.RestartPolicy;
 
 namespace Bielu.Microservices.Orchestrator.Docker;
 
@@ -336,7 +338,18 @@ public class DockerContainerManager(
                     }),
                 Binds = request.Volumes.Select(v => v.ToBindString()).ToList(),
                 AutoRemove = request.AutoRemove,
-                NetworkMode = networkMode
+                NetworkMode = networkMode,
+                RestartPolicy = new DockerRestartPolicy
+                {
+                    Name = request.RestartPolicy switch
+                    {
+                        OrchestratorRestartPolicy.Always        => RestartPolicyKind.Always,
+                        OrchestratorRestartPolicy.UnlessStopped => RestartPolicyKind.UnlessStopped,
+                        OrchestratorRestartPolicy.OnFailure     => RestartPolicyKind.OnFailure,
+                        _                                       => RestartPolicyKind.No
+                    },
+                    MaximumRetryCount = request.MaxRestartRetries
+                }
             },
             NetworkingConfig = networkingConfig
         };

@@ -227,7 +227,14 @@ public class KubernetesContainerManager(
                             }).ToList()
                     }
                 },
-                RestartPolicy = "Never"
+                RestartPolicy = request.RestartPolicy switch
+                {
+                    Models.RestartPolicy.Always        => "Always",
+                    // Kubernetes has no UnlessStopped; Always is the closest equivalent
+                    Models.RestartPolicy.UnlessStopped => "Always",
+                    Models.RestartPolicy.OnFailure     => "OnFailure",
+                    _                                  => "Never"
+                }
             }
         };
 
