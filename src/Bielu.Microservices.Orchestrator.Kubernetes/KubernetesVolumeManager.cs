@@ -33,6 +33,29 @@ public class KubernetesVolumeManager(
         }).ToList().AsReadOnly();
     }
 
+    public async Task<VolumeInfo?> GetAsync(string name, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var pvc = await client.CoreV1.ReadNamespacedPersistentVolumeClaimAsync(
+                name, options.Namespace, cancellationToken: cancellationToken);
+            return new VolumeInfo
+            {
+                Name = pvc.Metadata.Name ?? string.Empty,
+                Driver = pvc.Spec.StorageClassName ?? string.Empty,
+                MountPoint = pvc.Spec.VolumeName ?? string.Empty,
+                Labels = pvc.Metadata.Labels != null
+                    ? new Dictionary<string, string>(pvc.Metadata.Labels)
+                    : new Dictionary<string, string>(),
+                CreatedAt = pvc.Metadata.CreationTimestamp ?? DateTimeOffset.MinValue
+            };
+        }
+        catch (k8s.Autorest.HttpOperationException ex) when (ex.Response.StatusCode == System.Net.HttpStatusCode.NotFound)
+        {
+            return null;
+        }
+    }
+
     public async Task<VolumeInfo> CreateAsync(string name, string? driver = null, CancellationToken cancellationToken = default)
     {
         var pvc = new k8s.Models.V1PersistentVolumeClaim

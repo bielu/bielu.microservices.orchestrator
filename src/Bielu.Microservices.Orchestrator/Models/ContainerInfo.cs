@@ -44,4 +44,10 @@ public class ContainerInfo
     /// Environment variables set in the container.
     /// </summary>
     public IDictionary<string, string> EnvironmentVariables { get; set; } = new Dictionary<string, string>();
+
+    /// <summary>
+    /// Volume mounts (bindings) configured for the container, including host bind mounts
+    /// and named volumes mapped into container paths.
+    /// </summary>
+    public IList<VolumeMount> Volumes { get; set; } = new List<VolumeMount>();
 }

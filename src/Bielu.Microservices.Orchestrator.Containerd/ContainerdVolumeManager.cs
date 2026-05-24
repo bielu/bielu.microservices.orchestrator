@@ -32,6 +32,20 @@ public class ContainerdVolumeManager(
         return results.AsReadOnly();
     }
 
+    public async Task<VolumeInfo?> GetAsync(string name, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var response = await snapshotsClient.StatAsync(
+                new StatSnapshotRequest { Key = name }, NamespaceHeader(), cancellationToken: cancellationToken);
+            return MapSnapshot(response.Info);
+        }
+        catch (RpcException ex) when (ex.StatusCode == StatusCode.NotFound)
+        {
+            return null;
+        }
+    }
+
     public Task<VolumeInfo> CreateAsync(string name, string? driver = null, CancellationToken cancellationToken = default)
     {
         // containerd snapshots are created as part of the container/task lifecycle

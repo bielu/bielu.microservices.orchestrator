@@ -42,7 +42,8 @@ public class KubernetesContainerManager(
             CreatedAt = pod.Metadata.CreationTimestamp ?? DateTimeOffset.MinValue,
             Labels = pod.Metadata.Labels != null
                 ? new Dictionary<string, string>(pod.Metadata.Labels)
-                : new Dictionary<string, string>()
+                : new Dictionary<string, string>(),
+            Volumes = MapPodVolumes(pod)
         }).ToList().AsReadOnly();
     }
 
@@ -60,7 +61,8 @@ public class KubernetesContainerManager(
                 CreatedAt = pod.Metadata.CreationTimestamp ?? DateTimeOffset.MinValue,
                 Labels = pod.Metadata.Labels != null
                     ? new Dictionary<string, string>(pod.Metadata.Labels)
-                    : new Dictionary<string, string>()
+                    : new Dictionary<string, string>(),
+                Volumes = MapPodVolumes(pod)
             };
         }
         catch (k8s.Autorest.HttpOperationException ex) when (ex.Response.StatusCode == System.Net.HttpStatusCode.NotFound)
@@ -192,6 +194,47 @@ public class KubernetesContainerManager(
         logger.LogInformation("Created Kubernetes pod {PodName} from image {Image}",
             LogSanitizer.Sanitize(created.Metadata.Name), LogSanitizer.Sanitize(request.Image));
         return created.Metadata.Name ?? string.Empty;
+    }
+
+    private static IList<VolumeMount> MapPodVolumes(k8s.Models.V1Pod pod)
+    {
+        var volumes = new List<VolumeMount>();
+        var podVolumes = pod.Spec?.Volumes;
+        if (podVolumes == null || podVolumes.Count == 0)
+        {
+            return volumes;
+        }
+
+        // Build a lookup of pod-level volumes by name to resolve host paths / sources.
+        var podVolumeMap = podVolumes.ToDictionary(v => v.Name, v => v);
+
+        // For each container's volumeMounts, pair with the pod-level volume to produce a VolumeMount entry.
+        var containerMounts = pod.Spec?.Containers?
+            .SelectMany(c => c.VolumeMounts ?? Enumerable.Empty<k8s.Models.V1VolumeMount>())
+            .ToList() ?? new List<k8s.Models.V1VolumeMount>();
+
+        foreach (var mount in containerMounts)
+        {
+            if (string.IsNullOrEmpty(mount.Name) || !podVolumeMap.TryGetValue(mount.Name, out var podVolume))
+            {
+                continue;
+            }
+
+            var hostPath = podVolume.HostPath?.Path
+                           ?? podVolume.PersistentVolumeClaim?.ClaimName
+                           ?? podVolume.ConfigMap?.Name
+                           ?? podVolume.Secret?.SecretName
+                           ?? podVolume.Name;
+
+            volumes.Add(new VolumeMount
+            {
+                HostPath = hostPath ?? string.Empty,
+                ContainerPath = mount.MountPath ?? string.Empty,
+                ReadOnly = mount.ReadOnlyProperty ?? false
+            });
+        }
+
+        return volumes;
     }
 
     private static ContainerState MapPodPhase(string? phase)

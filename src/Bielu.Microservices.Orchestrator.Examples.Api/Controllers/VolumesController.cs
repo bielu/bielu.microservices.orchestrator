@@ -16,4 +16,14 @@ public class VolumesController(IContainerOrchestrator orchestrator) : Controller
     [HttpGet]
     public async Task<IActionResult> List() =>
         Ok(await orchestrator.Volumes.ListAsync());
+
+    /// <summary>
+    /// Get a volume by name.
+    /// </summary>
+    [HttpGet("{name}")]
+    public async Task<IActionResult> Get(string name)
+    {
+        var volume = await orchestrator.Volumes.GetAsync(name);
+        return volume is null ? NotFound() : Ok(volume);
+    }
 }

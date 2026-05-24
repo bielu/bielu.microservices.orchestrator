@@ -29,6 +29,26 @@ public class DockerVolumeManager(
         }).ToList().AsReadOnly() ?? new List<VolumeInfo>().AsReadOnly();
     }
 
+    public async Task<VolumeInfo?> GetAsync(string name, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var volume = await client.Volumes.InspectAsync(name, cancellationToken);
+            return new VolumeInfo
+            {
+                Name = volume.Name,
+                Driver = volume.Driver,
+                MountPoint = volume.Mountpoint,
+                Labels = volume.Labels != null ? new Dictionary<string, string>(volume.Labels) : new Dictionary<string, string>(),
+                CreatedAt = DateTimeOffset.TryParse(volume.CreatedAt, out var created) ? created : DateTimeOffset.MinValue
+            };
+        }
+        catch (DockerApiException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
+        {
+            return null;
+        }
+    }
+
     public async Task<VolumeInfo> CreateAsync(string name, string? driver = null, CancellationToken cancellationToken = default)
     {
         var response = await client.Volumes.CreateAsync(new VolumesCreateParameters

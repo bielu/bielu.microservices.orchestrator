@@ -53,7 +53,13 @@ public class DockerContainerManager(
                 HostPort = (int)(p.PublicPort ?? 0),
                 Protocol = p.Type,
                 HostIp = p.IP ?? "0.0.0.0"
-            }).ToList() ?? new List<PortMapping>()
+            }).ToList() ?? new List<PortMapping>(),
+            Volumes = c.Mounts?.Select(m => new VolumeMount
+            {
+                HostPath = string.IsNullOrEmpty(m.Source) ? m.Name ?? string.Empty : m.Source,
+                ContainerPath = m.Destination ?? string.Empty,
+                ReadOnly = !m.RW
+            }).ToList() ?? new List<VolumeMount>()
         }).ToList().AsReadOnly();
     }
 
@@ -71,6 +77,12 @@ public class DockerContainerManager(
                 CreatedAt = new DateTimeOffset(response.Created),
                 Labels = response.Config?.Labels != null ? new Dictionary<string, string>(response.Config.Labels) : new Dictionary<string, string>(),
                 EnvironmentVariables = ParseEnvironmentVariables(response.Config?.Env),
+                Volumes = response.Mounts?.Select(m => new VolumeMount
+                {
+                    HostPath = string.IsNullOrEmpty(m.Source) ? m.Name ?? string.Empty : m.Source,
+                    ContainerPath = m.Destination ?? string.Empty,
+                    ReadOnly = !m.RW
+                }).ToList() ?? new List<VolumeMount>()
             };
         }
         catch (DockerContainerNotFoundException)

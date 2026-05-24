@@ -30,6 +30,26 @@ public class OpenTelemetryVolumeManagerDecorator(IVolumeManager inner) : IVolume
     }
 
     /// <inheritdoc />
+    public async Task<VolumeInfo?> GetAsync(string name, CancellationToken cancellationToken = default)
+    {
+        using var activity = OrchestratorActivitySource.Source.StartActivity(OrchestratorActivitySource.VolumeGet);
+        activity?.SetTag(OrchestratorActivitySource.AttributeVolumeName, name);
+        var startTimestamp = Stopwatch.GetTimestamp();
+
+        try
+        {
+            var result = await inner.GetAsync(name, cancellationToken);
+            RecordSuccess(OrchestratorActivitySource.VolumeGet, startTimestamp);
+            return result;
+        }
+        catch (Exception ex)
+        {
+            RecordError(OrchestratorActivitySource.VolumeGet, startTimestamp, activity, ex);
+            throw;
+        }
+    }
+
+    /// <inheritdoc />
     public async Task<VolumeInfo> CreateAsync(string name, string? driver = null, CancellationToken cancellationToken = default)
     {
         using var activity = OrchestratorActivitySource.Source.StartActivity(OrchestratorActivitySource.VolumeCreate);

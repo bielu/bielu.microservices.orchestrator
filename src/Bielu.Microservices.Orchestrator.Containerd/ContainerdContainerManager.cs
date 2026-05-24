@@ -446,8 +446,59 @@ public class ContainerdContainerManager(
             CreatedAt = container.CreatedAt != null
                 ? DateTimeOffset.FromUnixTimeSeconds(container.CreatedAt.Seconds)
                 : DateTimeOffset.MinValue,
-            Labels = new Dictionary<string, string>(container.Labels)
+            Labels = new Dictionary<string, string>(container.Labels),
+            Volumes = ParseVolumesFromSpec(container.Spec?.Value.ToStringUtf8())
         };
+    }
+
+    private static IList<Bielu.Microservices.Orchestrator.Models.VolumeMount> ParseVolumesFromSpec(string? specJson)
+    {
+        var volumes = new List<Bielu.Microservices.Orchestrator.Models.VolumeMount>();
+        if (string.IsNullOrWhiteSpace(specJson))
+        {
+            return volumes;
+        }
+
+        try
+        {
+            using var doc = JsonDocument.Parse(specJson);
+            if (!doc.RootElement.TryGetProperty("mounts", out var mounts) || mounts.ValueKind != JsonValueKind.Array)
+            {
+                return volumes;
+            }
+
+            foreach (var mount in mounts.EnumerateArray())
+            {
+                var type = mount.TryGetProperty("type", out var t) ? t.GetString() : null;
+                if (!string.Equals(type, "bind", StringComparison.OrdinalIgnoreCase))
+                {
+                    continue;
+                }
+
+                var source = mount.TryGetProperty("source", out var s) ? s.GetString() ?? string.Empty : string.Empty;
+                var destination = mount.TryGetProperty("destination", out var d) ? d.GetString() ?? string.Empty : string.Empty;
+                var readOnly = false;
+                if (mount.TryGetProperty("options", out var opts) && opts.ValueKind == JsonValueKind.Array)
+                {
+                    readOnly = opts.EnumerateArray()
+                        .Any(o => o.ValueKind == JsonValueKind.String &&
+                                  string.Equals(o.GetString(), "ro", StringComparison.OrdinalIgnoreCase));
+                }
+
+                volumes.Add(new Bielu.Microservices.Orchestrator.Models.VolumeMount
+                {
+                    HostPath = source,
+                    ContainerPath = destination,
+                    ReadOnly = readOnly
+                });
+            }
+        }
+        catch (JsonException)
+        {
+            // Ignore malformed spec; return what we have.
+        }
+
+        return volumes;
     }
 
     private static ContainerState MapStatus(TaskStatus? status)
