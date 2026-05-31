@@ -163,6 +163,56 @@ public class FluentApiTests
     }
 
     [Fact]
+    public void WithLocalBoundVolume_AddsVolumeWithLocalDriverOptions()
+    {
+        var request = new CreateContainerRequest()
+            .WithLocalBoundVolume("my-data", "/host/data", "/data");
+
+        request.Volumes.Count.ShouldBe(1);
+        var mount = request.Volumes[0];
+        mount.HostPath.ShouldBe("my-data");
+        mount.ContainerPath.ShouldBe("/data");
+        mount.ReadOnly.ShouldBeFalse();
+        mount.LocalDriverOptions.ShouldNotBeNull();
+        mount.LocalDriverOptions!.Device.ShouldBe("/host/data");
+        mount.LocalDriverOptions.MountOptions.ShouldBe(LocalMountOptions.Bind);
+    }
+
+    [Fact]
+    public void WithLocalBoundVolume_ReadOnly_SetsReadOnlyAndMountOptions()
+    {
+        var request = new CreateContainerRequest()
+            .WithLocalBoundVolume("cfg", "/host/cfg", "/cfg",
+                LocalMountOptions.Bind | LocalMountOptions.ReadOnly);
+
+        var mount = request.Volumes[0];
+        mount.ReadOnly.ShouldBeTrue();
+        mount.LocalDriverOptions!.MountOptions
+            .ShouldBe(LocalMountOptions.Bind | LocalMountOptions.ReadOnly);
+    }
+
+    [Fact]
+    public void WithLocalBoundVolume_EmptyVolumeName_Throws()
+    {
+        Should.Throw<ArgumentException>(
+            () => new CreateContainerRequest().WithLocalBoundVolume("", "/host/data", "/data"));
+    }
+
+    [Fact]
+    public void WithLocalBoundVolume_EmptyHostPath_Throws()
+    {
+        Should.Throw<ArgumentException>(
+            () => new CreateContainerRequest().WithLocalBoundVolume("vol", "", "/data"));
+    }
+
+    [Fact]
+    public void WithLocalBoundVolume_EmptyContainerPath_Throws()
+    {
+        Should.Throw<ArgumentException>(
+            () => new CreateContainerRequest().WithLocalBoundVolume("vol", "/host/data", ""));
+    }
+
+    [Fact]
     public void WithAutoRemove_SetsAutoRemove()
     {
         var request = new CreateContainerRequest().WithAutoRemove();

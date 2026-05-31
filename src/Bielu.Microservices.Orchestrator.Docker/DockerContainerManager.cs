@@ -18,6 +18,7 @@ public class DockerContainerManager(
     OrchestratorOptions orchestratorOptions,
     IImageManager imageManager,
     INetworkManager networkManager,
+    IVolumeManager volumeManager,
     ILogger<DockerContainerManager> logger) : IContainerManager
 {
     //todo: confirm default address
@@ -227,6 +228,9 @@ public class DockerContainerManager(
     {
         // Check if image exists locally, if not pull it
         await EnsureImageExistsAsync(request.Image, cancellationToken);
+
+        // Auto-create any local-driver bound volumes declared on the request
+        await EnsureLocalBoundVolumesExistAsync(request, cancellationToken);
 
         var labels = overrideLabels != null
             ? new Dictionary<string, string>(overrideLabels)
@@ -688,5 +692,36 @@ public class DockerContainerManager(
             }
         }
         return result;
+    }
+
+    private async Task EnsureLocalBoundVolumesExistAsync(
+        CreateContainerRequest request,
+        CancellationToken cancellationToken)
+    {
+        foreach (var mount in request.Volumes)
+        {
+            if (mount.LocalDriverOptions is not { } opts)
+            {
+                continue;
+            }
+
+            var existing = await volumeManager.GetAsync(mount.HostPath, cancellationToken);
+            if (existing != null)
+            {
+                logger.LogDebug("Local-bound volume {VolumeName} already exists, skipping creation",
+                    LogSanitizer.Sanitize(mount.HostPath));
+                continue;
+            }
+
+            logger.LogInformation("Auto-creating local-bound volume {VolumeName} bound to {Device}",
+                LogSanitizer.Sanitize(mount.HostPath),
+                LogSanitizer.Sanitize(opts.Device));
+
+            await volumeManager.CreateAsync(
+                mount.HostPath,
+                "local",
+                opts.ToDictionary(),
+                cancellationToken);
+        }
     }
 }

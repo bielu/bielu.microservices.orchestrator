@@ -21,6 +21,13 @@ public class VolumeMount
     public bool ReadOnly { get; set; }
 
     /// <summary>
+    /// When set, the container manager will auto-create a local-driver bound volume
+    /// with these options before starting the container. <see cref="HostPath"/> is
+    /// used as the volume name; <see cref="LocalVolumeOptions.Device"/> is the host path.
+    /// </summary>
+    public LocalVolumeOptions? LocalDriverOptions { get; set; }
+
+    /// <summary>
     /// Parses a Docker-style volume binding string in the form
     /// <c>host:container</c> or <c>host:container:ro|rw</c>.
     /// </summary>
