@@ -19,14 +19,8 @@ public class DockerVolumeManager(
     {
         var response = await client.Volumes.ListAsync(cancellationToken: cancellationToken);
 
-        return response.Volumes?.Select(v => new VolumeInfo
-        {
-            Name = v.Name,
-            Driver = v.Driver,
-            MountPoint = v.Mountpoint,
-            Labels = v.Labels != null ? new Dictionary<string, string>(v.Labels) : new Dictionary<string, string>(),
-            CreatedAt = DateTimeOffset.TryParse(v.CreatedAt, out var created) ? created : DateTimeOffset.MinValue
-        }).ToList().AsReadOnly() ?? new List<VolumeInfo>().AsReadOnly();
+        return response.Volumes?.Select(MapVolume).ToList().AsReadOnly()
+               ?? new List<VolumeInfo>().AsReadOnly();
     }
 
     public async Task<VolumeInfo?> GetAsync(string name, CancellationToken cancellationToken = default)
@@ -34,14 +28,7 @@ public class DockerVolumeManager(
         try
         {
             var volume = await client.Volumes.InspectAsync(name, cancellationToken);
-            return new VolumeInfo
-            {
-                Name = volume.Name,
-                Driver = volume.Driver,
-                MountPoint = volume.Mountpoint,
-                Labels = volume.Labels != null ? new Dictionary<string, string>(volume.Labels) : new Dictionary<string, string>(),
-                CreatedAt = DateTimeOffset.TryParse(volume.CreatedAt, out var created) ? created : DateTimeOffset.MinValue
-            };
+            return MapVolume(volume);
         }
         catch (DockerApiException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
         {
@@ -49,23 +36,18 @@ public class DockerVolumeManager(
         }
     }
 
-    public async Task<VolumeInfo> CreateAsync(string name, string? driver = null, CancellationToken cancellationToken = default)
+    public async Task<VolumeInfo> CreateAsync(string name, string? driver = null, IDictionary<string, string>? driverOptions = null, CancellationToken cancellationToken = default)
     {
         var response = await client.Volumes.CreateAsync(new VolumesCreateParameters
         {
             Name = name,
-            Driver = driver ?? "local"
+            Driver = driver ?? "local",
+            DriverOpts = driverOptions != null ? new Dictionary<string, string>(driverOptions) : null
         }, cancellationToken);
 
         logger.LogInformation("Created volume {Name}", name);
 
-        return new VolumeInfo
-        {
-            Name = response.Name,
-            Driver = response.Driver,
-            MountPoint = response.Mountpoint,
-            Labels = response.Labels != null ? new Dictionary<string, string>(response.Labels) : new Dictionary<string, string>()
-        };
+        return MapVolume(response);
     }
 
     public async Task RemoveAsync(string name, bool force = false, CancellationToken cancellationToken = default)
@@ -73,4 +55,14 @@ public class DockerVolumeManager(
         await client.Volumes.RemoveAsync(name, force, cancellationToken);
         logger.LogInformation("Removed volume {Name}", name);
     }
+
+    private static VolumeInfo MapVolume(VolumeResponse v) => new()
+    {
+        Name = v.Name,
+        Driver = v.Driver,
+        MountPoint = v.Mountpoint,
+        Labels = v.Labels != null ? new Dictionary<string, string>(v.Labels) : new Dictionary<string, string>(),
+        DriverOptions = v.Options != null ? new Dictionary<string, string>(v.Options) : new Dictionary<string, string>(),
+        CreatedAt = DateTimeOffset.TryParse(v.CreatedAt, out var created) ? created : DateTimeOffset.MinValue
+    };
 }

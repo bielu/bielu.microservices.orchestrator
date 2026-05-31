@@ -46,7 +46,7 @@ public class ContainerdVolumeManager(
         }
     }
 
-    public Task<VolumeInfo> CreateAsync(string name, string? driver = null, CancellationToken cancellationToken = default)
+    public Task<VolumeInfo> CreateAsync(string name, string? driver = null, IDictionary<string, string>? driverOptions = null, CancellationToken cancellationToken = default)
     {
         // containerd snapshots are created as part of the container/task lifecycle
         // (via Prepare/View), not as standalone named volumes.

@@ -56,7 +56,7 @@ public class KubernetesVolumeManager(
         }
     }
 
-    public async Task<VolumeInfo> CreateAsync(string name, string? driver = null, CancellationToken cancellationToken = default)
+    public async Task<VolumeInfo> CreateAsync(string name, string? driver = null, IDictionary<string, string>? driverOptions = null, CancellationToken cancellationToken = default)
     {
         var pvc = new k8s.Models.V1PersistentVolumeClaim
         {
