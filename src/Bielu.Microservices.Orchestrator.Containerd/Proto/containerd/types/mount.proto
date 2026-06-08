@@ -20,8 +20,6 @@ package containerd.types;
 
 option csharp_namespace = "Containerd.Types";
 
-import "google/protobuf/timestamp.proto";
-
 
 // Mount describes mounts for a container.
 //
@@ -43,24 +41,4 @@ message Mount {
 
 	// Options specifies zero or more fstab style mount options.
 	repeated string options = 4;
-}
-
-message ActiveMount {
-	Mount mount = 1;
-
-	google.protobuf.Timestamp mounted_at = 2;
-
-	string mount_point = 3;
-
-	map<string, string> data = 4;
-}
-
-message ActivationInfo {
-	string name = 1;
-
-	repeated ActiveMount active = 2;
-
-	repeated Mount system = 3;
-
-	map<string, string> labels = 4;
 }
