@@ -18,7 +18,19 @@ public class DockerNetworkManager(
     {
         var networks = await client.Networks.ListNetworksAsync(cancellationToken: cancellationToken);
 
-        return networks.Select(MapToNetworkInfo).ToList().AsReadOnly();
+        // The list endpoint (GET /networks) never returns container membership — only the inspect
+        // endpoint (GET /networks/{id}) does, matching `docker network ls` vs. `docker network
+        // inspect`. Without this, NetworkInfo.Containers comes back empty for every network
+        // regardless of what is actually attached to it.
+        var results = new List<NetworkInfo>(networks.Count);
+
+        foreach (var network in networks)
+        {
+            var inspected = await client.Networks.InspectNetworkAsync(network.ID, cancellationToken);
+            results.Add(MapToNetworkInfo(inspected));
+        }
+
+        return results.AsReadOnly();
     }
 
     private static NetworkInfo MapToNetworkInfo(NetworkResponse n) => new()
