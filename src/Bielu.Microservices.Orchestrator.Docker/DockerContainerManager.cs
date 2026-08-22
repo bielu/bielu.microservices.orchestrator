@@ -80,6 +80,7 @@ public class DockerContainerManager(
                 CreatedAt = new DateTimeOffset(response.Created),
                 Labels = response.Config?.Labels != null ? new Dictionary<string, string>(response.Config.Labels) : new Dictionary<string, string>(),
                 EnvironmentVariables = ParseEnvironmentVariables(response.Config?.Env),
+                Ports = MapPorts(response.NetworkSettings?.Ports),
                 Volumes = response.Mounts?.Select(m => new VolumeMount
                 {
                     HostPath = string.IsNullOrEmpty(m.Source) ? m.Name ?? string.Empty : m.Source,
@@ -92,6 +93,57 @@ public class DockerContainerManager(
         {
             return null;
         }
+    }
+
+    /// <summary>
+    /// Maps <c>NetworkSettings.Ports</c> (keyed like <c>"8080/tcp"</c>) to <see cref="PortMapping"/>.
+    /// This is the actual host port Docker assigned — including for a dynamic (<c>HostPort: 0</c> at
+    /// creation time) mapping — unlike <see cref="CreateContainerRequest.Ports"/> on the request that
+    /// created the container, which still shows what was asked for.
+    /// </summary>
+    private static List<PortMapping> MapPorts(IDictionary<string, IList<PortBinding>>? ports)
+    {
+        var result = new List<PortMapping>();
+
+        if (ports == null)
+        {
+            return result;
+        }
+
+        foreach (var (key, bindings) in ports)
+        {
+            if (bindings == null)
+            {
+                continue;
+            }
+
+            var separatorIndex = key.IndexOf('/');
+            var portPart = separatorIndex < 0 ? key : key[..separatorIndex];
+            var protocol = separatorIndex < 0 ? "tcp" : key[(separatorIndex + 1)..];
+
+            if (!int.TryParse(portPart, out var containerPort))
+            {
+                continue;
+            }
+
+            foreach (var binding in bindings)
+            {
+                if (!int.TryParse(binding.HostPort, out var hostPort))
+                {
+                    continue;
+                }
+
+                result.Add(new PortMapping
+                {
+                    ContainerPort = containerPort,
+                    HostPort = hostPort,
+                    Protocol = protocol,
+                    HostIp = string.IsNullOrEmpty(binding.HostIP) ? "0.0.0.0" : binding.HostIP
+                });
+            }
+        }
+
+        return result;
     }
 
     public async Task<string> CreateAsync(CreateContainerRequest request, CancellationToken cancellationToken = default)
