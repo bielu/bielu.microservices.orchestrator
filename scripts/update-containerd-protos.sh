@@ -72,6 +72,11 @@ for upstream in "${!PROTO_MAP[@]}"; do
     #      → "containerd/types/mount.proto"
     sed -i 's|github\.com/containerd/containerd/api/|containerd/|g' "$dest"
 
+    # 1b. containerd >= v2.3 imports its own types/services proto-root-relative
+    #     (e.g. "types/mount.proto", "services/foo/v1/bar.proto") rather than
+    #     prefixed with "containerd/" like our local layout. Add that prefix back.
+    sed -i -E 's#^import "(types|services)/#import "containerd/\1/#' "$dest"
+
     # 2. Replace go_package with csharp_namespace
     #    Extract the proto package name to look up the C# namespace.
     pkg=$(grep -oP '(?<=^package\s)[^;]+' "$dest" | tr -d '[:space:]')
