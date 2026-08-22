@@ -22,3 +22,4 @@ Gemfile.lock
 .idea*
 dist/
 .junie
+node_modules/
