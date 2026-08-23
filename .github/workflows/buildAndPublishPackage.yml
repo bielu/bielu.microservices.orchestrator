@@ -70,8 +70,12 @@ jobs:
     needs: version
     if: github.event_name == 'push' && needs.version.outputs.hasChangesets == 'false'
     uses: bielu/bielu.GithubActions.Templates/.github/workflows/release.yml@main
+    # release.yml's publish-npm job unconditionally declares `id-token: write` at the job level
+    # (even though we set publish-npm: false); GitHub checks that statically against the caller's
+    # grant regardless of the job's runtime `if`, so it must be granted here too.
     permissions:
       contents: read
+      id-token: write
     with:
       generate-schema: false
       publish-npm: false
@@ -121,6 +125,7 @@ jobs:
     uses: bielu/bielu.GithubActions.Templates/.github/workflows/release.yml@main
     permissions:
       contents: read
+      id-token: write
     with:
       suffix: "beta"
       generate-schema: false
@@ -166,6 +171,7 @@ jobs:
     uses: bielu/bielu.GithubActions.Templates/.github/workflows/release.yml@main
     permissions:
       contents: read
+      id-token: write
     with:
       generate-schema: false
       publish-npm: false
