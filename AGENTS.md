@@ -1,4 +1,4 @@
-# AGENT.md — bielu.microservices.orchestrator
+# AGENTS.md — bielu.microservices.orchestrator
 
 This file describes the architecture, conventions, and coding principles for AI agents and developers working on this repository.
 
@@ -16,23 +16,37 @@ This file describes the architecture, conventions, and coding principles for AI 
 
 ## Repository Structure
 
+The solution is `src/Bielu.Microservices.Orchestrator.slnx`.
+
 ```
 /
+├── .changeset/            # Pending changesets (see "Versioning and changesets")
 ├── .github/workflows/     # CI/CD pipelines
-├── scripts/               # Build and utility scripts
+├── scripts/               # Build and utility scripts (proto update, release helpers)
 ├── src/
 │   ├── Bielu.Microservices.Orchestrator/                  # Core abstractions, models, builder
 │   ├── Bielu.Microservices.Orchestrator.Docker/           # Docker runtime provider
 │   ├── Bielu.Microservices.Orchestrator.Podman/           # Podman runtime provider
-│   ├── Bielu.Microservices.Orchestrator.Containerd/       # containerd gRPC provider
+│   ├── Bielu.Microservices.Orchestrator.Containerd/       # containerd gRPC provider (vendored protos)
 │   ├── Bielu.Microservices.Orchestrator.Kubernetes/       # Kubernetes provider
 │   ├── Bielu.Microservices.Orchestrator.OpenTelemetry/    # Tracing decorators
 │   ├── Bielu.Microservices.Orchestrator.HealthChecks/     # ASP.NET Core health checks
-│   └── Bielu.Microservices.Orchestrator.Examples.Api/     # Reference ASP.NET Core app
+│   ├── Bielu.Microservices.Orchestrator.Storage.EfCore/   # EF Core instance store
+│   ├── Bielu.Microservices.Orchestrator.Storage.File/     # File-based instance store
+│   ├── Bielu.Microservices.Orchestrator.Tests/            # xUnit test suite
+│   ├── Bielu.Microservices.Orchestrator.Examples.Api/     # Reference ASP.NET Core app
+│   ├── Bielu.Microservices.Orchestrator.Examples.Worker/  # Reference worker
+│   ├── Bielu.Microservices.Orchestrator.Examples.AppHost/ # .NET Aspire AppHost for the examples
+│   ├── Bielu.Microservices.Orchestrator.Examples.ServiceDefaults/
+│   ├── Directory.Build.props                              # Shared MSBuild/package metadata
+│   └── Directory.Packages.props                           # Central package versions
+├── .containerd-proto-version                              # containerd tag the protos come from
+├── CHANGELOG.md
 ├── CODEOWNERS
 ├── LICENSE.md
+├── package.json           # changesets tooling only, never published
 ├── readme.md
-└── version.props
+└── version.props          # Single shared version for every package
 ```
 
 ---
@@ -136,6 +150,14 @@ The rule is: **feature first, layer second** — never the other way around. A d
 
 ## Coding Conventions
 
+### Project settings
+
+- **Target framework:** `net10.0`, `LangVersion` 14. Requires the **.NET 10 SDK**.
+- `Nullable` and `ImplicitUsings` are enabled per project. Respect nullable annotations — don't suppress with `!` except in test arrange/assert.
+- **Central package management:** all package versions live in `src/Directory.Packages.props`. Reference packages with `<PackageReference Include="..." />` and **no `Version` attribute**; add new versions to that file.
+- **Shared MSBuild properties** live in `src/Directory.Build.props`. The **version** is centralized in `version.props` — never hardcode versions in csproj files, and never bump it by hand (see "Versioning and changesets").
+- **`InternalsVisibleTo`:** grant internals to `Bielu.Microservices.Orchestrator.Tests` (as the OpenTelemetry project does) and prefer `internal` over `public` for implementation details. Don't widen the public API surface without need.
+
 ### General
 
 - Use `async`/`await` throughout. Never block with `.Result` or `.Wait()`.
@@ -143,6 +165,11 @@ The rule is: **feature first, layer second** — never the other way around. A d
 - Use C# primary constructors and records where they reduce boilerplate without sacrificing clarity.
 - Prefer `using` declarations over `using` blocks unless scope control is needed.
 - Null-check parameters at public API boundaries. Use `ArgumentNullException.ThrowIfNull`.
+- Use file-scoped namespaces.
+- Public APIs get XML doc comments.
+- Configuration uses fluent, chainable extension methods / options delegates returning the same object.
+- Match the style of the file you're editing rather than imposing a single global style.
+- Run `dotnet format` on the code you change before committing. (There is no `.editorconfig` yet, so a whole-solution `--verify-no-changes` currently reports pre-existing whitespace/line-ending noise; don't mass-reformat unrelated files.)
 
 ### Naming
 
@@ -174,6 +201,60 @@ The rule is: **feature first, layer second** — never the other way around. A d
 
 - The `Examples.Api` project is the canonical reference for correct usage. Keep it up to date when adding features.
 - New providers must include tests that validate the full container lifecycle (create → start → stop → remove).
+- **xUnit** + **Shouldly** assertions + **NSubstitute** for mocking; Aspire integration tests use `Aspire.Hosting.Testing`.
+- Follow the **Arrange / Act / Assert** comment structure used in the existing tests.
+- Name tests `Method_Scenario_ExpectedResult` (e.g. `SaveAsync_OverwritesExistingInstance`).
+- Add or update tests for any behavior change, covering the happy path and argument-validation/error paths. Never delete or weaken tests to make CI pass.
+
+### Code coverage
+
+Target **70%+ line coverage** for code you add or change. The test project references `coverlet.collector`:
+
+```bash
+dotnet test src/Bielu.Microservices.Orchestrator.Tests --collect:"XPlat Code Coverage"
+```
+
+---
+
+## Build and test
+
+```bash
+# Restore + build the whole solution
+dotnet build src/Bielu.Microservices.Orchestrator.slnx
+
+# Run all tests
+dotnet test src/Bielu.Microservices.Orchestrator.Tests
+```
+
+---
+
+## Versioning and changesets
+
+Every NuGet package in this repository shares one version (`version.props`), driven by [changesets](https://github.com/changesets/changesets). See `.changeset/README.md`.
+
+- **Every PR must add a changeset** — CI's `changeset-check` job fails without one. Run `npx changeset` (package `bielu-microservices-orchestrator`, bump `patch`/`minor`/`major` per semver), or `npx changeset add --empty` for chore-only PRs (CI, formatting, tests).
+- Do not edit `version.props` or `CHANGELOG.md` by hand for a release: merging to `main` opens a "Version Packages" PR that runs `npm run version` (`changeset version` + `scripts/apply-nuget-version.mjs`).
+
+---
+
+## containerd protos
+
+The containerd provider compiles vendored gRPC `.proto` files under `src/Bielu.Microservices.Orchestrator.Containerd/Proto/` with `Grpc.Tools`; the C# stubs are generated into `obj/` at build time.
+
+- **Never hand-edit the vendored `.proto` files or the generated C#.** Update them only with `./scripts/update-containerd-protos.sh <tag>`, which downloads from the containerd tag, applies the C# patches (import-path rewrites, `go_package` → `csharp_namespace`, `Descriptor` → `ContentDescriptor` rename) and records the tag in `.containerd-proto-version`. On Windows/Git Bash run it with `LC_ALL=C.UTF-8` (it uses `grep -P`).
+- If a new upstream version adds an import or a proto package, extend `PROTO_MAP` / `NS_MAP` in the script and the `<Protobuf>` items in the csproj — don't patch files manually.
+- The `Check containerd Proto Updates` workflow opens these PRs automatically. Its PRs are created with `GITHUB_TOKEN`, so CI does not run on them — build and test locally before merging.
+- Upstream `api/` follows containerd's [Public API Stability](https://github.com/containerd/containerd/blob/main/RELEASES.md#public-api-stability) rules; check generated-type changes against our usage in the Containerd provider when bumping across minor versions.
+
+---
+
+## Before opening a PR
+
+1. `dotnet build src/Bielu.Microservices.Orchestrator.slnx` succeeds with no errors.
+2. `dotnet test src/Bielu.Microservices.Orchestrator.Tests` passes.
+3. A changeset is included.
+4. Public API changes have XML docs; `readme.md` is updated when behavior or public APIs change.
+5. Target the `main` branch.
 
 ---
 
