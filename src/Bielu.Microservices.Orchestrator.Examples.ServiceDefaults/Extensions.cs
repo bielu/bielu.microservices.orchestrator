@@ -1,4 +1,4 @@
-using Bielu.Microservices.Orchestrator.OpenTelemetry;
+﻿using Bielu.Microservices.Orchestrator.OpenTelemetry;
 using Bielu.Microservices.Orchestrator.OpenTelemetry.Extensions;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
@@ -40,7 +40,7 @@ public static class Extensions
     {
         var otel = builder.Services.AddOpenTelemetry();
         otel.WithLogging();
-// Add Metrics for ASP.NET Core and our custom metrics and export via OTLP
+        // Add Metrics for ASP.NET Core and our custom metrics and export via OTLP
         otel.WithMetrics(metrics =>
         {
             // Metrics provider from OpenTelemetry
@@ -51,20 +51,20 @@ public static class Extensions
             metrics.AddMeter("Microsoft.AspNetCore.Server.Kestrel");
         });
 
-// Add Tracing for ASP.NET Core and our custom ActivitySource and export via OTLP
+        // Add Tracing for ASP.NET Core and our custom ActivitySource and export via OTLP
         otel.WithTracing(tracing =>
         {
             tracing.AddAspNetCoreInstrumentation();
             tracing.AddOrchestratorInstrumentation();
         });
 
-// Export OpenTelemetry data via OTLP, using env vars for the configuration
+        // Export OpenTelemetry data via OTLP, using env vars for the configuration
         var OtlpEndpoint = builder.Configuration["OTEL_EXPORTER_OTLP_ENDPOINT"];
         if (OtlpEndpoint != null)
         {
             otel.UseOtlpExporter();
         }
-  
+
         return builder;
     }
 
@@ -73,7 +73,7 @@ public static class Extensions
         app.MapScalarApiReference(option =>
         {
             option.Title = "Royal Villa API";
-    
+
             option
                 .AddDocument("v1", "API Version 1.0", "/openapi/v1.json", isDefault: true)
                 .AddDocument("v2", "API Version 2.0", "/openapi/v2.json");

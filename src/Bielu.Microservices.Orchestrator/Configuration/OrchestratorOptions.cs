@@ -1,4 +1,4 @@
-namespace Bielu.Microservices.Orchestrator.Configuration;
+﻿namespace Bielu.Microservices.Orchestrator.Configuration;
 
 /// <summary>
 /// Configuration options for the microservices orchestrator.

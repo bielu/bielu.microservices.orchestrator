@@ -1,4 +1,4 @@
-namespace Bielu.Microservices.Orchestrator.Models;
+﻿namespace Bielu.Microservices.Orchestrator.Models;
 
 /// <summary>
 /// Represents the state of a container.

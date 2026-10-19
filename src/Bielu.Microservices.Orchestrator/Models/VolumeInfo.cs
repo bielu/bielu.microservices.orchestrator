@@ -1,4 +1,4 @@
-namespace Bielu.Microservices.Orchestrator.Models;
+﻿namespace Bielu.Microservices.Orchestrator.Models;
 
 /// <summary>
 /// Represents information about a container volume.

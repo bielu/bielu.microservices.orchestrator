@@ -1,4 +1,4 @@
-namespace Bielu.Microservices.Orchestrator.Models;
+﻿namespace Bielu.Microservices.Orchestrator.Models;
 
 /// <summary>
 /// Credentials for authenticating with a container registry.

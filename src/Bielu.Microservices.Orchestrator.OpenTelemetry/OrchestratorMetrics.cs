@@ -1,4 +1,4 @@
-using System.Diagnostics.Metrics;
+﻿using System.Diagnostics.Metrics;
 using System.Reflection;
 
 namespace Bielu.Microservices.Orchestrator.OpenTelemetry;

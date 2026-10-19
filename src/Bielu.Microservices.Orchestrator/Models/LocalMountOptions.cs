@@ -1,4 +1,4 @@
-namespace Bielu.Microservices.Orchestrator.Models;
+﻿namespace Bielu.Microservices.Orchestrator.Models;
 
 /// <summary>
 /// Mount options for a local-driver bound volume, corresponding to the <c>-o</c> flags passed to <c>mount(8)</c>.

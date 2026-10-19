@@ -1,4 +1,4 @@
-namespace Bielu.Microservices.Orchestrator.Containerd.Configuration;
+﻿namespace Bielu.Microservices.Orchestrator.Containerd.Configuration;
 
 /// <summary>
 /// Configuration options for the containerd runtime provider.

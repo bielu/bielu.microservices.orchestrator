@@ -1,4 +1,4 @@
-using Bielu.Microservices.Orchestrator.Abstractions;
+﻿using Bielu.Microservices.Orchestrator.Abstractions;
 using Bielu.Microservices.Orchestrator.Configuration;
 using Bielu.Microservices.Orchestrator.Models;
 using Bielu.Microservices.Orchestrator.Utilities;
@@ -399,10 +399,10 @@ public class DockerContainerManager(
                 {
                     Name = request.RestartPolicy switch
                     {
-                        OrchestratorRestartPolicy.Always        => RestartPolicyKind.Always,
+                        OrchestratorRestartPolicy.Always => RestartPolicyKind.Always,
                         OrchestratorRestartPolicy.UnlessStopped => RestartPolicyKind.UnlessStopped,
-                        OrchestratorRestartPolicy.OnFailure     => RestartPolicyKind.OnFailure,
-                        _                                       => RestartPolicyKind.No
+                        OrchestratorRestartPolicy.OnFailure => RestartPolicyKind.OnFailure,
+                        _ => RestartPolicyKind.No
                     },
                     MaximumRetryCount = request.MaxRestartRetries
                 }

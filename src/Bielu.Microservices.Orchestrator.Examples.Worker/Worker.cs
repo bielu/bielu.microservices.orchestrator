@@ -1,4 +1,4 @@
-namespace Bielu.Microservices.Orchestrator.Examples.Worker;
+﻿namespace Bielu.Microservices.Orchestrator.Examples.Worker;
 
 /// <summary>
 /// Example background worker that demonstrates a containerized .NET application
