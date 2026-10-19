@@ -113,29 +113,86 @@ jobs:
           gh release create "v$VERSION" --title "v$VERSION" \
             --notes-file release-notes.md $PRERELEASE_FLAG
 
+  # Did this push change anything that ends up in a package? A docs, test, CI or changeset-only push
+  # while changesets are pending would otherwise publish a beta identical to the previous one. The
+  # beta below only runs when this says yes (manual dispatch always runs it).
+  codeChanged:
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    outputs:
+      changed: ${{ steps.diff.outputs.changed }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Detect shipped-code changes
+        id: diff
+        env:
+          BEFORE: ${{ github.event.before }}
+        run: |
+          # Fail open: no usable base (manual dispatch, new branch, force push) counts as changed.
+          if [ -z "$BEFORE" ] || [ "$BEFORE" = "0000000000000000000000000000000000000000" ] \
+              || ! git cat-file -e "$BEFORE^{commit}" 2>/dev/null; then
+            echo "No usable base commit; treating as changed."
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          # Shipped code = anything under src/ (except the examples, tests and markdown) plus the
+          # shared build/package inputs. Docs, workflows and .changeset do not change a package.
+          CHANGED=$(git diff --name-only "$BEFORE" "$GITHUB_SHA" \
+            | { grep -E '^(src/|version\.props$|global\.json$|package(-lock)?\.json$)' || true; } \
+            | { grep -vE '^src/Bielu\.Microservices\.Orchestrator\.(Examples\.[^/]+|Tests)/|\.md$' || true; })
+          if [ -n "$CHANGED" ]; then
+            echo "Shipped-code changes:"; echo "$CHANGED"
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "No shipped-code changes in this push; skipping the beta release."
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  # Decide what the in-flight beta should be numbered. The build template would otherwise stamp
+  # `-beta.<ticks>` onto the version version.props currently carries — which, right after a stable
+  # release, is the version that just shipped, so the beta would sort BELOW it and read as a
+  # downgrade. This derives the version from the pending changesets instead, so the first beta after
+  # 1.0.0 ships as 1.1.0-beta.<stamp> (or 1.0.1-beta.<stamp> for a patch bump).
+  betaVersions:
+    needs: [version, codeChanged]
+    if: >-
+      always() && !cancelled() && needs.codeChanged.result == 'success'
+      && (github.event_name == 'workflow_dispatch'
+          || (github.event_name == 'push' && needs.version.outputs.hasChangesets == 'true'
+              && needs.codeChanged.outputs.changed == 'true'))
+    uses: bielu/bielu.GithubActions.Templates/.github/workflows/nextVersion.yml@main
+    with:
+      # The root package.json is the changeset package that carries the shared NuGet version.
+      nuget-package: bielu-microservices-orchestrator
+
   # In-flight prereleases: publish a beta of main while a release is still pending (changesets not yet
   # merged), and on manual dispatch. Skipped on the Version-PR-merge commit so it does not shadow the
-  # stable release.
+  # stable release, and on pushes that change no shipped code (betaVersions is skipped then).
   releaseBeta:
-    needs: version
+    needs: [version, betaVersions]
     if: >-
-      always() && !cancelled()
+      always() && !cancelled() && needs.betaVersions.result == 'success'
       && (github.event_name == 'workflow_dispatch'
           || (github.event_name == 'push' && needs.version.outputs.hasChangesets == 'true'))
     uses: bielu/bielu.GithubActions.Templates/.github/workflows/release.yml@main
     permissions:
       contents: read
       id-token: write
+    # No `suffix:` here on purpose — the override already carries the `-beta.<stamp>` part, and a
+    # suffix would take precedence over it in the build template.
     with:
-      suffix: "beta"
+      nuget-version-override: ${{ needs.betaVersions.outputs.nuget }}
       generate-schema: false
       publish-npm: false
     secrets:
       NUGET_APIKEY: ${{ secrets.NUGET_APIKEY }}
 
   # Record-keeping for interim betas: surface each published beta build as a GitHub prerelease,
-  # using the exact `-beta.<ticks>` version the build template stamped (release.yml's nuget-version
-  # output) and the pending — not yet versioned — changesets as the release notes.
+  # using the exact `-beta.<stamp>` version that was packed (release.yml's nuget-version output,
+  # which echoes the betaVersions override) and the pending — not yet versioned — changesets as the release notes.
   tagBeta:
     needs: releaseBeta
     if: always() && !cancelled() && needs.releaseBeta.result == 'success'
