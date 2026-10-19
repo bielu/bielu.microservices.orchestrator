@@ -5,7 +5,7 @@
   "description": "Root workspace for changeset-driven versioning of the Bielu.Microservices.Orchestrator NuGet suite. Not published. Every NuGet package in this repository shares the single version recorded here and in version.props.",
   "scripts": {
     "changeset": "changeset",
-    "version": "changeset version && node scripts/apply-nuget-version.mjs",
+    "version": "changeset version && node scripts/apply-nuget-version.mjs && node scripts/ship-public-api.mjs",
     "changeset:status": "changeset status --since=origin/main"
   },
   "devDependencies": {

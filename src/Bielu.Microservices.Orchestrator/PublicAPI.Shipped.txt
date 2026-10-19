@@ -1,0 +1,410 @@
+#nullable enable
+Bielu.Microservices.Orchestrator.Abstractions.IContainerManager
+Bielu.Microservices.Orchestrator.Abstractions.IContainerManager.CreateAsync(Bielu.Microservices.Orchestrator.Models.CreateContainerRequest! request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<string!>!
+Bielu.Microservices.Orchestrator.Abstractions.IContainerManager.GetAsync(string! containerId, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Bielu.Microservices.Orchestrator.Models.ContainerInfo?>!
+Bielu.Microservices.Orchestrator.Abstractions.IContainerManager.GetLogsAsync(string! containerId, bool stdout = true, bool stderr = true, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<string!>!
+Bielu.Microservices.Orchestrator.Abstractions.IContainerManager.HostAddress.get -> string!
+Bielu.Microservices.Orchestrator.Abstractions.IContainerManager.ListAsync(bool all = false, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<Bielu.Microservices.Orchestrator.Models.ContainerInfo!>!>!
+Bielu.Microservices.Orchestrator.Abstractions.IContainerManager.ProviderName.get -> string!
+Bielu.Microservices.Orchestrator.Abstractions.IContainerManager.RemoveAsync(string! containerId, bool force = false, bool removeVolumes = false, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Bielu.Microservices.Orchestrator.Abstractions.IContainerManager.ScaleAsync(string! containerId, int replicas, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Bielu.Microservices.Orchestrator.Abstractions.IContainerManager.StartAsync(string! containerId, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Bielu.Microservices.Orchestrator.Abstractions.IContainerManager.StopAsync(string! containerId, System.TimeSpan? timeout = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Bielu.Microservices.Orchestrator.Abstractions.IContainerOrchestrator
+Bielu.Microservices.Orchestrator.Abstractions.IContainerOrchestrator.Containers.get -> Bielu.Microservices.Orchestrator.Abstractions.IContainerManager!
+Bielu.Microservices.Orchestrator.Abstractions.IContainerOrchestrator.Images.get -> Bielu.Microservices.Orchestrator.Abstractions.IImageManager!
+Bielu.Microservices.Orchestrator.Abstractions.IContainerOrchestrator.IsAvailableAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
+Bielu.Microservices.Orchestrator.Abstractions.IContainerOrchestrator.Networks.get -> Bielu.Microservices.Orchestrator.Abstractions.INetworkManager!
+Bielu.Microservices.Orchestrator.Abstractions.IContainerOrchestrator.ProviderName.get -> string!
+Bielu.Microservices.Orchestrator.Abstractions.IContainerOrchestrator.Volumes.get -> Bielu.Microservices.Orchestrator.Abstractions.IVolumeManager!
+Bielu.Microservices.Orchestrator.Abstractions.IImageManager
+Bielu.Microservices.Orchestrator.Abstractions.IImageManager.GetAsync(string! imageId, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Bielu.Microservices.Orchestrator.Models.ImageInfo?>!
+Bielu.Microservices.Orchestrator.Abstractions.IImageManager.ListAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<Bielu.Microservices.Orchestrator.Models.ImageInfo!>!>!
+Bielu.Microservices.Orchestrator.Abstractions.IImageManager.PullAsync(Bielu.Microservices.Orchestrator.Models.PullImageRequest! request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Bielu.Microservices.Orchestrator.Abstractions.IImageManager.RemoveAsync(string! imageId, bool force = false, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Bielu.Microservices.Orchestrator.Abstractions.IImageManager.TagAsync(string! imageId, string! repository, string! tag, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Bielu.Microservices.Orchestrator.Abstractions.IImageUpdateService
+Bielu.Microservices.Orchestrator.Abstractions.IImageUpdateService.CheckAllAsync(Bielu.Microservices.Orchestrator.Models.ImageUpdateOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<Bielu.Microservices.Orchestrator.Models.ImageUpdateStatus!>!>!
+Bielu.Microservices.Orchestrator.Abstractions.IImageUpdateService.CheckAsync(string! instanceId, Bielu.Microservices.Orchestrator.Models.ImageUpdateOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Bielu.Microservices.Orchestrator.Models.ImageUpdateStatus!>!
+Bielu.Microservices.Orchestrator.Abstractions.IImageUpdateService.UpdateAsync(string! instanceId, Bielu.Microservices.Orchestrator.Models.ImageUpdateOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Bielu.Microservices.Orchestrator.Models.ImageUpdateResult!>!
+Bielu.Microservices.Orchestrator.Abstractions.IInstanceStore
+Bielu.Microservices.Orchestrator.Abstractions.IInstanceStore.GetAllAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<Bielu.Microservices.Orchestrator.Models.ManagedInstance!>!>!
+Bielu.Microservices.Orchestrator.Abstractions.IInstanceStore.GetAsync(string! id, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Bielu.Microservices.Orchestrator.Models.ManagedInstance?>!
+Bielu.Microservices.Orchestrator.Abstractions.IInstanceStore.RemoveAsync(string! id, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Bielu.Microservices.Orchestrator.Abstractions.IInstanceStore.SaveAsync(Bielu.Microservices.Orchestrator.Models.ManagedInstance! instance, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Bielu.Microservices.Orchestrator.Abstractions.IInstanceStore.UpdateContainerIdsAsync(string! id, System.Collections.Generic.IReadOnlyList<string!>! containerIds, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Bielu.Microservices.Orchestrator.Abstractions.INetworkManager
+Bielu.Microservices.Orchestrator.Abstractions.INetworkManager.ConnectAsync(string! networkId, string! containerId, Bielu.Microservices.Orchestrator.Models.NetworkAttachment! attachment, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Bielu.Microservices.Orchestrator.Abstractions.INetworkManager.ConnectAsync(string! networkId, string! containerId, System.Collections.Generic.IEnumerable<string!>? aliases = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Bielu.Microservices.Orchestrator.Abstractions.INetworkManager.CreateAsync(string! name, string! driver = "bridge", System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<string!>!
+Bielu.Microservices.Orchestrator.Abstractions.INetworkManager.DisconnectAsync(string! networkId, string! containerId, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Bielu.Microservices.Orchestrator.Abstractions.INetworkManager.ListAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<Bielu.Microservices.Orchestrator.Models.NetworkInfo!>!>!
+Bielu.Microservices.Orchestrator.Abstractions.INetworkManager.RemoveAsync(string! networkId, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Bielu.Microservices.Orchestrator.Abstractions.IVolumeManager
+Bielu.Microservices.Orchestrator.Abstractions.IVolumeManager.CreateAsync(string! name, string? driver = null, System.Collections.Generic.IDictionary<string!, string!>? driverOptions = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Bielu.Microservices.Orchestrator.Models.VolumeInfo!>!
+Bielu.Microservices.Orchestrator.Abstractions.IVolumeManager.GetAsync(string! name, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Bielu.Microservices.Orchestrator.Models.VolumeInfo?>!
+Bielu.Microservices.Orchestrator.Abstractions.IVolumeManager.ListAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<Bielu.Microservices.Orchestrator.Models.VolumeInfo!>!>!
+Bielu.Microservices.Orchestrator.Abstractions.IVolumeManager.RemoveAsync(string! name, bool force = false, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Bielu.Microservices.Orchestrator.Configuration.OrchestratorBuilder
+Bielu.Microservices.Orchestrator.Configuration.OrchestratorBuilder.AddDeferredDecorator(int priority, System.Action<Microsoft.Extensions.DependencyInjection.IServiceCollection!>! registration) -> void
+Bielu.Microservices.Orchestrator.Configuration.OrchestratorBuilder.Options.get -> Bielu.Microservices.Orchestrator.Configuration.OrchestratorOptions!
+Bielu.Microservices.Orchestrator.Configuration.OrchestratorBuilder.OrchestratorBuilder(Microsoft.Extensions.DependencyInjection.IServiceCollection! services, Bielu.Microservices.Orchestrator.Configuration.OrchestratorOptions! options) -> void
+Bielu.Microservices.Orchestrator.Configuration.OrchestratorBuilder.Services.get -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
+Bielu.Microservices.Orchestrator.Configuration.OrchestratorOptions
+Bielu.Microservices.Orchestrator.Configuration.OrchestratorOptions.DefaultNetworkName.get -> string?
+Bielu.Microservices.Orchestrator.Configuration.OrchestratorOptions.DefaultNetworkName.set -> void
+Bielu.Microservices.Orchestrator.Configuration.OrchestratorOptions.DefaultProvider.get -> string?
+Bielu.Microservices.Orchestrator.Configuration.OrchestratorOptions.DefaultProvider.set -> void
+Bielu.Microservices.Orchestrator.Configuration.OrchestratorOptions.ManagedContainersOnly.get -> bool
+Bielu.Microservices.Orchestrator.Configuration.OrchestratorOptions.ManagedContainersOnly.set -> void
+Bielu.Microservices.Orchestrator.Configuration.OrchestratorOptions.OrchestratorId.get -> System.Guid
+Bielu.Microservices.Orchestrator.Configuration.OrchestratorOptions.OrchestratorId.set -> void
+Bielu.Microservices.Orchestrator.Configuration.OrchestratorOptions.OrchestratorOptions() -> void
+Bielu.Microservices.Orchestrator.Configuration.OrchestratorOptions.ResolveDefaultNetworkName() -> string?
+Bielu.Microservices.Orchestrator.Configuration.OrchestratorOptions.UseDefaultNetwork.get -> bool
+Bielu.Microservices.Orchestrator.Configuration.OrchestratorOptions.UseDefaultNetwork.set -> void
+Bielu.Microservices.Orchestrator.Extensions.CreateContainerRequestExtensions
+Bielu.Microservices.Orchestrator.Extensions.InstanceStoreBuilderExtensions
+Bielu.Microservices.Orchestrator.Extensions.OrchestratorBuilderExtensions
+Bielu.Microservices.Orchestrator.Extensions.ServiceCollectionExtensions
+Bielu.Microservices.Orchestrator.Extensions.VolumeManagerExtensions
+Bielu.Microservices.Orchestrator.Models.ContainerInfo
+Bielu.Microservices.Orchestrator.Models.ContainerInfo.ContainerInfo() -> void
+Bielu.Microservices.Orchestrator.Models.ContainerInfo.CreatedAt.get -> System.DateTimeOffset
+Bielu.Microservices.Orchestrator.Models.ContainerInfo.CreatedAt.set -> void
+Bielu.Microservices.Orchestrator.Models.ContainerInfo.EnvironmentVariables.get -> System.Collections.Generic.IDictionary<string!, string!>!
+Bielu.Microservices.Orchestrator.Models.ContainerInfo.EnvironmentVariables.set -> void
+Bielu.Microservices.Orchestrator.Models.ContainerInfo.Id.get -> string!
+Bielu.Microservices.Orchestrator.Models.ContainerInfo.Id.set -> void
+Bielu.Microservices.Orchestrator.Models.ContainerInfo.Image.get -> string!
+Bielu.Microservices.Orchestrator.Models.ContainerInfo.Image.set -> void
+Bielu.Microservices.Orchestrator.Models.ContainerInfo.Labels.get -> System.Collections.Generic.IDictionary<string!, string!>!
+Bielu.Microservices.Orchestrator.Models.ContainerInfo.Labels.set -> void
+Bielu.Microservices.Orchestrator.Models.ContainerInfo.Name.get -> string!
+Bielu.Microservices.Orchestrator.Models.ContainerInfo.Name.set -> void
+Bielu.Microservices.Orchestrator.Models.ContainerInfo.Ports.get -> System.Collections.Generic.IList<Bielu.Microservices.Orchestrator.Models.PortMapping!>!
+Bielu.Microservices.Orchestrator.Models.ContainerInfo.Ports.set -> void
+Bielu.Microservices.Orchestrator.Models.ContainerInfo.State.get -> Bielu.Microservices.Orchestrator.Models.ContainerState
+Bielu.Microservices.Orchestrator.Models.ContainerInfo.State.set -> void
+Bielu.Microservices.Orchestrator.Models.ContainerInfo.Volumes.get -> System.Collections.Generic.IList<Bielu.Microservices.Orchestrator.Models.VolumeMount!>!
+Bielu.Microservices.Orchestrator.Models.ContainerInfo.Volumes.set -> void
+Bielu.Microservices.Orchestrator.Models.ContainerState
+Bielu.Microservices.Orchestrator.Models.ContainerState.Created = 1 -> Bielu.Microservices.Orchestrator.Models.ContainerState
+Bielu.Microservices.Orchestrator.Models.ContainerState.Dead = 7 -> Bielu.Microservices.Orchestrator.Models.ContainerState
+Bielu.Microservices.Orchestrator.Models.ContainerState.Exited = 6 -> Bielu.Microservices.Orchestrator.Models.ContainerState
+Bielu.Microservices.Orchestrator.Models.ContainerState.Paused = 3 -> Bielu.Microservices.Orchestrator.Models.ContainerState
+Bielu.Microservices.Orchestrator.Models.ContainerState.Removing = 5 -> Bielu.Microservices.Orchestrator.Models.ContainerState
+Bielu.Microservices.Orchestrator.Models.ContainerState.Restarting = 4 -> Bielu.Microservices.Orchestrator.Models.ContainerState
+Bielu.Microservices.Orchestrator.Models.ContainerState.Running = 2 -> Bielu.Microservices.Orchestrator.Models.ContainerState
+Bielu.Microservices.Orchestrator.Models.ContainerState.Unknown = 0 -> Bielu.Microservices.Orchestrator.Models.ContainerState
+Bielu.Microservices.Orchestrator.Models.CreateContainerRequest
+Bielu.Microservices.Orchestrator.Models.CreateContainerRequest.AutoRemove.get -> bool
+Bielu.Microservices.Orchestrator.Models.CreateContainerRequest.AutoRemove.set -> void
+Bielu.Microservices.Orchestrator.Models.CreateContainerRequest.Command.get -> System.Collections.Generic.IList<string!>?
+Bielu.Microservices.Orchestrator.Models.CreateContainerRequest.Command.set -> void
+Bielu.Microservices.Orchestrator.Models.CreateContainerRequest.CreateContainerRequest() -> void
+Bielu.Microservices.Orchestrator.Models.CreateContainerRequest.EnvironmentVariables.get -> System.Collections.Generic.IDictionary<string!, string!>!
+Bielu.Microservices.Orchestrator.Models.CreateContainerRequest.EnvironmentVariables.set -> void
+Bielu.Microservices.Orchestrator.Models.CreateContainerRequest.Image.get -> string!
+Bielu.Microservices.Orchestrator.Models.CreateContainerRequest.Image.set -> void
+Bielu.Microservices.Orchestrator.Models.CreateContainerRequest.Labels.get -> System.Collections.Generic.IDictionary<string!, string!>!
+Bielu.Microservices.Orchestrator.Models.CreateContainerRequest.Labels.set -> void
+Bielu.Microservices.Orchestrator.Models.CreateContainerRequest.MaxRestartRetries.get -> int
+Bielu.Microservices.Orchestrator.Models.CreateContainerRequest.MaxRestartRetries.set -> void
+Bielu.Microservices.Orchestrator.Models.CreateContainerRequest.Name.get -> string?
+Bielu.Microservices.Orchestrator.Models.CreateContainerRequest.Name.set -> void
+Bielu.Microservices.Orchestrator.Models.CreateContainerRequest.Networks.get -> System.Collections.Generic.IList<Bielu.Microservices.Orchestrator.Models.NetworkAttachment!>!
+Bielu.Microservices.Orchestrator.Models.CreateContainerRequest.Networks.set -> void
+Bielu.Microservices.Orchestrator.Models.CreateContainerRequest.Ports.get -> System.Collections.Generic.IList<Bielu.Microservices.Orchestrator.Models.PortMapping!>!
+Bielu.Microservices.Orchestrator.Models.CreateContainerRequest.Ports.set -> void
+Bielu.Microservices.Orchestrator.Models.CreateContainerRequest.Replicas.get -> int
+Bielu.Microservices.Orchestrator.Models.CreateContainerRequest.Replicas.set -> void
+Bielu.Microservices.Orchestrator.Models.CreateContainerRequest.RestartPolicy.get -> Bielu.Microservices.Orchestrator.Models.RestartPolicy
+Bielu.Microservices.Orchestrator.Models.CreateContainerRequest.RestartPolicy.set -> void
+Bielu.Microservices.Orchestrator.Models.CreateContainerRequest.Volumes.get -> System.Collections.Generic.IList<Bielu.Microservices.Orchestrator.Models.VolumeMount!>!
+Bielu.Microservices.Orchestrator.Models.CreateContainerRequest.Volumes.set -> void
+Bielu.Microservices.Orchestrator.Models.DesiredState
+Bielu.Microservices.Orchestrator.Models.DesiredState.Removed = 2 -> Bielu.Microservices.Orchestrator.Models.DesiredState
+Bielu.Microservices.Orchestrator.Models.DesiredState.Running = 0 -> Bielu.Microservices.Orchestrator.Models.DesiredState
+Bielu.Microservices.Orchestrator.Models.DesiredState.Stopped = 1 -> Bielu.Microservices.Orchestrator.Models.DesiredState
+Bielu.Microservices.Orchestrator.Models.ImageInfo
+Bielu.Microservices.Orchestrator.Models.ImageInfo.CreatedAt.get -> System.DateTimeOffset
+Bielu.Microservices.Orchestrator.Models.ImageInfo.CreatedAt.set -> void
+Bielu.Microservices.Orchestrator.Models.ImageInfo.Id.get -> string!
+Bielu.Microservices.Orchestrator.Models.ImageInfo.Id.set -> void
+Bielu.Microservices.Orchestrator.Models.ImageInfo.ImageInfo() -> void
+Bielu.Microservices.Orchestrator.Models.ImageInfo.Labels.get -> System.Collections.Generic.IDictionary<string!, string!>!
+Bielu.Microservices.Orchestrator.Models.ImageInfo.Labels.set -> void
+Bielu.Microservices.Orchestrator.Models.ImageInfo.Size.get -> long
+Bielu.Microservices.Orchestrator.Models.ImageInfo.Size.set -> void
+Bielu.Microservices.Orchestrator.Models.ImageInfo.Tags.get -> System.Collections.Generic.IList<string!>!
+Bielu.Microservices.Orchestrator.Models.ImageInfo.Tags.set -> void
+Bielu.Microservices.Orchestrator.Models.ImageUpdateOptions
+Bielu.Microservices.Orchestrator.Models.ImageUpdateOptions.Force.get -> bool
+Bielu.Microservices.Orchestrator.Models.ImageUpdateOptions.Force.set -> void
+Bielu.Microservices.Orchestrator.Models.ImageUpdateOptions.ImageUpdateOptions() -> void
+Bielu.Microservices.Orchestrator.Models.ImageUpdateOptions.Pull.get -> bool
+Bielu.Microservices.Orchestrator.Models.ImageUpdateOptions.Pull.set -> void
+Bielu.Microservices.Orchestrator.Models.ImageUpdateResult
+Bielu.Microservices.Orchestrator.Models.ImageUpdateResult.ContainerIds.get -> System.Collections.Generic.IList<string!>!
+Bielu.Microservices.Orchestrator.Models.ImageUpdateResult.ContainerIds.set -> void
+Bielu.Microservices.Orchestrator.Models.ImageUpdateResult.ImageUpdateResult() -> void
+Bielu.Microservices.Orchestrator.Models.ImageUpdateResult.InstanceId.get -> string!
+Bielu.Microservices.Orchestrator.Models.ImageUpdateResult.InstanceId.set -> void
+Bielu.Microservices.Orchestrator.Models.ImageUpdateResult.NewDigest.get -> string?
+Bielu.Microservices.Orchestrator.Models.ImageUpdateResult.NewDigest.set -> void
+Bielu.Microservices.Orchestrator.Models.ImageUpdateResult.PreviousDigest.get -> string?
+Bielu.Microservices.Orchestrator.Models.ImageUpdateResult.PreviousDigest.set -> void
+Bielu.Microservices.Orchestrator.Models.ImageUpdateResult.Updated.get -> bool
+Bielu.Microservices.Orchestrator.Models.ImageUpdateResult.Updated.set -> void
+Bielu.Microservices.Orchestrator.Models.ImageUpdateStatus
+Bielu.Microservices.Orchestrator.Models.ImageUpdateStatus.CurrentDigest.get -> string?
+Bielu.Microservices.Orchestrator.Models.ImageUpdateStatus.CurrentDigest.set -> void
+Bielu.Microservices.Orchestrator.Models.ImageUpdateStatus.Image.get -> string!
+Bielu.Microservices.Orchestrator.Models.ImageUpdateStatus.Image.set -> void
+Bielu.Microservices.Orchestrator.Models.ImageUpdateStatus.ImageUpdateStatus() -> void
+Bielu.Microservices.Orchestrator.Models.ImageUpdateStatus.InstanceId.get -> string!
+Bielu.Microservices.Orchestrator.Models.ImageUpdateStatus.InstanceId.set -> void
+Bielu.Microservices.Orchestrator.Models.ImageUpdateStatus.LatestDigest.get -> string?
+Bielu.Microservices.Orchestrator.Models.ImageUpdateStatus.LatestDigest.set -> void
+Bielu.Microservices.Orchestrator.Models.ImageUpdateStatus.UpdateAvailable.get -> bool
+Bielu.Microservices.Orchestrator.Models.ImageUpdateStatus.UpdateAvailable.set -> void
+Bielu.Microservices.Orchestrator.Models.LocalMountOptions
+Bielu.Microservices.Orchestrator.Models.LocalMountOptions.Bind = 1 -> Bielu.Microservices.Orchestrator.Models.LocalMountOptions
+Bielu.Microservices.Orchestrator.Models.LocalMountOptions.NoAtime = 16 -> Bielu.Microservices.Orchestrator.Models.LocalMountOptions
+Bielu.Microservices.Orchestrator.Models.LocalMountOptions.NoExec = 8 -> Bielu.Microservices.Orchestrator.Models.LocalMountOptions
+Bielu.Microservices.Orchestrator.Models.LocalMountOptions.ReadOnly = 2 -> Bielu.Microservices.Orchestrator.Models.LocalMountOptions
+Bielu.Microservices.Orchestrator.Models.LocalMountOptions.Suid = 4 -> Bielu.Microservices.Orchestrator.Models.LocalMountOptions
+Bielu.Microservices.Orchestrator.Models.LocalVolumeOptions
+Bielu.Microservices.Orchestrator.Models.LocalVolumeOptions.Device.get -> string!
+Bielu.Microservices.Orchestrator.Models.LocalVolumeOptions.Device.set -> void
+Bielu.Microservices.Orchestrator.Models.LocalVolumeOptions.LocalVolumeOptions() -> void
+Bielu.Microservices.Orchestrator.Models.LocalVolumeOptions.MountOptions.get -> Bielu.Microservices.Orchestrator.Models.LocalMountOptions
+Bielu.Microservices.Orchestrator.Models.LocalVolumeOptions.MountOptions.set -> void
+Bielu.Microservices.Orchestrator.Models.LocalVolumeOptions.ToDictionary() -> System.Collections.Generic.IDictionary<string!, string!>!
+Bielu.Microservices.Orchestrator.Models.LocalVolumeOptions.Type.get -> string!
+Bielu.Microservices.Orchestrator.Models.LocalVolumeOptions.Type.set -> void
+Bielu.Microservices.Orchestrator.Models.ManagedInstance
+Bielu.Microservices.Orchestrator.Models.ManagedInstance.ContainerIds.get -> System.Collections.Generic.IList<string!>!
+Bielu.Microservices.Orchestrator.Models.ManagedInstance.ContainerIds.set -> void
+Bielu.Microservices.Orchestrator.Models.ManagedInstance.CreatedAt.get -> System.DateTimeOffset
+Bielu.Microservices.Orchestrator.Models.ManagedInstance.CreatedAt.set -> void
+Bielu.Microservices.Orchestrator.Models.ManagedInstance.DesiredReplicas.get -> int
+Bielu.Microservices.Orchestrator.Models.ManagedInstance.DesiredReplicas.set -> void
+Bielu.Microservices.Orchestrator.Models.ManagedInstance.DesiredState.get -> Bielu.Microservices.Orchestrator.Models.DesiredState
+Bielu.Microservices.Orchestrator.Models.ManagedInstance.DesiredState.set -> void
+Bielu.Microservices.Orchestrator.Models.ManagedInstance.Id.get -> string!
+Bielu.Microservices.Orchestrator.Models.ManagedInstance.Id.set -> void
+Bielu.Microservices.Orchestrator.Models.ManagedInstance.ManagedInstance() -> void
+Bielu.Microservices.Orchestrator.Models.ManagedInstance.Metadata.get -> System.Collections.Generic.IDictionary<string!, string!>!
+Bielu.Microservices.Orchestrator.Models.ManagedInstance.Metadata.set -> void
+Bielu.Microservices.Orchestrator.Models.ManagedInstance.OrchestratorId.get -> System.Guid
+Bielu.Microservices.Orchestrator.Models.ManagedInstance.OrchestratorId.set -> void
+Bielu.Microservices.Orchestrator.Models.ManagedInstance.OriginalRequest.get -> Bielu.Microservices.Orchestrator.Models.CreateContainerRequest!
+Bielu.Microservices.Orchestrator.Models.ManagedInstance.OriginalRequest.set -> void
+Bielu.Microservices.Orchestrator.Models.ManagedInstance.ProviderName.get -> string!
+Bielu.Microservices.Orchestrator.Models.ManagedInstance.ProviderName.set -> void
+Bielu.Microservices.Orchestrator.Models.ManagedInstance.UpdatedAt.get -> System.DateTimeOffset
+Bielu.Microservices.Orchestrator.Models.ManagedInstance.UpdatedAt.set -> void
+Bielu.Microservices.Orchestrator.Models.NetworkAttachment
+Bielu.Microservices.Orchestrator.Models.NetworkAttachment.Aliases.get -> System.Collections.Generic.IList<string!>!
+Bielu.Microservices.Orchestrator.Models.NetworkAttachment.Aliases.set -> void
+Bielu.Microservices.Orchestrator.Models.NetworkAttachment.DnsNames.get -> System.Collections.Generic.IList<string!>!
+Bielu.Microservices.Orchestrator.Models.NetworkAttachment.DnsNames.set -> void
+Bielu.Microservices.Orchestrator.Models.NetworkAttachment.DriverOptions.get -> System.Collections.Generic.IDictionary<string!, string!>!
+Bielu.Microservices.Orchestrator.Models.NetworkAttachment.DriverOptions.set -> void
+Bielu.Microservices.Orchestrator.Models.NetworkAttachment.Gateway.get -> string?
+Bielu.Microservices.Orchestrator.Models.NetworkAttachment.Gateway.set -> void
+Bielu.Microservices.Orchestrator.Models.NetworkAttachment.IPv4Address.get -> string?
+Bielu.Microservices.Orchestrator.Models.NetworkAttachment.IPv4Address.set -> void
+Bielu.Microservices.Orchestrator.Models.NetworkAttachment.IPv6Address.get -> string?
+Bielu.Microservices.Orchestrator.Models.NetworkAttachment.IPv6Address.set -> void
+Bielu.Microservices.Orchestrator.Models.NetworkAttachment.Links.get -> System.Collections.Generic.IList<string!>!
+Bielu.Microservices.Orchestrator.Models.NetworkAttachment.Links.set -> void
+Bielu.Microservices.Orchestrator.Models.NetworkAttachment.MacAddress.get -> string?
+Bielu.Microservices.Orchestrator.Models.NetworkAttachment.MacAddress.set -> void
+Bielu.Microservices.Orchestrator.Models.NetworkAttachment.NetworkAttachment() -> void
+Bielu.Microservices.Orchestrator.Models.NetworkAttachment.NetworkName.get -> string!
+Bielu.Microservices.Orchestrator.Models.NetworkAttachment.NetworkName.set -> void
+Bielu.Microservices.Orchestrator.Models.NetworkEndpointInfo
+Bielu.Microservices.Orchestrator.Models.NetworkEndpointInfo.EndpointId.get -> string!
+Bielu.Microservices.Orchestrator.Models.NetworkEndpointInfo.EndpointId.set -> void
+Bielu.Microservices.Orchestrator.Models.NetworkEndpointInfo.IPv4Address.get -> string!
+Bielu.Microservices.Orchestrator.Models.NetworkEndpointInfo.IPv4Address.set -> void
+Bielu.Microservices.Orchestrator.Models.NetworkEndpointInfo.IPv6Address.get -> string!
+Bielu.Microservices.Orchestrator.Models.NetworkEndpointInfo.IPv6Address.set -> void
+Bielu.Microservices.Orchestrator.Models.NetworkEndpointInfo.MacAddress.get -> string!
+Bielu.Microservices.Orchestrator.Models.NetworkEndpointInfo.MacAddress.set -> void
+Bielu.Microservices.Orchestrator.Models.NetworkEndpointInfo.Name.get -> string!
+Bielu.Microservices.Orchestrator.Models.NetworkEndpointInfo.Name.set -> void
+Bielu.Microservices.Orchestrator.Models.NetworkEndpointInfo.NetworkEndpointInfo() -> void
+Bielu.Microservices.Orchestrator.Models.NetworkInfo
+Bielu.Microservices.Orchestrator.Models.NetworkInfo.Attachable.get -> bool
+Bielu.Microservices.Orchestrator.Models.NetworkInfo.Attachable.set -> void
+Bielu.Microservices.Orchestrator.Models.NetworkInfo.ConfigOnly.get -> bool
+Bielu.Microservices.Orchestrator.Models.NetworkInfo.ConfigOnly.set -> void
+Bielu.Microservices.Orchestrator.Models.NetworkInfo.Containers.get -> System.Collections.Generic.IDictionary<string!, Bielu.Microservices.Orchestrator.Models.NetworkEndpointInfo!>!
+Bielu.Microservices.Orchestrator.Models.NetworkInfo.Containers.set -> void
+Bielu.Microservices.Orchestrator.Models.NetworkInfo.Created.get -> System.DateTime?
+Bielu.Microservices.Orchestrator.Models.NetworkInfo.Created.set -> void
+Bielu.Microservices.Orchestrator.Models.NetworkInfo.Driver.get -> string!
+Bielu.Microservices.Orchestrator.Models.NetworkInfo.Driver.set -> void
+Bielu.Microservices.Orchestrator.Models.NetworkInfo.EnableIPv4.get -> bool
+Bielu.Microservices.Orchestrator.Models.NetworkInfo.EnableIPv4.set -> void
+Bielu.Microservices.Orchestrator.Models.NetworkInfo.EnableIPv6.get -> bool
+Bielu.Microservices.Orchestrator.Models.NetworkInfo.EnableIPv6.set -> void
+Bielu.Microservices.Orchestrator.Models.NetworkInfo.Id.get -> string!
+Bielu.Microservices.Orchestrator.Models.NetworkInfo.Id.set -> void
+Bielu.Microservices.Orchestrator.Models.NetworkInfo.Ingress.get -> bool
+Bielu.Microservices.Orchestrator.Models.NetworkInfo.Ingress.set -> void
+Bielu.Microservices.Orchestrator.Models.NetworkInfo.Internal.get -> bool
+Bielu.Microservices.Orchestrator.Models.NetworkInfo.Internal.set -> void
+Bielu.Microservices.Orchestrator.Models.NetworkInfo.Ipam.get -> Bielu.Microservices.Orchestrator.Models.NetworkIpamInfo?
+Bielu.Microservices.Orchestrator.Models.NetworkInfo.Ipam.set -> void
+Bielu.Microservices.Orchestrator.Models.NetworkInfo.Labels.get -> System.Collections.Generic.IDictionary<string!, string!>!
+Bielu.Microservices.Orchestrator.Models.NetworkInfo.Labels.set -> void
+Bielu.Microservices.Orchestrator.Models.NetworkInfo.Name.get -> string!
+Bielu.Microservices.Orchestrator.Models.NetworkInfo.Name.set -> void
+Bielu.Microservices.Orchestrator.Models.NetworkInfo.NetworkInfo() -> void
+Bielu.Microservices.Orchestrator.Models.NetworkInfo.Options.get -> System.Collections.Generic.IDictionary<string!, string!>!
+Bielu.Microservices.Orchestrator.Models.NetworkInfo.Options.set -> void
+Bielu.Microservices.Orchestrator.Models.NetworkInfo.Scope.get -> string!
+Bielu.Microservices.Orchestrator.Models.NetworkInfo.Scope.set -> void
+Bielu.Microservices.Orchestrator.Models.NetworkIpamConfig
+Bielu.Microservices.Orchestrator.Models.NetworkIpamConfig.AuxAddress.get -> System.Collections.Generic.IDictionary<string!, string!>!
+Bielu.Microservices.Orchestrator.Models.NetworkIpamConfig.AuxAddress.set -> void
+Bielu.Microservices.Orchestrator.Models.NetworkIpamConfig.Gateway.get -> string!
+Bielu.Microservices.Orchestrator.Models.NetworkIpamConfig.Gateway.set -> void
+Bielu.Microservices.Orchestrator.Models.NetworkIpamConfig.IPRange.get -> string!
+Bielu.Microservices.Orchestrator.Models.NetworkIpamConfig.IPRange.set -> void
+Bielu.Microservices.Orchestrator.Models.NetworkIpamConfig.NetworkIpamConfig() -> void
+Bielu.Microservices.Orchestrator.Models.NetworkIpamConfig.Subnet.get -> string!
+Bielu.Microservices.Orchestrator.Models.NetworkIpamConfig.Subnet.set -> void
+Bielu.Microservices.Orchestrator.Models.NetworkIpamInfo
+Bielu.Microservices.Orchestrator.Models.NetworkIpamInfo.Config.get -> System.Collections.Generic.IList<Bielu.Microservices.Orchestrator.Models.NetworkIpamConfig!>!
+Bielu.Microservices.Orchestrator.Models.NetworkIpamInfo.Config.set -> void
+Bielu.Microservices.Orchestrator.Models.NetworkIpamInfo.Driver.get -> string!
+Bielu.Microservices.Orchestrator.Models.NetworkIpamInfo.Driver.set -> void
+Bielu.Microservices.Orchestrator.Models.NetworkIpamInfo.NetworkIpamInfo() -> void
+Bielu.Microservices.Orchestrator.Models.NetworkIpamInfo.Options.get -> System.Collections.Generic.IDictionary<string!, string!>!
+Bielu.Microservices.Orchestrator.Models.NetworkIpamInfo.Options.set -> void
+Bielu.Microservices.Orchestrator.Models.PortMapping
+Bielu.Microservices.Orchestrator.Models.PortMapping.ContainerPort.get -> int
+Bielu.Microservices.Orchestrator.Models.PortMapping.ContainerPort.set -> void
+Bielu.Microservices.Orchestrator.Models.PortMapping.HostIp.get -> string!
+Bielu.Microservices.Orchestrator.Models.PortMapping.HostIp.set -> void
+Bielu.Microservices.Orchestrator.Models.PortMapping.HostPort.get -> int
+Bielu.Microservices.Orchestrator.Models.PortMapping.HostPort.set -> void
+Bielu.Microservices.Orchestrator.Models.PortMapping.PortMapping() -> void
+Bielu.Microservices.Orchestrator.Models.PortMapping.Protocol.get -> string!
+Bielu.Microservices.Orchestrator.Models.PortMapping.Protocol.set -> void
+Bielu.Microservices.Orchestrator.Models.PullImageRequest
+Bielu.Microservices.Orchestrator.Models.PullImageRequest.Credentials.get -> Bielu.Microservices.Orchestrator.Models.RegistryCredentials?
+Bielu.Microservices.Orchestrator.Models.PullImageRequest.Credentials.set -> void
+Bielu.Microservices.Orchestrator.Models.PullImageRequest.Image.get -> string!
+Bielu.Microservices.Orchestrator.Models.PullImageRequest.Image.set -> void
+Bielu.Microservices.Orchestrator.Models.PullImageRequest.PullImageRequest() -> void
+Bielu.Microservices.Orchestrator.Models.PullImageRequest.Tag.get -> string!
+Bielu.Microservices.Orchestrator.Models.PullImageRequest.Tag.set -> void
+Bielu.Microservices.Orchestrator.Models.RegistryCredentials
+Bielu.Microservices.Orchestrator.Models.RegistryCredentials.Password.get -> string!
+Bielu.Microservices.Orchestrator.Models.RegistryCredentials.Password.set -> void
+Bielu.Microservices.Orchestrator.Models.RegistryCredentials.RegistryCredentials() -> void
+Bielu.Microservices.Orchestrator.Models.RegistryCredentials.ServerAddress.get -> string!
+Bielu.Microservices.Orchestrator.Models.RegistryCredentials.ServerAddress.set -> void
+Bielu.Microservices.Orchestrator.Models.RegistryCredentials.Username.get -> string!
+Bielu.Microservices.Orchestrator.Models.RegistryCredentials.Username.set -> void
+Bielu.Microservices.Orchestrator.Models.RestartPolicy
+Bielu.Microservices.Orchestrator.Models.RestartPolicy.Always = 1 -> Bielu.Microservices.Orchestrator.Models.RestartPolicy
+Bielu.Microservices.Orchestrator.Models.RestartPolicy.No = 0 -> Bielu.Microservices.Orchestrator.Models.RestartPolicy
+Bielu.Microservices.Orchestrator.Models.RestartPolicy.OnFailure = 3 -> Bielu.Microservices.Orchestrator.Models.RestartPolicy
+Bielu.Microservices.Orchestrator.Models.RestartPolicy.UnlessStopped = 2 -> Bielu.Microservices.Orchestrator.Models.RestartPolicy
+Bielu.Microservices.Orchestrator.Models.VolumeInfo
+Bielu.Microservices.Orchestrator.Models.VolumeInfo.CreatedAt.get -> System.DateTimeOffset
+Bielu.Microservices.Orchestrator.Models.VolumeInfo.CreatedAt.set -> void
+Bielu.Microservices.Orchestrator.Models.VolumeInfo.Driver.get -> string!
+Bielu.Microservices.Orchestrator.Models.VolumeInfo.Driver.set -> void
+Bielu.Microservices.Orchestrator.Models.VolumeInfo.DriverOptions.get -> System.Collections.Generic.IDictionary<string!, string!>!
+Bielu.Microservices.Orchestrator.Models.VolumeInfo.DriverOptions.set -> void
+Bielu.Microservices.Orchestrator.Models.VolumeInfo.Labels.get -> System.Collections.Generic.IDictionary<string!, string!>!
+Bielu.Microservices.Orchestrator.Models.VolumeInfo.Labels.set -> void
+Bielu.Microservices.Orchestrator.Models.VolumeInfo.MountPoint.get -> string!
+Bielu.Microservices.Orchestrator.Models.VolumeInfo.MountPoint.set -> void
+Bielu.Microservices.Orchestrator.Models.VolumeInfo.Name.get -> string!
+Bielu.Microservices.Orchestrator.Models.VolumeInfo.Name.set -> void
+Bielu.Microservices.Orchestrator.Models.VolumeInfo.VolumeInfo() -> void
+Bielu.Microservices.Orchestrator.Models.VolumeMount
+Bielu.Microservices.Orchestrator.Models.VolumeMount.ContainerPath.get -> string!
+Bielu.Microservices.Orchestrator.Models.VolumeMount.ContainerPath.set -> void
+Bielu.Microservices.Orchestrator.Models.VolumeMount.HostPath.get -> string!
+Bielu.Microservices.Orchestrator.Models.VolumeMount.HostPath.set -> void
+Bielu.Microservices.Orchestrator.Models.VolumeMount.IsBindMount.get -> bool
+Bielu.Microservices.Orchestrator.Models.VolumeMount.LocalDriverOptions.get -> Bielu.Microservices.Orchestrator.Models.LocalVolumeOptions?
+Bielu.Microservices.Orchestrator.Models.VolumeMount.LocalDriverOptions.set -> void
+Bielu.Microservices.Orchestrator.Models.VolumeMount.ReadOnly.get -> bool
+Bielu.Microservices.Orchestrator.Models.VolumeMount.ReadOnly.set -> void
+Bielu.Microservices.Orchestrator.Models.VolumeMount.ToBindString() -> string!
+Bielu.Microservices.Orchestrator.Models.VolumeMount.VolumeMount() -> void
+Bielu.Microservices.Orchestrator.OrchestratorLabels
+Bielu.Microservices.Orchestrator.Storage.ImageUpdateService
+Bielu.Microservices.Orchestrator.Storage.ImageUpdateService.CheckAllAsync(Bielu.Microservices.Orchestrator.Models.ImageUpdateOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<Bielu.Microservices.Orchestrator.Models.ImageUpdateStatus!>!>!
+Bielu.Microservices.Orchestrator.Storage.ImageUpdateService.CheckAsync(string! instanceId, Bielu.Microservices.Orchestrator.Models.ImageUpdateOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Bielu.Microservices.Orchestrator.Models.ImageUpdateStatus!>!
+Bielu.Microservices.Orchestrator.Storage.ImageUpdateService.ImageUpdateService(Bielu.Microservices.Orchestrator.Abstractions.IContainerOrchestrator! orchestrator, Bielu.Microservices.Orchestrator.Abstractions.IInstanceStore! instanceStore, Microsoft.Extensions.Logging.ILogger<Bielu.Microservices.Orchestrator.Storage.ImageUpdateService!>! logger) -> void
+Bielu.Microservices.Orchestrator.Storage.ImageUpdateService.UpdateAsync(string! instanceId, Bielu.Microservices.Orchestrator.Models.ImageUpdateOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Bielu.Microservices.Orchestrator.Models.ImageUpdateResult!>!
+Bielu.Microservices.Orchestrator.Storage.InMemoryInstanceStore
+Bielu.Microservices.Orchestrator.Storage.InMemoryInstanceStore.GetAllAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<Bielu.Microservices.Orchestrator.Models.ManagedInstance!>!>!
+Bielu.Microservices.Orchestrator.Storage.InMemoryInstanceStore.GetAsync(string! id, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Bielu.Microservices.Orchestrator.Models.ManagedInstance?>!
+Bielu.Microservices.Orchestrator.Storage.InMemoryInstanceStore.InMemoryInstanceStore() -> void
+Bielu.Microservices.Orchestrator.Storage.InMemoryInstanceStore.RemoveAsync(string! id, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Bielu.Microservices.Orchestrator.Storage.InMemoryInstanceStore.SaveAsync(Bielu.Microservices.Orchestrator.Models.ManagedInstance! instance, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Bielu.Microservices.Orchestrator.Storage.InMemoryInstanceStore.UpdateContainerIdsAsync(string! id, System.Collections.Generic.IReadOnlyList<string!>! containerIds, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Bielu.Microservices.Orchestrator.Storage.InstanceRecoveryService
+Bielu.Microservices.Orchestrator.Storage.InstanceRecoveryService.InstanceRecoveryService(Bielu.Microservices.Orchestrator.Abstractions.IInstanceStore! instanceStore, Bielu.Microservices.Orchestrator.Abstractions.IContainerManager! containerManager, Microsoft.Extensions.Logging.ILogger<Bielu.Microservices.Orchestrator.Storage.InstanceRecoveryService!>! logger) -> void
+Bielu.Microservices.Orchestrator.Storage.InstanceRecoveryService.ReconcileAllAsync(System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task!
+Bielu.Microservices.Orchestrator.Storage.StateTrackingContainerManagerDecorator
+Bielu.Microservices.Orchestrator.Storage.StateTrackingContainerManagerDecorator.CreateAsync(Bielu.Microservices.Orchestrator.Models.CreateContainerRequest! request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<string!>!
+Bielu.Microservices.Orchestrator.Storage.StateTrackingContainerManagerDecorator.GetAsync(string! containerId, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Bielu.Microservices.Orchestrator.Models.ContainerInfo?>!
+Bielu.Microservices.Orchestrator.Storage.StateTrackingContainerManagerDecorator.GetLogsAsync(string! containerId, bool stdout = true, bool stderr = true, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<string!>!
+Bielu.Microservices.Orchestrator.Storage.StateTrackingContainerManagerDecorator.HostAddress.get -> string!
+Bielu.Microservices.Orchestrator.Storage.StateTrackingContainerManagerDecorator.ListAsync(bool all = false, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<Bielu.Microservices.Orchestrator.Models.ContainerInfo!>!>!
+Bielu.Microservices.Orchestrator.Storage.StateTrackingContainerManagerDecorator.ProviderName.get -> string!
+Bielu.Microservices.Orchestrator.Storage.StateTrackingContainerManagerDecorator.RemoveAsync(string! containerId, bool force = false, bool removeVolumes = false, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Bielu.Microservices.Orchestrator.Storage.StateTrackingContainerManagerDecorator.ScaleAsync(string! containerId, int replicas, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Bielu.Microservices.Orchestrator.Storage.StateTrackingContainerManagerDecorator.StartAsync(string! containerId, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Bielu.Microservices.Orchestrator.Storage.StateTrackingContainerManagerDecorator.StateTrackingContainerManagerDecorator(Bielu.Microservices.Orchestrator.Abstractions.IContainerManager! inner, Bielu.Microservices.Orchestrator.Abstractions.IInstanceStore! instanceStore, Bielu.Microservices.Orchestrator.Configuration.OrchestratorOptions! orchestratorOptions, Microsoft.Extensions.Logging.ILogger<Bielu.Microservices.Orchestrator.Storage.StateTrackingContainerManagerDecorator!>! logger) -> void
+Bielu.Microservices.Orchestrator.Storage.StateTrackingContainerManagerDecorator.StopAsync(string! containerId, System.TimeSpan? timeout = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Bielu.Microservices.Orchestrator.Utilities.IpAllocator
+Bielu.Microservices.Orchestrator.Utilities.LogSanitizer
+const Bielu.Microservices.Orchestrator.OrchestratorLabels.Group = "orchestrator.group" -> string!
+const Bielu.Microservices.Orchestrator.OrchestratorLabels.Image = "orchestrator.image" -> string!
+const Bielu.Microservices.Orchestrator.OrchestratorLabels.ImageDigest = "orchestrator.image-digest" -> string!
+const Bielu.Microservices.Orchestrator.OrchestratorLabels.InstanceId = "orchestrator.instance-id" -> string!
+const Bielu.Microservices.Orchestrator.OrchestratorLabels.ManagedBy = "orchestrator.managed-by" -> string!
+const Bielu.Microservices.Orchestrator.OrchestratorLabels.ManagedById = "orchestrator.managed-by-id" -> string!
+const Bielu.Microservices.Orchestrator.OrchestratorLabels.ManagedByValue = "bielu-orchestrator" -> string!
+const Bielu.Microservices.Orchestrator.OrchestratorLabels.ReplicaIndex = "orchestrator.replica-index" -> string!
+const Bielu.Microservices.Orchestrator.Storage.StateTrackingContainerManagerDecorator.DecoratorPriority = 100 -> int
+override Bielu.Microservices.Orchestrator.Models.VolumeMount.ToString() -> string!
+override Bielu.Microservices.Orchestrator.Storage.InstanceRecoveryService.ExecuteAsync(System.Threading.CancellationToken stoppingToken) -> System.Threading.Tasks.Task!
+static Bielu.Microservices.Orchestrator.Extensions.CreateContainerRequestExtensions.WithAutoRemove(this Bielu.Microservices.Orchestrator.Models.CreateContainerRequest! request, bool autoRemove = true) -> Bielu.Microservices.Orchestrator.Models.CreateContainerRequest!
+static Bielu.Microservices.Orchestrator.Extensions.CreateContainerRequestExtensions.WithCommand(this Bielu.Microservices.Orchestrator.Models.CreateContainerRequest! request, params string![]! command) -> Bielu.Microservices.Orchestrator.Models.CreateContainerRequest!
+static Bielu.Microservices.Orchestrator.Extensions.CreateContainerRequestExtensions.WithEnvironmentVariable(this Bielu.Microservices.Orchestrator.Models.CreateContainerRequest! request, string! key, string! value) -> Bielu.Microservices.Orchestrator.Models.CreateContainerRequest!
+static Bielu.Microservices.Orchestrator.Extensions.CreateContainerRequestExtensions.WithImage(this Bielu.Microservices.Orchestrator.Models.CreateContainerRequest! request, string! image) -> Bielu.Microservices.Orchestrator.Models.CreateContainerRequest!
+static Bielu.Microservices.Orchestrator.Extensions.CreateContainerRequestExtensions.WithLabel(this Bielu.Microservices.Orchestrator.Models.CreateContainerRequest! request, string! key, string! value) -> Bielu.Microservices.Orchestrator.Models.CreateContainerRequest!
+static Bielu.Microservices.Orchestrator.Extensions.CreateContainerRequestExtensions.WithLocalBoundVolume(this Bielu.Microservices.Orchestrator.Models.CreateContainerRequest! request, string! volumeName, string! hostPath, string! containerPath, Bielu.Microservices.Orchestrator.Models.LocalMountOptions mountOptions = Bielu.Microservices.Orchestrator.Models.LocalMountOptions.Bind) -> Bielu.Microservices.Orchestrator.Models.CreateContainerRequest!
+static Bielu.Microservices.Orchestrator.Extensions.CreateContainerRequestExtensions.WithName(this Bielu.Microservices.Orchestrator.Models.CreateContainerRequest! request, string! name) -> Bielu.Microservices.Orchestrator.Models.CreateContainerRequest!
+static Bielu.Microservices.Orchestrator.Extensions.CreateContainerRequestExtensions.WithPort(this Bielu.Microservices.Orchestrator.Models.CreateContainerRequest! request, int containerPort, int hostPort, string! protocol = "tcp", string! hostIp = "0.0.0.0") -> Bielu.Microservices.Orchestrator.Models.CreateContainerRequest!
+static Bielu.Microservices.Orchestrator.Extensions.CreateContainerRequestExtensions.WithReplicas(this Bielu.Microservices.Orchestrator.Models.CreateContainerRequest! request, int replicas) -> Bielu.Microservices.Orchestrator.Models.CreateContainerRequest!
+static Bielu.Microservices.Orchestrator.Extensions.CreateContainerRequestExtensions.WithVolume(this Bielu.Microservices.Orchestrator.Models.CreateContainerRequest! request, Bielu.Microservices.Orchestrator.Models.VolumeMount! volume) -> Bielu.Microservices.Orchestrator.Models.CreateContainerRequest!
+static Bielu.Microservices.Orchestrator.Extensions.CreateContainerRequestExtensions.WithVolume(this Bielu.Microservices.Orchestrator.Models.CreateContainerRequest! request, string! hostPath, string! containerPath, bool readOnly = false) -> Bielu.Microservices.Orchestrator.Models.CreateContainerRequest!
+static Bielu.Microservices.Orchestrator.Extensions.CreateContainerRequestExtensions.WithVolume(this Bielu.Microservices.Orchestrator.Models.CreateContainerRequest! request, string! volume) -> Bielu.Microservices.Orchestrator.Models.CreateContainerRequest!
+static Bielu.Microservices.Orchestrator.Extensions.InstanceStoreBuilderExtensions.UseInMemoryInstanceStore(this Bielu.Microservices.Orchestrator.Configuration.OrchestratorBuilder! builder) -> Bielu.Microservices.Orchestrator.Configuration.OrchestratorBuilder!
+static Bielu.Microservices.Orchestrator.Extensions.InstanceStoreBuilderExtensions.WithStateTracking(this Bielu.Microservices.Orchestrator.Configuration.OrchestratorBuilder! builder) -> Bielu.Microservices.Orchestrator.Configuration.OrchestratorBuilder!
+static Bielu.Microservices.Orchestrator.Extensions.OrchestratorBuilderExtensions.WithDefaultProvider(this Bielu.Microservices.Orchestrator.Configuration.OrchestratorBuilder! builder, string! providerName) -> Bielu.Microservices.Orchestrator.Configuration.OrchestratorBuilder!
+static Bielu.Microservices.Orchestrator.Extensions.OrchestratorBuilderExtensions.WithManagedContainersOnly(this Bielu.Microservices.Orchestrator.Configuration.OrchestratorBuilder! builder, bool managedOnly = true) -> Bielu.Microservices.Orchestrator.Configuration.OrchestratorBuilder!
+static Bielu.Microservices.Orchestrator.Extensions.ServiceCollectionExtensions.AddMicroservicesOrchestrator(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, System.Action<Bielu.Microservices.Orchestrator.Configuration.OrchestratorBuilder!>? configure = null) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
+static Bielu.Microservices.Orchestrator.Extensions.VolumeManagerExtensions.CreateLocalBoundAsync(this Bielu.Microservices.Orchestrator.Abstractions.IVolumeManager! manager, string! name, string! hostPath, Bielu.Microservices.Orchestrator.Models.LocalMountOptions mountOptions = Bielu.Microservices.Orchestrator.Models.LocalMountOptions.Bind, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Bielu.Microservices.Orchestrator.Models.VolumeInfo!>!
+static Bielu.Microservices.Orchestrator.Models.VolumeMount.Parse(string! binding) -> Bielu.Microservices.Orchestrator.Models.VolumeMount!
+static Bielu.Microservices.Orchestrator.Utilities.IpAllocator.TryAllocateNextFreeIPv4(System.Collections.Generic.IEnumerable<Bielu.Microservices.Orchestrator.Models.NetworkIpamConfig!>? ipamConfigs, System.Collections.Generic.IEnumerable<string!>? inUseAddresses) -> string?
+static Bielu.Microservices.Orchestrator.Utilities.IpAllocator.TryAllocateNextFreeIPv6(System.Collections.Generic.IEnumerable<Bielu.Microservices.Orchestrator.Models.NetworkIpamConfig!>? ipamConfigs, System.Collections.Generic.IEnumerable<string!>? inUseAddresses) -> string?
+static Bielu.Microservices.Orchestrator.Utilities.LogSanitizer.Sanitize(string? value) -> string!

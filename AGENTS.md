@@ -157,6 +157,7 @@ The rule is: **feature first, layer second** — never the other way around. A d
 - **Central package management:** all package versions live in `src/Directory.Packages.props`. Reference packages with `<PackageReference Include="..." />` and **no `Version` attribute**; add new versions to that file.
 - **Package metadata** (license, copyright, XML documentation file, Source Link, `.snupkg` symbols, deterministic CI builds) is set once in `src/Directory.Build.props` — don't repeat it in csproj files. A package gets its own nuget.org landing page by adding a `PACKAGE.md` next to its csproj; otherwise the root `readme.md` is packed.
 - **Shared MSBuild properties** live in `src/Directory.Build.props`. The **version** is centralized in `version.props` — never hardcode versions in csproj files, and never bump it by hand (see "Versioning and changesets").
+- **Public API tracking:** projects with a `PublicAPI.Shipped.txt` and `PublicAPI.Unshipped.txt` next to their csproj (currently the core `Bielu.Microservices.Orchestrator`) are checked by `Microsoft.CodeAnalysis.PublicApiAnalyzers`; `src/Directory.Build.props` turns it on for any project with those files. When you change the public surface, update `PublicAPI.Unshipped.txt`, or the build fails (RS0016/RS0017). Never edit `PublicAPI.Shipped.txt` by hand: `scripts/ship-public-api.mjs` moves Unshipped into Shipped as part of `npm run version` when a stable version is released. To opt another project in, add both files (`#nullable enable` header) and run `dotnet format analyzers <csproj> --diagnostics RS0016 --severity info`.
 - **`InternalsVisibleTo`:** grant internals to `Bielu.Microservices.Orchestrator.Tests` (as the OpenTelemetry project does) and prefer `internal` over `public` for implementation details. Don't widen the public API surface without need.
 
 ### General
@@ -254,9 +255,10 @@ The containerd provider compiles vendored gRPC `.proto` files under `src/Bielu.M
 1. `dotnet build src/Bielu.Microservices.Orchestrator.slnx` succeeds with no errors.
 2. `dotnet test src/Bielu.Microservices.Orchestrator.Tests` passes.
 3. `dotnet format whitespace --verify-no-changes src/Bielu.Microservices.Orchestrator.slnx` is clean.
-4. A changeset is included.
-5. Public API changes have XML docs; `readme.md` is updated when behavior or public APIs change.
-6. Target the `main` branch.
+4. Public-API changes are reflected in `PublicAPI.Unshipped.txt`.
+5. A changeset is included.
+6. Public API changes have XML docs; `readme.md` is updated when behavior or public APIs change.
+7. Target the `main` branch.
 
 ---
 
