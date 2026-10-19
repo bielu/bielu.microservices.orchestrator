@@ -26,3 +26,9 @@ node_modules/
 
 # Test results / coverage reports
 TestResults/
+
+# DocFX output
+docs/_site/
+docs/obj/
+docs/api/*.yml
+docs/api/.manifest

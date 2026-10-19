@@ -1,0 +1,6 @@
+# Keep generated containerd gRPC stubs (namespace Containerd.*) out of the API reference;
+# they are wire types, not part of the library API.
+apiRules:
+  - exclude:
+      uidRegex: ^Containerd\.
+      type: Namespace
