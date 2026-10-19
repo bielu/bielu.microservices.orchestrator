@@ -9,7 +9,6 @@
     <AssemblyName>Bielu.Microservices.Orchestrator.Storage.File</AssemblyName>
     <PackageId>Bielu.Microservices.Orchestrator.Storage.File</PackageId>
     <PackageTags>container;orchestrator;microservices;persistence;storage</PackageTags>
-    <PackageLicenseExpression>MIT</PackageLicenseExpression>
   </PropertyGroup>
 
   <ItemGroup>

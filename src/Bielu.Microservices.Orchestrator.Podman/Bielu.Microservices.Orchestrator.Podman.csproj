@@ -9,7 +9,6 @@
     <AssemblyName>Bielu.Microservices.Orchestrator.Podman</AssemblyName>
     <PackageId>Bielu.Microservices.Orchestrator.Podman</PackageId>
     <PackageTags>container;podman;orchestrator;microservices</PackageTags>
-    <PackageLicenseExpression>MIT</PackageLicenseExpression>
   </PropertyGroup>
 
   <ItemGroup>

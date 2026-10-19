@@ -9,7 +9,6 @@
     <AssemblyName>Bielu.Microservices.Orchestrator.HealthChecks</AssemblyName>
     <PackageId>Bielu.Microservices.Orchestrator.HealthChecks</PackageId>
     <PackageTags>container;docker;healthchecks;health;orchestrator;microservices</PackageTags>
-    <PackageLicenseExpression>MIT</PackageLicenseExpression>
   </PropertyGroup>
 
   <ItemGroup>

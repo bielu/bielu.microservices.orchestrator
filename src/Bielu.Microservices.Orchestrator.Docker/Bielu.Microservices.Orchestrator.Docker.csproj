@@ -9,7 +9,6 @@
     <AssemblyName>Bielu.Microservices.Orchestrator.Docker</AssemblyName>
     <PackageId>Bielu.Microservices.Orchestrator.Docker</PackageId>
     <PackageTags>container;docker;orchestrator;microservices</PackageTags>
-    <PackageLicenseExpression>MIT</PackageLicenseExpression>
   </PropertyGroup>
 
   <ItemGroup>

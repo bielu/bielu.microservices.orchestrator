@@ -174,7 +174,7 @@ public class DockerNetworkManager(
     }
 
     /// <summary>
-    /// Builds an <see cref="EndpointSettings"/> from a <see cref="NetworkAttachment"/>,
+    /// Builds an <see cref="EndpointSettings"/> from a <see cref="Models.NetworkAttachment"/>,
     /// mapping aliases, static IPv4/IPv6 addresses, MAC address, gateway, links,
     /// driver options and DNS names.
     /// </summary>
