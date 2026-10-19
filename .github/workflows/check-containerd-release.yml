@@ -53,6 +53,17 @@ jobs:
         run: |
           ./scripts/update-containerd-protos.sh "${{ steps.version.outputs.latest }}"
 
+      - name: Write changeset
+        if: steps.version.outputs.update_needed == 'true'
+        run: |
+          cat > ".changeset/containerd-proto-${{ steps.version.outputs.latest }}.md" <<EOF
+          ---
+          bielu-microservices-orchestrator: patch
+          ---
+
+          Update vendored containerd gRPC proto files from \`${{ steps.version.outputs.current }}\` to \`${{ steps.version.outputs.latest }}\`.
+          EOF
+
       - name: Setup .NET
         if: steps.version.outputs.update_needed == 'true'
         uses: actions/setup-dotnet@v4
@@ -84,6 +95,7 @@ jobs:
             - Downloaded proto files from [containerd ${{ steps.version.outputs.latest }}](https://github.com/containerd/containerd/tree/${{ steps.version.outputs.latest }}/api)
             - Applied C# patches (namespace options, import path rewrites, Descriptor→ContentDescriptor rename)
             - Verified build passes
+            - Added a changeset (`patch`) so this PR passes the changeset-check gate and the version is picked up by the next Version Packages PR
 
             ### Proto files updated
             - `containerd/types/descriptor.proto`

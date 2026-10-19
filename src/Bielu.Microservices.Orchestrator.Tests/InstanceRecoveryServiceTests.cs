@@ -27,7 +27,7 @@ public class InstanceRecoveryServiceTests
     [Fact]
     public async Task StartAsync_NoInstances_CompletesWithoutAction()
     {
-        await _service.StartAsync(CancellationToken.None);
+        await _service.ReconcileAllAsync(CancellationToken.None);
 
         await _containerManager.DidNotReceive().GetAsync(Arg.Any<string>(), Arg.Any<CancellationToken>());
     }
@@ -44,7 +44,7 @@ public class InstanceRecoveryServiceTests
             CreatedAt = DateTimeOffset.UtcNow
         });
 
-        await _service.StartAsync(CancellationToken.None);
+        await _service.ReconcileAllAsync(CancellationToken.None);
 
         var result = await _store.GetAsync("inst-1");
         result.ShouldBeNull();
@@ -66,7 +66,7 @@ public class InstanceRecoveryServiceTests
         _containerManager.GetAsync("ctr-1", Arg.Any<CancellationToken>())
             .Returns(new ContainerInfo { Id = "ctr-1", State = ContainerState.Running });
 
-        await _service.StartAsync(CancellationToken.None);
+        await _service.ReconcileAllAsync(CancellationToken.None);
 
         await _containerManager.DidNotReceive().CreateAsync(Arg.Any<CreateContainerRequest>(), Arg.Any<CancellationToken>());
     }
@@ -87,7 +87,7 @@ public class InstanceRecoveryServiceTests
         _containerManager.GetAsync("ctr-1", Arg.Any<CancellationToken>())
             .Returns(new ContainerInfo { Id = "ctr-1", State = ContainerState.Exited });
 
-        await _service.StartAsync(CancellationToken.None);
+        await _service.ReconcileAllAsync(CancellationToken.None);
 
         await _containerManager.Received(1).StartAsync("ctr-1", Arg.Any<CancellationToken>());
         await _containerManager.DidNotReceive().CreateAsync(Arg.Any<CreateContainerRequest>(), Arg.Any<CancellationToken>());
@@ -112,7 +112,7 @@ public class InstanceRecoveryServiceTests
         _containerManager.CreateAsync(request, Arg.Any<CancellationToken>())
             .Returns("ctr-new");
 
-        await _service.StartAsync(CancellationToken.None);
+        await _service.ReconcileAllAsync(CancellationToken.None);
 
         await _containerManager.Received(1).CreateAsync(request, Arg.Any<CancellationToken>());
         await _containerManager.Received(1).StartAsync("ctr-new", Arg.Any<CancellationToken>());
@@ -136,7 +136,7 @@ public class InstanceRecoveryServiceTests
             CreatedAt = DateTimeOffset.UtcNow
         });
 
-        await _service.StartAsync(CancellationToken.None);
+        await _service.ReconcileAllAsync(CancellationToken.None);
 
         await _containerManager.DidNotReceive().GetAsync(Arg.Any<string>(), Arg.Any<CancellationToken>());
         await _containerManager.DidNotReceive().CreateAsync(Arg.Any<CreateContainerRequest>(), Arg.Any<CancellationToken>());

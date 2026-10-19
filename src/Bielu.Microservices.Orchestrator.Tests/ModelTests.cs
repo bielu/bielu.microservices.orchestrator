@@ -56,6 +56,58 @@ public class ModelTests
         volume.Driver.ShouldBe(string.Empty);
         volume.MountPoint.ShouldBe(string.Empty);
         volume.Labels.ShouldNotBeNull();
+        volume.DriverOptions.ShouldNotBeNull();
+        volume.DriverOptions.Count.ShouldBe(0);
+    }
+
+    [Fact]
+    public void LocalVolumeOptions_DefaultValues_ShouldBeCorrect()
+    {
+        var opts = new LocalVolumeOptions();
+
+        opts.Device.ShouldBe(string.Empty);
+        opts.Type.ShouldBe("none");
+        opts.MountOptions.ShouldBe(LocalMountOptions.Bind);
+    }
+
+    [Fact]
+    public void LocalVolumeOptions_ToDictionary_ProducesCorrectKeys()
+    {
+        var opts = new LocalVolumeOptions { Device = "/mnt/data" };
+
+        var dict = opts.ToDictionary();
+
+        dict["type"].ShouldBe("none");
+        dict["o"].ShouldBe("bind");
+        dict["device"].ShouldBe("/mnt/data");
+    }
+
+    [Fact]
+    public void LocalVolumeOptions_ToDictionary_BindAndReadOnly()
+    {
+        var opts = new LocalVolumeOptions
+        {
+            Device = "/mnt/data",
+            MountOptions = LocalMountOptions.Bind | LocalMountOptions.ReadOnly
+        };
+
+        var dict = opts.ToDictionary();
+
+        dict["o"].ShouldBe("bind,ro");
+    }
+
+    [Fact]
+    public void LocalVolumeOptions_ToDictionary_MultipleFlags()
+    {
+        var opts = new LocalVolumeOptions
+        {
+            Device = "/mnt/data",
+            MountOptions = LocalMountOptions.Bind | LocalMountOptions.NoExec | LocalMountOptions.NoAtime
+        };
+
+        var dict = opts.ToDictionary();
+
+        dict["o"].ShouldBe("bind,noexec,noatime");
     }
 
     [Fact]

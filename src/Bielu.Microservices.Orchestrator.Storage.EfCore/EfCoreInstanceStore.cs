@@ -9,13 +9,14 @@ namespace Bielu.Microservices.Orchestrator.Storage.EfCore;
 /// Supports any database provider configured on the <see cref="InstanceStoreDbContext"/>
 /// (SQL Server, PostgreSQL, SQLite, etc.).
 /// </summary>
-public class EfCoreInstanceStore(InstanceStoreDbContext dbContext) : IInstanceStore
+public class EfCoreInstanceStore(IDbContextFactory<InstanceStoreDbContext> factory) : IInstanceStore
 {
     /// <inheritdoc />
     public async Task SaveAsync(ManagedInstance instance, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(instance);
         ArgumentException.ThrowIfNullOrWhiteSpace(instance.Id);
+        await using var dbContext = await factory.CreateDbContextAsync(cancellationToken);
 
         instance.UpdatedAt = DateTimeOffset.UtcNow;
 
@@ -38,6 +39,8 @@ public class EfCoreInstanceStore(InstanceStoreDbContext dbContext) : IInstanceSt
     public async Task<ManagedInstance?> GetAsync(string id, CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(id);
+        await using var dbContext = await factory.CreateDbContextAsync(cancellationToken);
+
 
         var entity = await dbContext.ManagedInstances
             .AsNoTracking()
@@ -49,6 +52,8 @@ public class EfCoreInstanceStore(InstanceStoreDbContext dbContext) : IInstanceSt
     /// <inheritdoc />
     public async Task<IReadOnlyList<ManagedInstance>> GetAllAsync(CancellationToken cancellationToken = default)
     {
+        await using var dbContext = await factory.CreateDbContextAsync(cancellationToken);
+
         var entities = await dbContext.ManagedInstances
             .AsNoTracking()
             .ToListAsync(cancellationToken);
@@ -60,6 +65,7 @@ public class EfCoreInstanceStore(InstanceStoreDbContext dbContext) : IInstanceSt
     public async Task RemoveAsync(string id, CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(id);
+        await using var dbContext = await factory.CreateDbContextAsync(cancellationToken);
 
         var entity = await dbContext.ManagedInstances
             .FindAsync([id], cancellationToken);
@@ -76,6 +82,7 @@ public class EfCoreInstanceStore(InstanceStoreDbContext dbContext) : IInstanceSt
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(id);
         ArgumentNullException.ThrowIfNull(containerIds);
+        await using var dbContext = await factory.CreateDbContextAsync(cancellationToken);
 
         var entity = await dbContext.ManagedInstances
             .FindAsync([id], cancellationToken);

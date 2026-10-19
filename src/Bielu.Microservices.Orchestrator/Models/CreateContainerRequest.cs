@@ -36,9 +36,9 @@ public class CreateContainerRequest
     public IDictionary<string, string> Labels { get; set; } = new Dictionary<string, string>();
 
     /// <summary>
-    /// Volume bindings (host:container format).
+    /// Volume mounts that map host paths (or named volumes) into the container.
     /// </summary>
-    public IList<string> Volumes { get; set; } = new List<string>();
+    public IList<VolumeMount> Volumes { get; set; } = new List<VolumeMount>();
 
     /// <summary>
     /// Whether to automatically remove the container when it stops.
@@ -46,8 +46,24 @@ public class CreateContainerRequest
     public bool AutoRemove { get; set; }
 
     /// <summary>
+    /// Restart policy for the container. Defaults to <see cref="RestartPolicy.No"/>.
+    /// </summary>
+    public RestartPolicy RestartPolicy { get; set; } = RestartPolicy.No;
+
+    /// <summary>
+    /// Maximum number of restart attempts when <see cref="RestartPolicy"/> is
+    /// <see cref="RestartPolicy.OnFailure"/>. Zero means unlimited retries.
+    /// </summary>
+    public int MaxRestartRetries { get; set; }
+
+    /// <summary>
     /// The number of container instances to create (default is 1).
     /// When greater than 1, each container is named with a numeric suffix (e.g., my-app-0, my-app-1).
     /// </summary>
     public int Replicas { get; set; } = 1;
+
+    /// <summary>
+    /// List of network attachments for the container.
+    /// </summary>
+    public IList<NetworkAttachment> Networks { get; set; } = new List<NetworkAttachment>();
 }

@@ -13,10 +13,19 @@ namespace Bielu.Microservices.Orchestrator.Storage;
 public class InstanceRecoveryService(
     IInstanceStore instanceStore,
     IContainerManager containerManager,
-    ILogger<InstanceRecoveryService> logger) : IHostedService
+    ILogger<InstanceRecoveryService> logger) : BackgroundService
 {
     /// <inheritdoc />
-    public async Task StartAsync(CancellationToken cancellationToken)
+    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+    {
+        await ReconcileAllAsync(stoppingToken);
+    }
+
+    /// <summary>
+    /// Performs the reconciliation of all managed instances in the store with the runtime.
+    /// Public to allow unit testing without blocking the host startup.
+    /// </summary>
+    public async Task ReconcileAllAsync(CancellationToken cancellationToken)
     {
         logger.LogInformation("Instance recovery service starting — reconciling desired state with runtime");
 
@@ -56,9 +65,6 @@ public class InstanceRecoveryService(
 
         logger.LogInformation("Instance recovery service completed reconciliation");
     }
-
-    /// <inheritdoc />
-    public Task StopAsync(CancellationToken cancellationToken) => Task.CompletedTask;
 
     private async Task ReconcileInstanceAsync(ManagedInstance instance, CancellationToken cancellationToken)
     {

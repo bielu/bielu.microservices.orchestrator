@@ -52,6 +52,7 @@ public static class OrchestratorActivitySource
 
     // Volume operations
     internal const string VolumeList = "volume.list";
+    internal const string VolumeGet = "volume.get";
     internal const string VolumeCreate = "volume.create";
     internal const string VolumeRemove = "volume.remove";
 

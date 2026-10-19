@@ -79,11 +79,83 @@ public static class CreateContainerRequestExtensions
     }
 
     /// <summary>
-    /// Adds a volume binding to the container (host:container format).
+    /// Adds a volume binding to the container using the Docker-style
+    /// <c>host:container[:ro|rw]</c> format.
     /// </summary>
     public static CreateContainerRequest WithVolume(this CreateContainerRequest request, string volume)
     {
+        request.Volumes.Add(VolumeMount.Parse(volume));
+        return request;
+    }
+
+    /// <summary>
+    /// Adds a volume mapping from a host path (or named volume) to a container path.
+    /// </summary>
+    /// <param name="request">The container request.</param>
+    /// <param name="hostPath">The host path or named volume.</param>
+    /// <param name="containerPath">The path inside the container.</param>
+    /// <param name="readOnly">Whether the mount should be read-only.</param>
+    public static CreateContainerRequest WithVolume(
+        this CreateContainerRequest request,
+        string hostPath,
+        string containerPath,
+        bool readOnly = false)
+    {
+        request.Volumes.Add(new VolumeMount
+        {
+            HostPath = hostPath,
+            ContainerPath = containerPath,
+            ReadOnly = readOnly
+        });
+        return request;
+    }
+
+    /// <summary>
+    /// Adds a structured volume mount to the container.
+    /// </summary>
+    public static CreateContainerRequest WithVolume(this CreateContainerRequest request, VolumeMount volume)
+    {
+        ArgumentNullException.ThrowIfNull(volume);
         request.Volumes.Add(volume);
+        return request;
+    }
+
+    /// <summary>
+    /// Adds a local-driver bound volume to the container. The container manager will
+    /// auto-create the named volume backed by <paramref name="hostPath"/> before
+    /// starting the container — no separate volume-creation step is needed.
+    /// </summary>
+    /// <param name="request">The container request.</param>
+    /// <param name="volumeName">The Docker volume name to create or reuse.</param>
+    /// <param name="hostPath">Absolute path on the host to bind into the volume.</param>
+    /// <param name="containerPath">The path inside the container where the volume will be mounted.</param>
+    /// <param name="mountOptions">
+    /// Mount flags. Defaults to <see cref="LocalMountOptions.Bind"/>.
+    /// Combine flags with the bitwise OR operator, e.g.
+    /// <c>LocalMountOptions.Bind | LocalMountOptions.ReadOnly</c>.
+    /// </param>
+    public static CreateContainerRequest WithLocalBoundVolume(
+        this CreateContainerRequest request,
+        string volumeName,
+        string hostPath,
+        string containerPath,
+        LocalMountOptions mountOptions = LocalMountOptions.Bind)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(volumeName);
+        ArgumentException.ThrowIfNullOrWhiteSpace(hostPath);
+        ArgumentException.ThrowIfNullOrWhiteSpace(containerPath);
+
+        request.Volumes.Add(new VolumeMount
+        {
+            HostPath = volumeName,
+            ContainerPath = containerPath,
+            ReadOnly = mountOptions.HasFlag(LocalMountOptions.ReadOnly),
+            LocalDriverOptions = new LocalVolumeOptions
+            {
+                Device = hostPath,
+                MountOptions = mountOptions
+            }
+        });
         return request;
     }
 

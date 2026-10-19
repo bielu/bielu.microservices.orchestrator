@@ -17,14 +17,14 @@ public class StateTrackingDecoratorTests
 {
     private readonly IContainerManager _inner = Substitute.For<IContainerManager>();
     private readonly IInstanceStore _store = new InMemoryInstanceStore();
-    private readonly IContainerOrchestrator _orchestrator = Substitute.For<IContainerOrchestrator>();
     private readonly StateTrackingContainerManagerDecorator _decorator;
 
     public StateTrackingDecoratorTests()
     {
-        _orchestrator.ProviderName.Returns("Docker");
+        _inner.ProviderName.Returns("Docker");
         var logger = Substitute.For<Microsoft.Extensions.Logging.ILogger<StateTrackingContainerManagerDecorator>>();
-        _decorator = new StateTrackingContainerManagerDecorator(_inner, _store, _orchestrator, logger);
+        var options = new OrchestratorOptions { OrchestratorId = Guid.Parse("11111111-1111-1111-1111-111111111111") };
+        _decorator = new StateTrackingContainerManagerDecorator(_inner, _store, options, logger);
     }
 
     // -----------------------------------------------------------------------
@@ -83,7 +83,7 @@ public class StateTrackingDecoratorTests
 
         await _decorator.RemoveAsync("web-app", force: true);
 
-        await _inner.Received(1).RemoveAsync("web-app", true, Arg.Any<CancellationToken>());
+        await _inner.Received(1).RemoveAsync("web-app", true, false, Arg.Any<CancellationToken>());
 
         var stored = await _store.GetAsync("web-app");
         stored.ShouldBeNull();

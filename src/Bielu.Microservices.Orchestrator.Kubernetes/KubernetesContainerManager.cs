@@ -18,6 +18,9 @@ public class KubernetesContainerManager(
     OrchestratorOptions orchestratorOptions,
     ILogger<KubernetesContainerManager> logger) : IContainerManager
 {
+    //todo: figure out how to get the host address
+    public string HostAddress => "localhost";
+    public string ProviderName => "Kubernetes";
 
     public async Task<IReadOnlyList<ContainerInfo>> ListAsync(bool all = false, CancellationToken cancellationToken = default)
     {
@@ -39,7 +42,8 @@ public class KubernetesContainerManager(
             CreatedAt = pod.Metadata.CreationTimestamp ?? DateTimeOffset.MinValue,
             Labels = pod.Metadata.Labels != null
                 ? new Dictionary<string, string>(pod.Metadata.Labels)
-                : new Dictionary<string, string>()
+                : new Dictionary<string, string>(),
+            Volumes = MapPodVolumes(pod)
         }).ToList().AsReadOnly();
     }
 
@@ -57,7 +61,8 @@ public class KubernetesContainerManager(
                 CreatedAt = pod.Metadata.CreationTimestamp ?? DateTimeOffset.MinValue,
                 Labels = pod.Metadata.Labels != null
                     ? new Dictionary<string, string>(pod.Metadata.Labels)
-                    : new Dictionary<string, string>()
+                    : new Dictionary<string, string>(),
+                Volumes = MapPodVolumes(pod)
             };
         }
         catch (k8s.Autorest.HttpOperationException ex) when (ex.Response.StatusCode == System.Net.HttpStatusCode.NotFound)
@@ -126,12 +131,53 @@ public class KubernetesContainerManager(
         logger.LogInformation("Stopped (deleted) Kubernetes pod {PodName}", LogSanitizer.Sanitize(containerId));
     }
 
-    public async Task RemoveAsync(string containerId, bool force = false, CancellationToken cancellationToken = default)
+    public async Task RemoveAsync(string containerId, bool force = false, bool removeVolumes = false, CancellationToken cancellationToken = default)
     {
+        IList<k8s.Models.V1Volume> podVolumes = [];
+        if (removeVolumes)
+        {
+            try
+            {
+                var pod = await client.CoreV1.ReadNamespacedPodAsync(containerId, options.Namespace, cancellationToken: cancellationToken);
+                podVolumes = pod.Spec?.Volumes ?? [];
+            }
+            catch (k8s.Autorest.HttpOperationException ex) when (ex.Response.StatusCode == System.Net.HttpStatusCode.NotFound)
+            {
+                // Pod already gone — nothing to collect.
+            }
+        }
+
         await client.CoreV1.DeleteNamespacedPodAsync(
             containerId, options.Namespace,
             gracePeriodSeconds: force ? 0 : null,
             cancellationToken: cancellationToken);
+
+        if (removeVolumes)
+        {
+            foreach (var volume in podVolumes)
+            {
+                if (volume.PersistentVolumeClaim != null)
+                {
+                    try
+                    {
+                        await client.CoreV1.DeleteNamespacedPersistentVolumeClaimAsync(
+                            volume.PersistentVolumeClaim.ClaimName, options.Namespace, cancellationToken: cancellationToken);
+                        logger.LogInformation("Deleted PVC {ClaimName}", LogSanitizer.Sanitize(volume.PersistentVolumeClaim.ClaimName));
+                    }
+                    catch (k8s.Autorest.HttpOperationException ex) when (ex.Response.StatusCode == System.Net.HttpStatusCode.NotFound)
+                    {
+                        // Already gone.
+                    }
+                }
+                else if (volume.HostPath != null)
+                {
+                    logger.LogWarning(
+                        "Cannot delete hostPath volume at {Path} for pod {PodName}: hostPath volumes are node-local and must be cleaned up on the node directly.",
+                        volume.HostPath.Path, LogSanitizer.Sanitize(containerId));
+                }
+            }
+        }
+
         logger.LogInformation("Removed Kubernetes pod {PodName}", LogSanitizer.Sanitize(containerId));
     }
 
@@ -181,7 +227,14 @@ public class KubernetesContainerManager(
                             }).ToList()
                     }
                 },
-                RestartPolicy = "Never"
+                RestartPolicy = request.RestartPolicy switch
+                {
+                    Models.RestartPolicy.Always        => "Always",
+                    // Kubernetes has no UnlessStopped; Always is the closest equivalent
+                    Models.RestartPolicy.UnlessStopped => "Always",
+                    Models.RestartPolicy.OnFailure     => "OnFailure",
+                    _                                  => "Never"
+                }
             }
         };
 
@@ -189,6 +242,47 @@ public class KubernetesContainerManager(
         logger.LogInformation("Created Kubernetes pod {PodName} from image {Image}",
             LogSanitizer.Sanitize(created.Metadata.Name), LogSanitizer.Sanitize(request.Image));
         return created.Metadata.Name ?? string.Empty;
+    }
+
+    private static IList<VolumeMount> MapPodVolumes(k8s.Models.V1Pod pod)
+    {
+        var volumes = new List<VolumeMount>();
+        var podVolumes = pod.Spec?.Volumes;
+        if (podVolumes == null || podVolumes.Count == 0)
+        {
+            return volumes;
+        }
+
+        // Build a lookup of pod-level volumes by name to resolve host paths / sources.
+        var podVolumeMap = podVolumes.ToDictionary(v => v.Name, v => v);
+
+        // For each container's volumeMounts, pair with the pod-level volume to produce a VolumeMount entry.
+        var containerMounts = pod.Spec?.Containers?
+            .SelectMany(c => c.VolumeMounts ?? Enumerable.Empty<k8s.Models.V1VolumeMount>())
+            .ToList() ?? new List<k8s.Models.V1VolumeMount>();
+
+        foreach (var mount in containerMounts)
+        {
+            if (string.IsNullOrEmpty(mount.Name) || !podVolumeMap.TryGetValue(mount.Name, out var podVolume))
+            {
+                continue;
+            }
+
+            var hostPath = podVolume.HostPath?.Path
+                           ?? podVolume.PersistentVolumeClaim?.ClaimName
+                           ?? podVolume.ConfigMap?.Name
+                           ?? podVolume.Secret?.SecretName
+                           ?? podVolume.Name;
+
+            volumes.Add(new VolumeMount
+            {
+                HostPath = hostPath ?? string.Empty,
+                ContainerPath = mount.MountPath ?? string.Empty,
+                ReadOnly = mount.ReadOnlyProperty ?? false
+            });
+        }
+
+        return volumes;
     }
 
     private static ContainerState MapPodPhase(string? phase)

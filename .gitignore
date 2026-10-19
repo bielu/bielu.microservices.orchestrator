@@ -21,3 +21,5 @@ Gemfile.lock
 .DS_Store
 .idea*
 dist/
+.junie
+node_modules/

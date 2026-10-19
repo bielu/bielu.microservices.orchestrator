@@ -37,12 +37,10 @@ public static class EfCoreInstanceStoreBuilderExtensions
         Action<DbContextOptionsBuilder> configureDbContext)
     {
         ArgumentNullException.ThrowIfNull(configureDbContext);
-
-        builder.Services.AddDbContext<InstanceStoreDbContext>(configureDbContext);
-
+        builder.Services.AddDbContextFactory<InstanceStoreDbContext>(configureDbContext);
         // Replace any previously registered store
         builder.Services.RemoveAll<IInstanceStore>();
-        builder.Services.AddScoped<IInstanceStore, EfCoreInstanceStore>();
+        builder.Services.AddSingleton<IInstanceStore, EfCoreInstanceStore>();
 
         return builder;
     }

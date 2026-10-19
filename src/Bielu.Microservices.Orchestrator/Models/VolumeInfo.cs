@@ -29,4 +29,9 @@ public class VolumeInfo
     /// The time the volume was created.
     /// </summary>
     public DateTimeOffset CreatedAt { get; set; }
+
+    /// <summary>
+    /// Driver-specific options used when the volume was created (e.g. local-driver bind options).
+    /// </summary>
+    public IDictionary<string, string> DriverOptions { get; set; } = new Dictionary<string, string>();
 }

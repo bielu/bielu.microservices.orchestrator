@@ -71,16 +71,20 @@ public class OpenTelemetryNetworkManagerDecorator(INetworkManager inner) : INetw
     }
 
     /// <inheritdoc />
-    public async Task ConnectAsync(string networkId, string containerId, CancellationToken cancellationToken = default)
+    public async Task ConnectAsync(string networkId, string containerId, IEnumerable<string>? aliases = null, CancellationToken cancellationToken = default)
     {
         using var activity = OrchestratorActivitySource.Source.StartActivity(OrchestratorActivitySource.NetworkConnect);
         activity?.SetTag(OrchestratorActivitySource.AttributeNetworkId, networkId);
         activity?.SetTag(OrchestratorActivitySource.AttributeContainerId, containerId);
+        if (aliases != null)
+        {
+            activity?.SetTag("network.connect.aliases", string.Join(",", aliases));
+        }
         var startTimestamp = Stopwatch.GetTimestamp();
 
         try
         {
-            await inner.ConnectAsync(networkId, containerId, cancellationToken);
+            await inner.ConnectAsync(networkId, containerId, aliases, cancellationToken);
             RecordSuccess(OrchestratorActivitySource.NetworkConnect, startTimestamp);
         }
         catch (Exception ex)

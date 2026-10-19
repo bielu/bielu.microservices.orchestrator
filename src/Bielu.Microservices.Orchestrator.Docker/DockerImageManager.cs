@@ -40,7 +40,7 @@ public class DockerImageManager(
                 Id = response.ID,
                 Tags = response.RepoTags?.ToList() ?? new List<string>(),
                 Size = response.Size,
-                CreatedAt = new DateTimeOffset(response.Created),
+                CreatedAt = new DateTimeOffset(response.Created ?? DateTime.MinValue),
                 Labels = response.Config?.Labels != null
                     ? new Dictionary<string, string>(response.Config.Labels)
                     : new Dictionary<string, string>()

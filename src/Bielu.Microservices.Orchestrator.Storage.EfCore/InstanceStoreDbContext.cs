@@ -60,6 +60,10 @@ public class ManagedInstanceEntity
     public string Id { get; set; } = string.Empty;
 
     /// <summary>
+    /// Unique instance or group identifier.
+    /// </summary>
+    public Guid OrchestratorId { get; set; } = Guid.Empty;
+    /// <summary>
     /// JSON-serialized list of runtime container IDs.
     /// </summary>
     public string ContainerIdsJson { get; set; } = "[]";
@@ -136,6 +140,7 @@ public class ManagedInstanceEntity
     public ManagedInstance ToDomainModel() => new()
     {
         Id = Id,
+        OrchestratorId = OrchestratorId,
         ContainerIds = ContainerIds,
         OriginalRequest = OriginalRequest,
         DesiredState = DesiredState,

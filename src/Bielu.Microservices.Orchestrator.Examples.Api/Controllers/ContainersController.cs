@@ -84,12 +84,14 @@ public class ContainersController(IContainerOrchestrator orchestrator) : Control
     }
 
     /// <summary>
-    /// Remove a container (use ?force=true to remove a running container).
+    /// Remove a container.
+    /// Use ?force=true to remove a running container.
+    /// Use ?removeVolumes=true to also delete all associated volume data (named volumes, bind-mount directories).
     /// </summary>
     [HttpDelete("{id}")]
-    public async Task<IActionResult> Remove(string id, bool force = false)
+    public async Task<IActionResult> Remove(string id, bool force = false, bool removeVolumes = false)
     {
-        await orchestrator.Containers.RemoveAsync(id, force);
+        await orchestrator.Containers.RemoveAsync(id, force, removeVolumes);
         return NoContent();
     }
 
@@ -101,5 +103,79 @@ public class ContainersController(IContainerOrchestrator orchestrator) : Control
     {
         await orchestrator.Containers.ScaleAsync(id, replicas);
         return Ok(new { Message = $"Container {id} scaled to {replicas} replicas." });
+    }
+
+    /// <summary>
+    /// Demo: start a worker container attached to the Aspire session network so it
+    /// can resolve other Aspire-managed containers (e.g. postgres, kafka) by name.
+    /// </summary>
+    /// <remarks>
+    /// Aspire creates a dedicated bridge network named
+    /// <c>aspire-session-network-{sessionId}-{appHostName}</c> for every run.
+    /// We discover it at runtime and pass it in <see cref="CreateContainerRequest.Networks"/>
+    /// so the orchestrator connects the new container to the same network after creation.
+    ///
+    /// Example: POST /api/containers/aspire-worker?image=example-worker:latest
+    /// </remarks>
+    [HttpPost("aspire-worker")]
+    public async Task<IActionResult> StartWorkerOnAspireNetwork(
+        [FromQuery] string image = "example-worker:latest",
+        [FromQuery] string name = "example-worker")
+    {
+        // 1) Find the Aspire session network created by the AppHost for this run.
+        var networks = await orchestrator.Networks.ListAsync();
+        var aspireNetwork = networks
+            .FirstOrDefault(n => n.Name.StartsWith("aspire-session-network-",
+                StringComparison.OrdinalIgnoreCase));
+
+        if (aspireNetwork is null)
+        {
+            return Problem(
+                title: "Aspire session network not found",
+                detail: "No docker network with prefix 'aspire-session-network-' was found. " +
+                        "Make sure the API is running under the Aspire AppHost.",
+                statusCode: StatusCodes.Status409Conflict);
+        }
+
+        // 2) Create the container on that network so it shares DNS with
+        //    other Aspire resources (postgres, kafka, otel-collector, ...).
+        var request = new CreateContainerRequest
+        {
+            Name = name,
+            Image = image,
+            EnvironmentVariables =
+            {
+                ["OTEL_EXPORTER_OTLP_ENDPOINT"] = "http://opentelemetry-collector:4317",
+                ["OTEL_SERVICE_NAME"] = name,
+                // Aspire registers each resource as a DNS alias on the session network,
+                // so connection strings like "Host=postgres" or "kafka:9092" just work.
+                ["ConnectionStrings__orchestratordb"] =
+                    "Host=postgres;Port=5432;Database=orchestratordb;Username=postgres;Password=postgres"
+            },
+            Labels =
+            {
+                ["app"] = name,
+                ["started-by"] = "ContainersController"
+            },
+            Networks =
+            {
+                new NetworkAttachment
+                {
+                    NetworkName = aspireNetwork.Name,
+                    Aliases = { name }
+                }
+            },
+            AutoRemove = true
+        };
+
+        var containerId = await orchestrator.Containers.CreateAsync(request);
+        await orchestrator.Containers.StartAsync(containerId);
+
+        return Ok(new
+        {
+            ContainerId = containerId,
+            Network = aspireNetwork.Name,
+            Message = $"Started '{name}' on Aspire network '{aspireNetwork.Name}'."
+        });
     }
 }

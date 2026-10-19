@@ -28,10 +28,12 @@ public class ContainerdContainerManager(
     Containers.ContainersClient containersClient,
     Tasks.TasksClient tasksClient,
     Snapshots.SnapshotsClient snapshotsClient,
+    INetworkManager networkManager,
     ContainerdOptions options,
     OrchestratorOptions orchestratorOptions,
     ILogger<ContainerdContainerManager> logger) : IContainerManager
 {
+    private const string NetworksLabel = "orchestrator.networks";
     private const string DefaultSnapshotter = "overlayfs";
     private const string OciSpecVersion = "1.0.2";
     private const string DefaultContainerPath = "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin";
@@ -39,6 +41,10 @@ public class ContainerdContainerManager(
     // SIGTERM = 15, SIGKILL = 9
     private const uint SigTerm = 15;
     private const uint SigKill = 9;
+
+    //todo: confirm default address
+    public string HostAddress => "172.17.0.1";
+    public string ProviderName => "containerd";
 
     public async Task<IReadOnlyList<ContainerInfo>> ListAsync(bool all = false, CancellationToken cancellationToken = default)
     {
@@ -88,6 +94,14 @@ public class ContainerdContainerManager(
         if (request.Replicas <= 0)
         {
             throw new ArgumentOutOfRangeException(nameof(request), "Replicas must be at least 1.");
+        }
+
+        if (request.RestartPolicy != Models.RestartPolicy.No)
+        {
+            logger.LogWarning(
+                "containerd does not support restart policies natively. " +
+                "RestartPolicy {Policy} will be ignored; use a process supervisor (e.g. systemd) for automatic restarts.",
+                request.RestartPolicy);
         }
 
         if (request.Replicas == 1)
@@ -141,6 +155,27 @@ public class ContainerdContainerManager(
         await tasksClient.StartAsync(
             new StartRequest { ContainerId = containerId }, headers, cancellationToken: cancellationToken);
 
+        // Connect networks stored in labels
+        if (container.Labels.TryGetValue(NetworksLabel, out var networksJson))
+        {
+            try
+            {
+                var networks = JsonSerializer.Deserialize<List<Models.NetworkAttachment>>(networksJson);
+                if (networks != null)
+                {
+                    foreach (var network in networks)
+                    {
+                        await networkManager.ConnectAsync(network.NetworkName, containerId, network.Aliases, cancellationToken);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                logger.LogWarning(ex, "Failed to connect networks for containerd container {ContainerId} from labels",
+                    LogSanitizer.Sanitize(containerId));
+            }
+        }
+
         logger.LogInformation("Started containerd task for container {ContainerId}", LogSanitizer.Sanitize(containerId));
     }
 
@@ -185,11 +220,18 @@ public class ContainerdContainerManager(
         }
     }
 
-    public async Task RemoveAsync(string containerId, bool force = false, CancellationToken cancellationToken = default)
+    public async Task RemoveAsync(string containerId, bool force = false, bool removeVolumes = false, CancellationToken cancellationToken = default)
     {
         logger.LogInformation("Removing containerd container {ContainerId}", LogSanitizer.Sanitize(containerId));
 
         var headers = NamespaceHeader();
+
+        IList<Models.VolumeMount> mounts = [];
+        if (removeVolumes)
+        {
+            var info = await GetAsync(containerId, cancellationToken);
+            mounts = info?.Volumes ?? [];
+        }
 
         // Kill and delete any running task first
         try
@@ -231,6 +273,18 @@ public class ContainerdContainerManager(
             new DeleteContainerRequest { Id = containerId },
             headers, cancellationToken: cancellationToken);
 
+        if (removeVolumes)
+        {
+            foreach (var mount in mounts)
+            {
+                if (!string.IsNullOrEmpty(mount.HostPath) && mount.IsBindMount && Directory.Exists(mount.HostPath))
+                {
+                    Directory.Delete(mount.HostPath, recursive: true);
+                    logger.LogInformation("Deleted bind-mount directory {Path}", mount.HostPath);
+                }
+            }
+        }
+
         logger.LogInformation("Removed containerd container {ContainerId}", LogSanitizer.Sanitize(containerId));
     }
 
@@ -264,6 +318,12 @@ public class ContainerdContainerManager(
         var labels = overrideLabels ?? new Dictionary<string, string>(request.Labels);
         labels[OrchestratorLabels.ManagedBy] = OrchestratorLabels.ManagedByValue;
 
+        var effectiveNetworks = await GetEffectiveNetworksAsync(request, containerId, cancellationToken);
+        if (effectiveNetworks != null)
+        {
+            labels[NetworksLabel] = JsonSerializer.Serialize(effectiveNetworks);
+        }
+
         var specJson = BuildOciSpec(request);
         var spec = new Any
         {
@@ -293,6 +353,54 @@ public class ContainerdContainerManager(
             LogSanitizer.Sanitize(response.Container.Id), LogSanitizer.Sanitize(request.Image), LogSanitizer.Sanitize(options.Namespace));
 
         return response.Container.Id;
+    }
+
+    private async Task<IList<Models.NetworkAttachment>?> GetEffectiveNetworksAsync(
+        CreateContainerRequest request,
+        string? containerName,
+        CancellationToken cancellationToken)
+    {
+        if (request.Networks is { Count: > 0 })
+        {
+            return request.Networks;
+        }
+
+        if (!orchestratorOptions.UseDefaultNetwork)
+        {
+            return request.Networks;
+        }
+
+        var defaultNetwork = orchestratorOptions.ResolveDefaultNetworkName();
+        if (string.IsNullOrWhiteSpace(defaultNetwork))
+        {
+            return request.Networks;
+        }
+
+        // Auto-create the network if it doesn't exist yet (idempotent).
+        var existing = await networkManager.ListAsync(cancellationToken);
+        if (!existing.Any(n =>
+                string.Equals(n.Name, defaultNetwork, StringComparison.Ordinal) ||
+                string.Equals(n.Id, defaultNetwork, StringComparison.Ordinal)))
+        {
+            logger.LogInformation("Auto-creating default orchestrator network {Network}",
+                LogSanitizer.Sanitize(defaultNetwork));
+            await networkManager.CreateAsync(defaultNetwork, cancellationToken: cancellationToken);
+        }
+
+        var aliases = new List<string>();
+        if (!string.IsNullOrWhiteSpace(containerName))
+        {
+            aliases.Add(containerName);
+        }
+
+        return new List<Models.NetworkAttachment>
+        {
+            new Models.NetworkAttachment
+            {
+                NetworkName = defaultNetwork,
+                Aliases = aliases
+            }
+        };
     }
 
     private async Task<Dictionary<string, TaskProcess>> GetTaskStatusMapAsync(Metadata headers, CancellationToken cancellationToken)
@@ -365,8 +473,59 @@ public class ContainerdContainerManager(
             CreatedAt = container.CreatedAt != null
                 ? DateTimeOffset.FromUnixTimeSeconds(container.CreatedAt.Seconds)
                 : DateTimeOffset.MinValue,
-            Labels = new Dictionary<string, string>(container.Labels)
+            Labels = new Dictionary<string, string>(container.Labels),
+            Volumes = ParseVolumesFromSpec(container.Spec?.Value.ToStringUtf8())
         };
+    }
+
+    private static IList<Bielu.Microservices.Orchestrator.Models.VolumeMount> ParseVolumesFromSpec(string? specJson)
+    {
+        var volumes = new List<Bielu.Microservices.Orchestrator.Models.VolumeMount>();
+        if (string.IsNullOrWhiteSpace(specJson))
+        {
+            return volumes;
+        }
+
+        try
+        {
+            using var doc = JsonDocument.Parse(specJson);
+            if (!doc.RootElement.TryGetProperty("mounts", out var mounts) || mounts.ValueKind != JsonValueKind.Array)
+            {
+                return volumes;
+            }
+
+            foreach (var mount in mounts.EnumerateArray())
+            {
+                var type = mount.TryGetProperty("type", out var t) ? t.GetString() : null;
+                if (!string.Equals(type, "bind", StringComparison.OrdinalIgnoreCase))
+                {
+                    continue;
+                }
+
+                var source = mount.TryGetProperty("source", out var s) ? s.GetString() ?? string.Empty : string.Empty;
+                var destination = mount.TryGetProperty("destination", out var d) ? d.GetString() ?? string.Empty : string.Empty;
+                var readOnly = false;
+                if (mount.TryGetProperty("options", out var opts) && opts.ValueKind == JsonValueKind.Array)
+                {
+                    readOnly = opts.EnumerateArray()
+                        .Any(o => o.ValueKind == JsonValueKind.String &&
+                                  string.Equals(o.GetString(), "ro", StringComparison.OrdinalIgnoreCase));
+                }
+
+                volumes.Add(new Bielu.Microservices.Orchestrator.Models.VolumeMount
+                {
+                    HostPath = source,
+                    ContainerPath = destination,
+                    ReadOnly = readOnly
+                });
+            }
+        }
+        catch (JsonException)
+        {
+            // Ignore malformed spec; return what we have.
+        }
+
+        return volumes;
     }
 
     private static ContainerState MapStatus(TaskStatus? status)
@@ -392,16 +551,12 @@ public class ContainerdContainerManager(
             .Prepend(DefaultContainerPath)
             .ToList();
 
-        var bindMounts = request.Volumes.Select(v =>
+        var bindMounts = request.Volumes.Select(v => new
         {
-            var parts = v.Split(':');
-            return new
-            {
-                destination = parts.Length > 1 ? parts[1] : parts[0],
-                type = "bind",
-                source = parts[0],
-                options = new[] { "rbind", "rw" }
-            };
+            destination = string.IsNullOrEmpty(v.ContainerPath) ? v.HostPath : v.ContainerPath,
+            type = "bind",
+            source = v.HostPath,
+            options = new[] { "rbind", v.ReadOnly ? "ro" : "rw" }
         }).ToList<object>();
 
         var spec = new
