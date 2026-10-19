@@ -23,3 +23,6 @@ Gemfile.lock
 dist/
 .junie
 node_modules/
+
+# Test results / coverage reports
+TestResults/

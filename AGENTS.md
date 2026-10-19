@@ -208,10 +208,10 @@ The rule is: **feature first, layer second** — never the other way around. A d
 
 ### Code coverage
 
-Target **70%+ line coverage** for code you add or change. The test project references `coverlet.collector`:
+Target **70%+ line coverage** for code you add or change. Coverage is collected with `coverlet.collector`, and a plain `dotnet test` collects it: `coverlet.runsettings`, applied to every test project via the root `Directory.Build.props`, enables the collector and writes Cobertura reports under each test project's `TestResults/`. Only `Bielu.*` library assemblies are measured; generated sources (`obj/`, including the containerd gRPC stubs), examples and test assemblies are excluded. Every test project must reference `coverlet.collector`, or its packages silently drop out of the report.
 
 ```bash
-dotnet test src/Bielu.Microservices.Orchestrator.Tests --collect:"XPlat Code Coverage"
+dotnet test src/Bielu.Microservices.Orchestrator.Tests
 ```
 
 ---
