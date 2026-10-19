@@ -6,7 +6,8 @@ namespace Bielu.Microservices.Orchestrator.Gateway.Contracts.Models;
 public sealed class HeartbeatRequest
 {
     /// <summary>
-    /// Current CPU usage percentage of the orchestrator host.
+    /// CPU usage percentage of the orchestrator process since its previous report,
+    /// normalized across all logical processors (0–100).
     /// </summary>
     public double CpuPercent { get; init; }
 

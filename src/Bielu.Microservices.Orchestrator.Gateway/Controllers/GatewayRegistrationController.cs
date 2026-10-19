@@ -1,5 +1,6 @@
 using Bielu.Microservices.Orchestrator.Gateway.Authentication;
 using Bielu.Microservices.Orchestrator.Gateway.Configuration;
+using Bielu.Microservices.Orchestrator.Gateway.Contracts;
 using Bielu.Microservices.Orchestrator.Gateway.Contracts.Models;
 using Bielu.Microservices.Orchestrator.Gateway.Services;
 using Microsoft.AspNetCore.Authorization;
@@ -18,20 +19,28 @@ public class GatewayRegistrationController(
     OrchestratorRegistrationStore store,
     GatewayOptions options) : ControllerBase
 {
+    private static readonly object InvalidInstanceIdError = new
+    {
+        Error = $"InstanceId must be 1-{GatewayConstants.MaxInstanceIdLength} characters of letters, digits, '-', '_' or '.'."
+    };
+
     /// <summary>
     /// Register a new orchestrator instance.
     /// </summary>
     [HttpPost("register")]
     public IActionResult Register([FromBody] RegisterRequest request)
     {
-        if (string.IsNullOrWhiteSpace(request.InstanceId))
-            return BadRequest(new { Error = "InstanceId is required." });
+        if (!GatewayConstants.IsValidInstanceId(request.InstanceId))
+            return BadRequest(InvalidInstanceIdError);
 
         if (string.IsNullOrWhiteSpace(request.Address))
             return BadRequest(new { Error = "Address is required." });
 
-        if (!Uri.TryCreate(request.Address, UriKind.Absolute, out _))
+        if (!Uri.TryCreate(request.Address, UriKind.Absolute, out var addressUri))
             return BadRequest(new { Error = "Address must be a valid absolute URL." });
+
+        if (addressUri.Scheme != Uri.UriSchemeHttp && addressUri.Scheme != Uri.UriSchemeHttps)
+            return BadRequest(new { Error = "Address must use the http or https scheme." });
 
         var instance = new RegisteredInstance
         {
@@ -54,8 +63,8 @@ public class GatewayRegistrationController(
     [HttpPut("heartbeat/{instanceId}")]
     public IActionResult Heartbeat(string instanceId, [FromBody] HeartbeatRequest request)
     {
-        if (string.IsNullOrWhiteSpace(instanceId))
-            return BadRequest(new { Error = "InstanceId is required." });
+        if (!GatewayConstants.IsValidInstanceId(instanceId))
+            return BadRequest(InvalidInstanceIdError);
 
         var expiresAt = DateTimeOffset.UtcNow.AddSeconds(options.InstanceTtlSeconds);
         var found = store.Heartbeat(instanceId, request.CpuPercent, request.MemoryMb, expiresAt);
@@ -69,8 +78,8 @@ public class GatewayRegistrationController(
     [HttpDelete("register/{instanceId}")]
     public IActionResult Deregister(string instanceId)
     {
-        if (string.IsNullOrWhiteSpace(instanceId))
-            return BadRequest(new { Error = "InstanceId is required." });
+        if (!GatewayConstants.IsValidInstanceId(instanceId))
+            return BadRequest(InvalidInstanceIdError);
 
         var found = store.Deregister(instanceId);
         return found ? NoContent() : NotFound(new { Error = $"Instance '{instanceId}' is not registered." });

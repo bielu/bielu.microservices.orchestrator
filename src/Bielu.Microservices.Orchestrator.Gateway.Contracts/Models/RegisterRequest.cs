@@ -6,12 +6,13 @@ namespace Bielu.Microservices.Orchestrator.Gateway.Contracts.Models;
 public sealed class RegisterRequest
 {
     /// <summary>
-    /// Unique identifier for this orchestrator instance.
+    /// Unique identifier for this orchestrator instance. Must satisfy
+    /// <see cref="GatewayConstants.IsValidInstanceId"/>.
     /// </summary>
     public required string InstanceId { get; init; }
 
     /// <summary>
-    /// The publicly reachable base URL of the orchestrator instance (e.g. "http://host:5000").
+    /// The publicly reachable http(s) base URL of the orchestrator instance (e.g. "http://host:5000").
     /// </summary>
     public required string Address { get; init; }
 
@@ -21,7 +22,8 @@ public sealed class RegisterRequest
     public string? Provider { get; init; }
 
     /// <summary>
-    /// Current CPU usage percentage of the orchestrator host.
+    /// CPU usage percentage of the orchestrator process since its previous report,
+    /// normalized across all logical processors (0–100).
     /// </summary>
     public double CpuPercent { get; init; }
 

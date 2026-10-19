@@ -5,9 +5,10 @@ using Microsoft.Extensions.Logging;
 namespace Bielu.Microservices.Orchestrator.Gateway.Services;
 
 /// <summary>
-/// Represents a registered orchestrator instance.
+/// Immutable snapshot of a registered orchestrator instance.
+/// Updates replace the stored snapshot atomically instead of mutating it.
 /// </summary>
-public sealed class RegisteredInstance
+public sealed record RegisteredInstance
 {
     /// <summary>Unique identifier of the instance.</summary>
     public required string InstanceId { get; init; }
@@ -19,13 +20,13 @@ public sealed class RegisteredInstance
     public string? Provider { get; init; }
 
     /// <summary>Latest CPU usage percentage.</summary>
-    public double CpuPercent { get; set; }
+    public double CpuPercent { get; init; }
 
     /// <summary>Latest memory usage in MB.</summary>
-    public double MemoryMb { get; set; }
+    public double MemoryMb { get; init; }
 
     /// <summary>UTC timestamp when this entry expires.</summary>
-    public DateTimeOffset ExpiresAt { get; set; }
+    public DateTimeOffset ExpiresAt { get; init; }
 }
 
 /// <summary>
@@ -37,24 +38,29 @@ public sealed class OrchestratorRegistrationStore(ILogger<OrchestratorRegistrati
     private readonly ConcurrentDictionary<string, RegisteredInstance> _instances = new();
 
     /// <summary>
-    /// Raised when instances are added, removed, or updated.
+    /// Raised when instances are added, removed, or re-registered.
     /// Subscribers (e.g. the YARP config provider) use this to reload proxy configuration.
+    /// Heartbeats do not raise it; read live stats via <see cref="TryGet"/>.
     /// </summary>
     public event Action? OnChange;
 
     /// <summary>
-    /// Registers a new orchestrator instance or updates an existing one.
+    /// Registers a new orchestrator instance or replaces an existing one.
     /// </summary>
-    /// <returns><c>true</c> if a new instance was added; <c>false</c> if it was updated.</returns>
+    /// <returns><c>true</c> if a new instance was added; <c>false</c> if it was replaced.</returns>
     public bool Register(RegisteredInstance instance)
     {
         ArgumentNullException.ThrowIfNull(instance);
 
-        var isNew = _instances.TryAdd(instance.InstanceId, instance);
-        if (!isNew)
-        {
-            _instances[instance.InstanceId] = instance;
-        }
+        var isNew = true;
+        _instances.AddOrUpdate(
+            instance.InstanceId,
+            instance,
+            (_, _) =>
+            {
+                isNew = false;
+                return instance;
+            });
 
         var sanitizedId = LogSanitizer.Sanitize(instance.InstanceId);
         var sanitizedAddress = LogSanitizer.Sanitize(instance.Address);
@@ -74,15 +80,21 @@ public sealed class OrchestratorRegistrationStore(ILogger<OrchestratorRegistrati
     /// <returns><c>true</c> if the instance was found and updated.</returns>
     public bool Heartbeat(string instanceId, double cpuPercent, double memoryMb, DateTimeOffset expiresAt)
     {
-        if (!_instances.TryGetValue(instanceId, out var instance))
-            return false;
+        // Compare-and-swap so a concurrent re-register or expiry is never overwritten
+        while (_instances.TryGetValue(instanceId, out var current))
+        {
+            var updated = current with
+            {
+                CpuPercent = cpuPercent,
+                MemoryMb = memoryMb,
+                ExpiresAt = expiresAt
+            };
 
-        instance.CpuPercent = cpuPercent;
-        instance.MemoryMb = memoryMb;
-        instance.ExpiresAt = expiresAt;
+            if (_instances.TryUpdate(instanceId, updated, current))
+                return true;
+        }
 
-        // No OnChange needed — resource stats update doesn't change the destination set.
-        return true;
+        return false;
     }
 
     /// <summary>
@@ -108,17 +120,18 @@ public sealed class OrchestratorRegistrationStore(ILogger<OrchestratorRegistrati
         var now = DateTimeOffset.UtcNow;
         var removed = 0;
 
-        var expiredKeys = _instances
+        var expired = _instances
             .Where(kvp => kvp.Value.ExpiresAt <= now)
-            .Select(kvp => kvp.Key)
             .ToList();
 
-        foreach (var key in expiredKeys)
+        foreach (var entry in expired)
         {
-            if (_instances.TryRemove(key, out _))
+            // Only removes the exact snapshot we saw, so an instance refreshed by a
+            // concurrent heartbeat or re-register survives.
+            if (_instances.TryRemove(entry))
             {
                 logger.LogWarning("Instance {InstanceId} expired (TTL exceeded)",
-                    LogSanitizer.Sanitize(key));
+                    LogSanitizer.Sanitize(entry.Key));
                 removed++;
             }
         }
@@ -130,8 +143,17 @@ public sealed class OrchestratorRegistrationStore(ILogger<OrchestratorRegistrati
     }
 
     /// <summary>
+    /// Gets the latest snapshot of an instance, including stats from its most recent heartbeat.
+    /// </summary>
+    public bool TryGet(string instanceId, out RegisteredInstance instance) =>
+        _instances.TryGetValue(instanceId, out instance!);
+
+    /// <summary>
     /// Returns a snapshot of all currently alive instances.
     /// </summary>
-    public IReadOnlyList<RegisteredInstance> GetAlive() =>
-        _instances.Values.Where(i => i.ExpiresAt > DateTimeOffset.UtcNow).ToList();
+    public IReadOnlyList<RegisteredInstance> GetAlive()
+    {
+        var now = DateTimeOffset.UtcNow;
+        return _instances.Values.Where(i => i.ExpiresAt > now).ToList();
+    }
 }

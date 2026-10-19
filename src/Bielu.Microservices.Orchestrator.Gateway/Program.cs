@@ -17,6 +17,7 @@ builder.Services.AddOrchestratorGateway(options =>
         ?? throw new InvalidOperationException("Gateway:ApiKey must be configured.");
     options.InstanceTtlSeconds = builder.Configuration.GetValue("Gateway:InstanceTtlSeconds", 30);
     options.RoutePattern = builder.Configuration.GetValue("Gateway:RoutePattern", "{**catch-all}")!;
+    options.MaxMemoryMbForScoring = builder.Configuration.GetValue("Gateway:MaxMemoryMbForScoring", 4096.0);
 });
 
 var app = builder.Build();
