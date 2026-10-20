@@ -1,4 +1,4 @@
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using Bielu.Microservices.Orchestrator.Abstractions;
 using Bielu.Microservices.Orchestrator.Docker.Extensions;
 using Bielu.Microservices.Orchestrator.Extensions;
@@ -34,7 +34,7 @@ public class OpenTelemetryInstrumentationTests
             b.AddOpenTelemetryInstrumentation();
         });
 
-       using var provider = services.BuildServiceProvider();
+        using var provider = services.BuildServiceProvider();
         var manager = provider.GetRequiredService<IContainerManager>();
         manager.ShouldBeOfType<OpenTelemetryContainerManagerDecorator>();
     }
@@ -51,7 +51,7 @@ public class OpenTelemetryInstrumentationTests
             b.AddOpenTelemetryInstrumentation();
         });
 
-       using var provider = services.BuildServiceProvider();
+        using var provider = services.BuildServiceProvider();
         var manager = provider.GetRequiredService<IImageManager>();
         manager.ShouldBeOfType<OpenTelemetryImageManagerDecorator>();
     }
@@ -68,7 +68,7 @@ public class OpenTelemetryInstrumentationTests
             b.AddOpenTelemetryInstrumentation();
         });
 
-       using var provider = services.BuildServiceProvider();
+        using var provider = services.BuildServiceProvider();
         var manager = provider.GetRequiredService<INetworkManager>();
         manager.ShouldBeOfType<OpenTelemetryNetworkManagerDecorator>();
     }
@@ -85,7 +85,7 @@ public class OpenTelemetryInstrumentationTests
             b.AddOpenTelemetryInstrumentation();
         });
 
-       using var provider = services.BuildServiceProvider();
+        using var provider = services.BuildServiceProvider();
         var manager = provider.GetRequiredService<IVolumeManager>();
         manager.ShouldBeOfType<OpenTelemetryVolumeManagerDecorator>();
     }
@@ -212,14 +212,14 @@ public class OpenTelemetryInstrumentationTests
     public async Task OpenTelemetryVolumeManagerDecorator_CreateAsync_DelegatesToInner()
     {
         var inner = Substitute.For<IVolumeManager>();
-        inner.CreateAsync(Arg.Any<string>(), Arg.Any<string?>(), Arg.Any<CancellationToken>())
+        inner.CreateAsync(Arg.Any<string>(), Arg.Any<string?>(), Arg.Any<IDictionary<string, string>?>(), Arg.Any<CancellationToken>())
              .Returns(new VolumeInfo { Name = "vol1" });
 
         var traced = new OpenTelemetryVolumeManagerDecorator(inner);
         var vol = await traced.CreateAsync("vol1");
 
         vol.Name.ShouldBe("vol1");
-        await inner.Received(1).CreateAsync("vol1", null, Arg.Any<CancellationToken>());
+        await inner.Received(1).CreateAsync("vol1", null, null, Arg.Any<CancellationToken>());
     }
 
     // -----------------------------------------------------------------------
@@ -256,7 +256,7 @@ public class OpenTelemetryInstrumentationTests
             b.WithStateTracking();
         });
 
-       using var provider = services.BuildServiceProvider();
+        using var provider = services.BuildServiceProvider();
         var manager = provider.GetRequiredService<IContainerManager>();
         manager.ShouldBeOfType<OpenTelemetryContainerManagerDecorator>();
     }
@@ -274,7 +274,7 @@ public class OpenTelemetryInstrumentationTests
             b.AddOpenTelemetryInstrumentation();
         });
 
-       using var provider = services.BuildServiceProvider();
+        using var provider = services.BuildServiceProvider();
         var manager = provider.GetRequiredService<IContainerManager>();
         manager.ShouldBeOfType<OpenTelemetryContainerManagerDecorator>();
     }
