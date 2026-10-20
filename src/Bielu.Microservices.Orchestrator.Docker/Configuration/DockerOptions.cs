@@ -1,4 +1,4 @@
-namespace Bielu.Microservices.Orchestrator.Docker.Configuration;
+﻿namespace Bielu.Microservices.Orchestrator.Docker.Configuration;
 
 /// <summary>
 /// Configuration options for the Docker runtime provider.

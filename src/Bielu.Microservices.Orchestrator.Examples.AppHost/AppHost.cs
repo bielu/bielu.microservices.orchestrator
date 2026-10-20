@@ -1,4 +1,4 @@
-var builder = DistributedApplication.CreateBuilder(args);
+﻿var builder = DistributedApplication.CreateBuilder(args);
 var otel = builder.AddOpenTelemetryCollector("opentelemetry-collector")
     .WithConfig("./config.yaml").WithAppForwarding();
 

@@ -1,4 +1,4 @@
-namespace Bielu.Microservices.Orchestrator.Abstractions;
+﻿namespace Bielu.Microservices.Orchestrator.Abstractions;
 
 /// <summary>
 /// Top-level orchestrator providing access to all container management capabilities.

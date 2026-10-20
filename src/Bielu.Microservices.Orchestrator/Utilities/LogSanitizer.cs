@@ -1,4 +1,4 @@
-namespace Bielu.Microservices.Orchestrator.Utilities;
+﻿namespace Bielu.Microservices.Orchestrator.Utilities;
 
 /// <summary>
 /// Sanitizes user-provided values before they are passed to logging calls

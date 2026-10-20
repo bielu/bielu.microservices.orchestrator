@@ -1,4 +1,4 @@
-namespace Bielu.Microservices.Orchestrator.Kubernetes.Configuration;
+﻿namespace Bielu.Microservices.Orchestrator.Kubernetes.Configuration;
 
 /// <summary>
 /// Configuration options for the Kubernetes runtime provider.

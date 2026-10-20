@@ -1,4 +1,4 @@
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using Bielu.Microservices.Orchestrator.Abstractions;
 using Bielu.Microservices.Orchestrator.Models;
 
@@ -29,7 +29,7 @@ public class OpenTelemetryContainerManagerDecorator(IContainerManager inner) : I
     ];
 
 
-    public string HostAddress  => inner.HostAddress;
+    public string HostAddress => inner.HostAddress;
     public string ProviderName => inner.ProviderName;
 
     /// <inheritdoc />
@@ -84,7 +84,7 @@ public class OpenTelemetryContainerManagerDecorator(IContainerManager inner) : I
             {
                 if (value.Contains("localhost") || value.Contains("127.0.0.1"))
                 {
-                    value = value.Replace("localhost", HostAddress).Replace("127.0.0.1",HostAddress);
+                    value = value.Replace("localhost", HostAddress).Replace("127.0.0.1", HostAddress);
                 }
                 request.EnvironmentVariables[envVar] = value;
             }

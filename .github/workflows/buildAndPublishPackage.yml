@@ -51,6 +51,20 @@ jobs:
           fi
           echo "Found changeset(s):"; echo "$ADDED"
 
+  # Pull request: whitespace/charset formatting must match .editorconfig.
+  format-check:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+      - name: Verify formatting
+        run: dotnet format whitespace --verify-no-changes src/Bielu.Microservices.Orchestrator.slnx
+
   # Push to main: consume changesets into a "Version Packages" PR. While changesets are pending it
   # (re)opens that PR; once it is merged and the changesets are gone, hasChangesets becomes false and
   # the release jobs below take over.

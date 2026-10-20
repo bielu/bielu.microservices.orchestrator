@@ -1,4 +1,4 @@
-namespace Bielu.Microservices.Orchestrator.Storage.File.Configuration;
+﻿namespace Bielu.Microservices.Orchestrator.Storage.File.Configuration;
 
 /// <summary>
 /// Configuration options for the file-based instance store.
