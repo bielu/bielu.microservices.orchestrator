@@ -203,7 +203,10 @@ public class ContainerdContainerManager(
                         new WaitRequest { ContainerId = containerId },
                         headers, cancellationToken: cts.Token);
                 }
-                catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+                // Grpc.Net.Client reports a cancelled call as RpcException(Cancelled) unless the channel
+                // opts into ThrowOperationCanceledOnCancellation, so both shapes mean "timed out".
+                catch (Exception ex) when (ex is OperationCanceledException or RpcException { StatusCode: StatusCode.Cancelled }
+                                           && !cancellationToken.IsCancellationRequested)
                 {
                     // Timeout expired; escalate to SIGKILL
                     await tasksClient.KillAsync(
