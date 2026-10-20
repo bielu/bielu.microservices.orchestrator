@@ -167,4 +167,209 @@ public class StateTrackingDecoratorTests
 
         result.ShouldBe("logs");
     }
+
+    [Fact]
+    public void HostAddressAndProviderName_ComeFromInner()
+    {
+        // Arrange
+        _inner.HostAddress.Returns("unix:///var/run/docker.sock");
+
+        // Act & Assert
+        _decorator.HostAddress.ShouldBe("unix:///var/run/docker.sock");
+        _decorator.ProviderName.ShouldBe("Docker");
+    }
+
+    // -----------------------------------------------------------------------
+    // Desired-state tracking
+    // -----------------------------------------------------------------------
+
+    private async Task SeedAsync(string id, DesiredState state)
+    {
+        await _store.SaveAsync(new ManagedInstance
+        {
+            Id = id,
+            ContainerIds = [id],
+            OriginalRequest = new CreateContainerRequest { Image = "nginx:latest" },
+            DesiredState = state,
+            ProviderName = "Docker",
+            CreatedAt = DateTimeOffset.UtcNow
+        });
+    }
+
+    [Fact]
+    public async Task StopAsync_TrackedInstance_RecordsStoppedDesiredState()
+    {
+        // Arrange
+        await SeedAsync("web-app", DesiredState.Running);
+
+        // Act
+        await _decorator.StopAsync("web-app");
+
+        // Assert
+        (await _store.GetAsync("web-app"))!.DesiredState.ShouldBe(DesiredState.Stopped);
+    }
+
+    [Fact]
+    public async Task StartAsync_StoppedInstance_RecordsRunningDesiredState()
+    {
+        // Arrange
+        await SeedAsync("web-app", DesiredState.Stopped);
+
+        // Act
+        await _decorator.StartAsync("web-app");
+
+        // Assert
+        (await _store.GetAsync("web-app"))!.DesiredState.ShouldBe(DesiredState.Running);
+    }
+
+    [Fact]
+    public async Task StartAsync_AlreadyRunning_DoesNotRewriteTheRecord()
+    {
+        // Arrange
+        await SeedAsync("web-app", DesiredState.Running);
+        var before = (await _store.GetAsync("web-app"))!.UpdatedAt;
+
+        // Act
+        await _decorator.StartAsync("web-app");
+
+        // Assert
+        (await _store.GetAsync("web-app"))!.UpdatedAt.ShouldBe(before);
+    }
+
+    [Fact]
+    public async Task ScaleAsync_UntrackedInstance_OnlyDelegates()
+    {
+        // Act
+        await _decorator.ScaleAsync("unknown", 3);
+
+        // Assert
+        await _inner.Received(1).ScaleAsync("unknown", 3, Arg.Any<CancellationToken>());
+        (await _store.GetAsync("unknown")).ShouldBeNull();
+    }
+
+    // -----------------------------------------------------------------------
+    // Replica discovery
+    // -----------------------------------------------------------------------
+
+    private static ContainerInfo Replica(string id, string? group)
+    {
+        var info = new ContainerInfo { Id = id };
+        if (group != null) info.Labels[OrchestratorLabels.Group] = group;
+        return info;
+    }
+
+    [Fact]
+    public async Task CreateAsync_MultipleReplicas_StoresEveryReplicaOfTheGroup()
+    {
+        // Arrange
+        var request = new CreateContainerRequest { Name = "web-app", Image = "nginx:latest", Replicas = 3 };
+        _inner.CreateAsync(request, Arg.Any<CancellationToken>()).Returns("ctr-1");
+        _inner.ListAsync(true, Arg.Any<CancellationToken>()).Returns(new List<ContainerInfo>
+        {
+            Replica("ctr-1", "web-app"), Replica("ctr-2", "web-app"), Replica("ctr-3", "web-app"),
+            Replica("other", "another-app"), Replica("loose", null)
+        }.AsReadOnly());
+
+        // Act
+        await _decorator.CreateAsync(request);
+
+        // Assert
+        (await _store.GetAsync("web-app"))!.ContainerIds.ShouldBe(["ctr-1", "ctr-2", "ctr-3"]);
+    }
+
+    [Fact]
+    public async Task CreateAsync_ListingMissesTheFirstReplica_PrependsIt()
+    {
+        // Arrange
+        var request = new CreateContainerRequest { Name = "web-app", Image = "nginx:latest", Replicas = 2 };
+        _inner.CreateAsync(request, Arg.Any<CancellationToken>()).Returns("ctr-1");
+        _inner.ListAsync(true, Arg.Any<CancellationToken>())
+            .Returns(new List<ContainerInfo> { Replica("ctr-2", "web-app") }.AsReadOnly());
+
+        // Act
+        await _decorator.CreateAsync(request);
+
+        // Assert
+        (await _store.GetAsync("web-app"))!.ContainerIds.ShouldBe(["ctr-1", "ctr-2"]);
+    }
+
+    [Fact]
+    public async Task CreateAsync_NoReplicasDiscovered_StoresOnlyThePrimaryId()
+    {
+        // Arrange
+        var request = new CreateContainerRequest { Name = "web-app", Image = "nginx:latest", Replicas = 2 };
+        _inner.CreateAsync(request, Arg.Any<CancellationToken>()).Returns("ctr-1");
+        _inner.ListAsync(true, Arg.Any<CancellationToken>()).Returns(new List<ContainerInfo>().AsReadOnly());
+
+        // Act
+        await _decorator.CreateAsync(request);
+
+        // Assert
+        (await _store.GetAsync("web-app"))!.ContainerIds.ShouldBe(["ctr-1"]);
+    }
+
+    [Fact]
+    public async Task CreateAsync_ReplicaDiscoveryFails_StoresOnlyThePrimaryId()
+    {
+        // Arrange
+        var request = new CreateContainerRequest { Name = "web-app", Image = "nginx:latest", Replicas = 2 };
+        _inner.CreateAsync(request, Arg.Any<CancellationToken>()).Returns("ctr-1");
+        _inner.ListAsync(true, Arg.Any<CancellationToken>())
+            .Returns(Task.FromException<IReadOnlyList<ContainerInfo>>(new InvalidOperationException("list failed")));
+
+        // Act
+        await _decorator.CreateAsync(request);
+
+        // Assert
+        (await _store.GetAsync("web-app"))!.ContainerIds.ShouldBe(["ctr-1"]);
+    }
+
+    // -----------------------------------------------------------------------
+    // Store failures never break runtime operations
+    // -----------------------------------------------------------------------
+
+    private StateTrackingContainerManagerDecorator CreateWithFailingStore()
+    {
+        var store = Substitute.For<IInstanceStore>();
+        var failure = new IOException("store unavailable");
+        store.SaveAsync(Arg.Any<ManagedInstance>(), Arg.Any<CancellationToken>()).Returns(Task.FromException(failure));
+        store.GetAsync(Arg.Any<string>(), Arg.Any<CancellationToken>()).Returns(Task.FromException<ManagedInstance?>(failure));
+        store.RemoveAsync(Arg.Any<string>(), Arg.Any<CancellationToken>()).Returns(Task.FromException(failure));
+        var logger = Substitute.For<Microsoft.Extensions.Logging.ILogger<StateTrackingContainerManagerDecorator>>();
+        return new StateTrackingContainerManagerDecorator(_inner, store, new OrchestratorOptions(), logger);
+    }
+
+    [Fact]
+    public async Task CreateAsync_StoreFails_StillReturnsTheContainerId()
+    {
+        // Arrange
+        var decorator = CreateWithFailingStore();
+        var request = new CreateContainerRequest { Name = "web-app", Image = "nginx:latest" };
+        _inner.CreateAsync(request, Arg.Any<CancellationToken>()).Returns("ctr-1");
+
+        // Act
+        var id = await decorator.CreateAsync(request);
+
+        // Assert
+        id.ShouldBe("ctr-1");
+    }
+
+    [Fact]
+    public async Task LifecycleOperations_StoreFails_StillReachTheRuntime()
+    {
+        // Arrange
+        var decorator = CreateWithFailingStore();
+
+        // Act
+        await decorator.StartAsync("ctr-1");
+        await decorator.StopAsync("ctr-1");
+        await decorator.ScaleAsync("ctr-1", 2);
+        await decorator.RemoveAsync("ctr-1", force: true, removeVolumes: true);
+
+        // Assert
+        await _inner.Received(1).StartAsync("ctr-1", Arg.Any<CancellationToken>());
+        await _inner.Received(1).StopAsync("ctr-1", null, Arg.Any<CancellationToken>());
+        await _inner.Received(1).ScaleAsync("ctr-1", 2, Arg.Any<CancellationToken>());
+        await _inner.Received(1).RemoveAsync("ctr-1", true, true, Arg.Any<CancellationToken>());
+    }
 }
