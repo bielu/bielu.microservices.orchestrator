@@ -12,8 +12,21 @@ namespace Bielu.Microservices.Orchestrator.Containerd;
 /// This mirrors what <see href="https://github.com/containerd/go-cni">go-cni</see> does internally:
 /// the runtime sets environment variables and pipes the network config JSON to the plugin's stdin.
 /// </summary>
-internal sealed class CniPluginInvoker(ILogger logger)
+/// <param name="logger">Logger for plugin invocations.</param>
+/// <param name="runProcess">
+/// Starts the plugin process, writes the config to its stdin and collects the result; defaults to
+/// running the real binary. Tests substitute it to observe the CNI wire protocol without plugins.
+/// </param>
+internal sealed class CniPluginInvoker(ILogger logger, CniPluginInvoker.RunProcess? runProcess = null)
 {
+    /// <summary>Runs a plugin process to completion.</summary>
+    internal delegate Task<ProcessResult> RunProcess(ProcessStartInfo startInfo, string stdin, CancellationToken cancellationToken);
+
+    /// <summary>The exit code and captured output of a plugin run.</summary>
+    internal readonly record struct ProcessResult(int ExitCode, string Stdout, string Stderr);
+
+    private readonly RunProcess _runProcess = runProcess ?? RunAsync;
+
     /// <summary>Default interface name assigned to the first network interface inside the container namespace.</summary>
     internal const string DefaultIfName = "eth0";
 
@@ -159,26 +172,14 @@ internal sealed class CniPluginInvoker(ILogger logger)
         psi.Environment["CNI_PATH"] = cniBinPath;
         psi.Environment["CNI_ARGS"] = string.Empty;
 
-        using var process = new Process { StartInfo = psi };
-        process.Start();
+        var (exitCode, stdout, stderr) = await _runProcess(psi, configJson, cancellationToken);
 
-        // Write config JSON to stdin and signal EOF.
-        await using (var stdin = process.StandardInput)
-        {
-            await stdin.WriteAsync(configJson.AsMemory(), cancellationToken);
-        }
-
-        var stdout = await process.StandardOutput.ReadToEndAsync(cancellationToken);
-        var stderr = await process.StandardError.ReadToEndAsync(cancellationToken);
-
-        await process.WaitForExitAsync(cancellationToken);
-
-        if (process.ExitCode != 0)
+        if (exitCode != 0)
         {
             // CNI plugins report errors as JSON on stdout.
             var errorDetail = TryExtractCniError(stdout) ?? stderr;
             throw new InvalidOperationException(
-                $"CNI plugin '{pluginType}' failed for command {command} (exit {process.ExitCode}): {errorDetail}");
+                $"CNI plugin '{pluginType}' failed for command {command} (exit {exitCode}): {errorDetail}");
         }
 
         if (!string.IsNullOrWhiteSpace(stderr))
@@ -187,6 +188,24 @@ internal sealed class CniPluginInvoker(ILogger logger)
         }
 
         return string.IsNullOrWhiteSpace(stdout) ? null : stdout;
+    }
+
+    private static async Task<ProcessResult> RunAsync(ProcessStartInfo startInfo, string stdin, CancellationToken cancellationToken)
+    {
+        using var process = new Process { StartInfo = startInfo };
+        process.Start();
+
+        // Write config JSON to stdin and signal EOF.
+        await using (var input = process.StandardInput)
+        {
+            await input.WriteAsync(stdin.AsMemory(), cancellationToken);
+        }
+
+        var stdout = await process.StandardOutput.ReadToEndAsync(cancellationToken);
+        var stderr = await process.StandardError.ReadToEndAsync(cancellationToken);
+
+        await process.WaitForExitAsync(cancellationToken);
+        return new ProcessResult(process.ExitCode, stdout, stderr);
     }
 
     private static string? ParsePluginType(string configJson)

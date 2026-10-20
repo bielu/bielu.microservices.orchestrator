@@ -54,6 +54,12 @@ public class ContainerdNetworkManager(
     // CNI config files are sorted lexicographically; a numeric prefix controls execution order.
     private const string DefaultCniPriority = "10";
 
+    /// <summary>
+    /// Creates the invoker used by <see cref="ConnectAsync(string, string, IEnumerable{string}?, CancellationToken)"/>
+    /// and <see cref="DisconnectAsync"/>; tests replace it to avoid running real CNI plugins.
+    /// </summary>
+    internal Func<ILogger, CniPluginInvoker> CniInvokerFactory { get; set; } = log => new CniPluginInvoker(log);
+
     /// <inheritdoc />
     public Task<IReadOnlyList<NetworkInfo>> ListAsync(CancellationToken cancellationToken = default)
     {
@@ -225,7 +231,7 @@ public class ContainerdNetworkManager(
         var configJson = await FindConfigContentAsync(networkId, cancellationToken);
         var netns = await GetNetnsPathAsync(containerId, cancellationToken);
 
-        var invoker = new CniPluginInvoker(logger);
+        var invoker = CniInvokerFactory(logger);
         await invoker.AddAsync(containerId, netns, configJson, options.CniBinPath, cancellationToken);
 
         logger.LogInformation(
@@ -247,7 +253,7 @@ public class ContainerdNetworkManager(
         var configJson = await FindConfigContentAsync(networkId, cancellationToken);
         var netns = await GetNetnsPathAsync(containerId, cancellationToken);
 
-        var invoker = new CniPluginInvoker(logger);
+        var invoker = CniInvokerFactory(logger);
         await invoker.DeleteAsync(containerId, netns, configJson, options.CniBinPath, cancellationToken);
 
         logger.LogInformation(
