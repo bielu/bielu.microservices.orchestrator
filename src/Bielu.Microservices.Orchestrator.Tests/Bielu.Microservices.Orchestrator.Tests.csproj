@@ -47,4 +47,16 @@
     <None Include="OpenTelemetryInstrumentationTests.cs" />
   </ItemGroup>
 
+  <!-- coverlet resolves an instrumented assembly's dependencies from the test output folder and
+       Microsoft.NETCore.App only, not from the Microsoft.AspNetCore.App shared framework, so it cannot
+       instrument the HealthChecks assembly and silently drops it from the report. Copying the
+       (metadata-only) reference assembly next to the tests lets it resolve; at run time the host still
+       loads the shared-framework copy, because the file is not listed in the deps.json. -->
+  <Target Name="CopyHealthChecksAbstractionsForCoverlet" AfterTargets="Build">
+    <ItemGroup>
+      <_CoverletResolvable Include="@(ReferencePath)" Condition="'%(Filename)' == 'Microsoft.Extensions.Diagnostics.HealthChecks.Abstractions'" />
+    </ItemGroup>
+    <Copy SourceFiles="@(_CoverletResolvable)" DestinationFolder="$(OutDir)" SkipUnchangedFiles="true" />
+  </Target>
+
 </Project>
