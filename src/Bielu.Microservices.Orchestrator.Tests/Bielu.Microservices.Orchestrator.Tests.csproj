@@ -43,8 +43,6 @@
   <ItemGroup>
     <Compile Remove="AspireIntegrationTests.cs" />
     <None Include="AspireIntegrationTests.cs" />
-    <Compile Remove="OpenTelemetryInstrumentationTests.cs" />
-    <None Include="OpenTelemetryInstrumentationTests.cs" />
   </ItemGroup>
 
   <!-- coverlet resolves an instrumented assembly's dependencies from the test output folder and
