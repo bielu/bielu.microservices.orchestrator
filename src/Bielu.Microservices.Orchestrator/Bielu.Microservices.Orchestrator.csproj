@@ -9,7 +9,6 @@
     <AssemblyName>Bielu.Microservices.Orchestrator</AssemblyName>
     <PackageId>Bielu.Microservices.Orchestrator</PackageId>
     <PackageTags>container;docker;podman;containerd;kubernetes;orchestrator;microservices</PackageTags>
-    <PackageLicenseExpression>MIT</PackageLicenseExpression>
   </PropertyGroup>
 
   <ItemGroup>

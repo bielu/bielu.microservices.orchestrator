@@ -7,19 +7,92 @@
       <Title>$(MSBuildProjectName)</Title>
       <AssemblyName>$(MSBuildProjectName)</AssemblyName>
       <AssemblyVersion>$(Version)</AssemblyVersion>
+      <GenerateDocumentationFile>true</GenerateDocumentationFile>
+      <NoWarn>$(NoWarn);1591</NoWarn>
     </PropertyGroup>
 
     <PropertyGroup>
         <Authors>bielu</Authors>
         <PackageOutputPath>$(MSBuildProjectDirectory)/../../dist</PackageOutputPath>
-        <PackageReadmeFile>readme.md</PackageReadmeFile>
+        <!-- Inherited by every package. Package metadata is immutable once a version is published. -->
+        <PackageLicenseExpression>MIT</PackageLicenseExpression>
+        <!-- Static, not $([System.DateTime]::UtcNow.Year): a build must not produce different
+             package metadata depending on when it runs, and this has to match LICENSE.md. -->
+        <Copyright>Copyright (c) 2026 Arkadiusz Biel</Copyright>
         <RepositoryUrl>https://github.com/bielu/bielu.microservices.orchestrator</RepositoryUrl>
         <RepositoryType>git</RepositoryType>
         <PackageProjectUrl>https://github.com/bielu/bielu.microservices.orchestrator</PackageProjectUrl>
     </PropertyGroup>
 
+    <!--
+      Package health as NuGet Package Explorer and nuget.org report it (Source Link, deterministic,
+      compiler flags). All three are read from the PDB, which ships as a .snupkg next to each .nupkg:
+      `dotnet nuget push "**/*.nupkg"` picks up the matching .snupkg by file name and sends it to the
+      nuget.org symbol server. The SDK's built-in Source Link maps the PDB to the commit on GitHub.
+
+      ContinuousIntegrationBuild normalizes the local build paths out of the PDB — without it a build
+      is reported non-deterministic — but it also breaks local debugging, so it is on only on CI.
+    -->
+    <PropertyGroup>
+        <IncludeSymbols>true</IncludeSymbols>
+        <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+        <Deterministic>true</Deterministic>
+        <PublishRepositoryUrl>true</PublishRepositoryUrl>
+        <EmbedUntrackedSources>true</EmbedUntrackedSources>
+    </PropertyGroup>
+    <PropertyGroup Condition="'$(GITHUB_ACTIONS)' == 'true' or '$(TF_BUILD)' == 'true' or '$(CI)' == 'true'">
+        <ContinuousIntegrationBuild>true</ContinuousIntegrationBuild>
+    </PropertyGroup>
+
+    <!--
+      A package may ship its own PACKAGE.md as its nuget.org landing page. The fallback to the root
+      readme keeps every project packable before someone writes one; without it, `dotnet pack` would
+      fail with NU5039 on a file that does not exist yet.
+    -->
+    <Choose>
+        <When Condition="Exists('$(MSBuildProjectDirectory)/PACKAGE.md')">
+            <PropertyGroup>
+                <PackageReadmeFile>PACKAGE.md</PackageReadmeFile>
+            </PropertyGroup>
+            <ItemGroup>
+                <None Include="$(MSBuildProjectDirectory)/PACKAGE.md" Pack="true" PackagePath="/" />
+            </ItemGroup>
+        </When>
+        <Otherwise>
+            <PropertyGroup>
+                <PackageReadmeFile>readme.md</PackageReadmeFile>
+            </PropertyGroup>
+            <ItemGroup>
+                <None Include="$(MSBuildThisFileDirectory)../readme.md" Pack="true" PackagePath="/" />
+            </ItemGroup>
+        </Otherwise>
+    </Choose>
+
+    <!--
+      License evidence inside the package, for ClearlyDefined (clearlydefined.io), whose licensed
+      score counts the share of a package's files carrying both a license and a copyright notice:
+        - LICENSE.md at the package root (the full MIT text with the copyright line);
+        - an SPDX identifier in every assembly, next to the AssemblyCopyright from <Copyright> above;
+        - a comment in the XML documentation file (_StampLicenseOnDocumentationFile below).
+    -->
     <ItemGroup>
-        <None Include="$(MSBuildThisFileDirectory)../readme.md" Pack="true" PackagePath="/" />
+        <None Include="$(MSBuildThisFileDirectory)../LICENSE.md" Pack="true" PackagePath="/" Visible="false" />
+        <AssemblyMetadata Include="License" Value="SPDX-License-Identifier: MIT" />
     </ItemGroup>
+
+    <Target Name="_StampLicenseOnDocumentationFile"
+            AfterTargets="CoreCompile"
+            Condition="'$(GenerateDocumentationFile)' == 'true' and '@(DocFileItem)' != '' and Exists('@(DocFileItem)')">
+        <PropertyGroup>
+            <_LicenseStamp>&lt;!-- $(Copyright). SPDX-License-Identifier: MIT --&gt;</_LicenseStamp>
+            <_DocFilePath>@(DocFileItem->'%(FullPath)')</_DocFilePath>
+            <_DocFileText>$([System.IO.File]::ReadAllText('$(_DocFilePath)'))</_DocFileText>
+        </PropertyGroup>
+        <!-- CoreCompile skips an up-to-date build, so the file can already be stamped. -->
+        <WriteLinesToFile Condition="!$(_DocFileText.Contains('SPDX-License-Identifier'))"
+                          File="@(DocFileItem)"
+                          Lines="$([MSBuild]::Escape($(_DocFileText.Replace('&lt;doc&gt;', '&lt;doc&gt;$(_LicenseStamp)').TrimEnd())))"
+                          Overwrite="true" />
+    </Target>
 
 </Project>

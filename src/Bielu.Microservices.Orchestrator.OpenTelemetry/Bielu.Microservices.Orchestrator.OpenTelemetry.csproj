@@ -9,7 +9,6 @@
     <AssemblyName>Bielu.Microservices.Orchestrator.OpenTelemetry</AssemblyName>
     <PackageId>Bielu.Microservices.Orchestrator.OpenTelemetry</PackageId>
     <PackageTags>container;docker;opentelemetry;tracing;instrumentation;orchestrator;microservices</PackageTags>
-    <PackageLicenseExpression>MIT</PackageLicenseExpression>
   </PropertyGroup>
 
   <ItemGroup>

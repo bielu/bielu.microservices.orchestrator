@@ -9,7 +9,6 @@
     <AssemblyName>Bielu.Microservices.Orchestrator.Containerd</AssemblyName>
     <PackageId>Bielu.Microservices.Orchestrator.Containerd</PackageId>
     <PackageTags>container;containerd;orchestrator;microservices;grpc</PackageTags>
-    <PackageLicenseExpression>MIT</PackageLicenseExpression>
   </PropertyGroup>
 
   <ItemGroup>

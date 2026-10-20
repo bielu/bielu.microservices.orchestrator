@@ -9,7 +9,6 @@
     <AssemblyName>Bielu.Microservices.Orchestrator.Kubernetes</AssemblyName>
     <PackageId>Bielu.Microservices.Orchestrator.Kubernetes</PackageId>
     <PackageTags>container;kubernetes;k8s;orchestrator;microservices</PackageTags>
-    <PackageLicenseExpression>MIT</PackageLicenseExpression>
   </PropertyGroup>
 
   <ItemGroup>

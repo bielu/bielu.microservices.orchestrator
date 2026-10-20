@@ -155,6 +155,7 @@ The rule is: **feature first, layer second** — never the other way around. A d
 - **Target framework:** `net10.0`, `LangVersion` 14. Requires the **.NET 10 SDK**.
 - `Nullable` and `ImplicitUsings` are enabled per project. Respect nullable annotations — don't suppress with `!` except in test arrange/assert.
 - **Central package management:** all package versions live in `src/Directory.Packages.props`. Reference packages with `<PackageReference Include="..." />` and **no `Version` attribute**; add new versions to that file.
+- **Package metadata** (license, copyright, XML documentation file, Source Link, `.snupkg` symbols, deterministic CI builds) is set once in `src/Directory.Build.props` — don't repeat it in csproj files. A package gets its own nuget.org landing page by adding a `PACKAGE.md` next to its csproj; otherwise the root `readme.md` is packed.
 - **Shared MSBuild properties** live in `src/Directory.Build.props`. The **version** is centralized in `version.props` — never hardcode versions in csproj files, and never bump it by hand (see "Versioning and changesets").
 - **`InternalsVisibleTo`:** grant internals to `Bielu.Microservices.Orchestrator.Tests` (as the OpenTelemetry project does) and prefer `internal` over `public` for implementation details. Don't widen the public API surface without need.
 
