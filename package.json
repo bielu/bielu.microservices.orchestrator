@@ -6,7 +6,8 @@
   "scripts": {
     "changeset": "changeset",
     "version": "changeset version && node scripts/apply-nuget-version.mjs && node scripts/ship-public-api.mjs",
-    "changeset:status": "changeset status --since=origin/main"
+    "changeset:status": "changeset status --since=origin/main",
+    "coverage": "node -e \"require('fs').rmSync('TestResults/coverage',{recursive:true,force:true})\" && dotnet test src/Bielu.Microservices.Orchestrator.slnx --results-directory TestResults/coverage && node scripts/coverage.mjs TestResults/coverage --check"
   },
   "devDependencies": {
     "@changesets/changelog-github": "^0.5.0",

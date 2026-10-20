@@ -210,7 +210,13 @@ The rule is: **feature first, layer second** — never the other way around. A d
 
 ### Code coverage
 
-Target **70%+ line coverage** for code you add or change. Coverage is collected with `coverlet.collector`, and a plain `dotnet test` collects it: `coverlet.runsettings`, applied to every test project via the root `Directory.Build.props`, enables the collector and writes Cobertura reports under each test project's `TestResults/`. Only `Bielu.*` library assemblies are measured; generated sources (`obj/`, including the containerd gRPC stubs), examples and test assemblies are excluded. Every test project must reference `coverlet.collector`, or its packages silently drop out of the report.
+The goal is **90% line coverage**, and **80% is the minimum** we never go below. New or changed code should be covered at 90%+, including its error paths, not only the happy path.
+
+CI's `coverage` job enforces the floors in `coverage-thresholds.json` (line and branch) via `scripts/coverage.mjs --check`. The floors only ever go up: when a PR raises coverage, raise them in the same PR, and never lower them to get a build through. Use `[ExcludeFromCodeCoverage]` only for code that truly cannot run under a unit test (for example a thin wrapper that starts an OS process), never to lift the number.
+
+Run `npm run coverage` (tests + per-assembly table + gate), or `node scripts/coverage.mjs --uncovered <path-fragment>` after a test run to list the uncovered line ranges of matching files.
+
+Coverage is collected with `coverlet.collector`, and a plain `dotnet test` collects it: `coverlet.runsettings`, applied to every test project via the root `Directory.Build.props`, enables the collector and writes Cobertura reports under each test project's `TestResults/`. Only `Bielu.*` library assemblies are measured; generated sources (`obj/`, including the containerd gRPC stubs), examples and test assemblies are excluded. Every test project must reference `coverlet.collector`, or its packages silently drop out of the report.
 
 ```bash
 dotnet test src/Bielu.Microservices.Orchestrator.Tests
@@ -264,7 +270,7 @@ The containerd provider compiles vendored gRPC `.proto` files under `src/Bielu.M
 ## Before opening a PR
 
 1. `dotnet build src/Bielu.Microservices.Orchestrator.slnx` succeeds with no errors.
-2. `dotnet test src/Bielu.Microservices.Orchestrator.Tests` passes.
+2. `npm run coverage` passes: the tests are green and coverage is at or above the floors in `coverage-thresholds.json` (raise the floors if your change lifted coverage).
 3. `dotnet format whitespace --verify-no-changes src/Bielu.Microservices.Orchestrator.slnx` is clean.
 4. Public-API changes are reflected in `PublicAPI.Unshipped.txt`.
 5. A changeset is included.

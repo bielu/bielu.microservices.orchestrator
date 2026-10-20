@@ -1,0 +1,5 @@
+{
+  "$comment": "Coverage floors enforced by `node scripts/coverage.mjs --check` in CI. Raise them whenever coverage rises; never lower them. The goal is 90% line coverage, and 80% is the hard minimum once reached.",
+  "line": 27,
+  "branch": 13
+}
