@@ -1,4 +1,4 @@
-namespace Bielu.Microservices.Orchestrator.Models;
+﻿namespace Bielu.Microservices.Orchestrator.Models;
 
 /// <summary>
 /// Request to create a new container.

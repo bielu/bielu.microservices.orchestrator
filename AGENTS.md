@@ -169,7 +169,7 @@ The rule is: **feature first, layer second** — never the other way around. A d
 - Public APIs get XML doc comments.
 - Configuration uses fluent, chainable extension methods / options delegates returning the same object.
 - Match the style of the file you're editing rather than imposing a single global style.
-- Run `dotnet format` on the code you change before committing. (There is no `.editorconfig` yet, so a whole-solution `--verify-no-changes` currently reports pre-existing whitespace/line-ending noise; don't mass-reformat unrelated files.)
+- **Formatting** is governed by `.editorconfig` (4-space indent for C#, UTF-8 BOM, final newline). Run `dotnet format whitespace src/Bielu.Microservices.Orchestrator.slnx` before committing; CI's `format-check` job runs it with `--verify-no-changes` on every PR.
 
 ### Naming
 
@@ -252,9 +252,10 @@ The containerd provider compiles vendored gRPC `.proto` files under `src/Bielu.M
 
 1. `dotnet build src/Bielu.Microservices.Orchestrator.slnx` succeeds with no errors.
 2. `dotnet test src/Bielu.Microservices.Orchestrator.Tests` passes.
-3. A changeset is included.
-4. Public API changes have XML docs; `readme.md` is updated when behavior or public APIs change.
-5. Target the `main` branch.
+3. `dotnet format whitespace --verify-no-changes src/Bielu.Microservices.Orchestrator.slnx` is clean.
+4. A changeset is included.
+5. Public API changes have XML docs; `readme.md` is updated when behavior or public APIs change.
+6. Target the `main` branch.
 
 ---
 

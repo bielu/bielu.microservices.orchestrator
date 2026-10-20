@@ -1,4 +1,4 @@
-namespace Bielu.Microservices.Orchestrator;
+﻿namespace Bielu.Microservices.Orchestrator;
 
 /// <summary>
 /// Well-known label keys applied to containers managed by the orchestrator.
@@ -25,7 +25,7 @@ public static class OrchestratorLabels
     /// </summary>
     public const string ReplicaIndex = "orchestrator.replica-index";
 
-    public const string ManagedById  = "orchestrator.managed-by-id";
+    public const string ManagedById = "orchestrator.managed-by-id";
 
     /// <summary>
     /// Label key for the image reference (e.g. "nginx:1.25") the container was created from.

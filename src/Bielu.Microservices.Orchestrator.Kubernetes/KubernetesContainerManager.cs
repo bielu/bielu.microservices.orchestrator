@@ -1,4 +1,4 @@
-using Bielu.Microservices.Orchestrator.Abstractions;
+﻿using Bielu.Microservices.Orchestrator.Abstractions;
 using Bielu.Microservices.Orchestrator.Configuration;
 using Bielu.Microservices.Orchestrator.Kubernetes.Configuration;
 using Bielu.Microservices.Orchestrator.Models;
@@ -229,11 +229,11 @@ public class KubernetesContainerManager(
                 },
                 RestartPolicy = request.RestartPolicy switch
                 {
-                    Models.RestartPolicy.Always        => "Always",
+                    Models.RestartPolicy.Always => "Always",
                     // Kubernetes has no UnlessStopped; Always is the closest equivalent
                     Models.RestartPolicy.UnlessStopped => "Always",
-                    Models.RestartPolicy.OnFailure     => "OnFailure",
-                    _                                  => "Never"
+                    Models.RestartPolicy.OnFailure => "OnFailure",
+                    _ => "Never"
                 }
             }
         };
