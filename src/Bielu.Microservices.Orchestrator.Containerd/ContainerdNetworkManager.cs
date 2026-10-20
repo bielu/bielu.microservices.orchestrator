@@ -315,6 +315,7 @@ public class ContainerdNetworkManager(
         {
             var response = await tasksClient.GetAsync(
                 new GetRequest { ContainerId = containerId },
+                new Metadata { { "containerd-namespace", options.Namespace } },
                 cancellationToken: cancellationToken);
 
             var pid = response.Process?.Pid
