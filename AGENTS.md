@@ -235,7 +235,18 @@ dotnet test src/Bielu.Microservices.Orchestrator.Tests
 Every NuGet package in this repository shares one version (`version.props`), driven by [changesets](https://github.com/changesets/changesets). See `.changeset/README.md`.
 
 - **Every PR must add a changeset** — CI's `changeset-check` job fails without one. Run `npx changeset` (package `bielu-microservices-orchestrator`, bump `patch`/`minor`/`major` per semver), or `npx changeset add --empty` for chore-only PRs (CI, formatting, tests).
-- Do not edit `version.props` or `CHANGELOG.md` by hand for a release: merging to `main` opens a "Version Packages" PR that runs `npm run version` (`changeset version` + `scripts/apply-nuget-version.mjs`).
+- Do not edit `version.props` or `CHANGELOG.md` by hand for a release: merging to `main` opens a "Version Packages" PR that runs `npm run version` (`changeset version` + `scripts/apply-nuget-version.mjs` + `scripts/ship-public-api.mjs`).
+
+---
+
+## Documentation site
+
+The documentation at [orchestration.bielu.pl](https://orchestration.bielu.pl/) is built with [DocFX](https://dotnet.github.io/docfx/) from `docs/` and deployed to GitHub Pages by `.github/workflows/deployDocs.yml` on every push to `main` that touches `docs/` or `src/`.
+
+- Articles live in `docs/articles/` (navigation in `docs/articles/toc.yml`); the API reference is generated from XML doc comments, so keep them accurate.
+- Update the relevant article when you change behavior or public APIs, alongside `readme.md`.
+- Generated containerd gRPC namespaces (`Containerd.*`) are excluded via `docs/filterConfig.yml`.
+- Build locally with `dotnet tool update -g docfx` then `docfx docs/docfx.json --serve`; the build must finish with 0 warnings (broken `xref`s and links show up as warnings).
 
 ---
 

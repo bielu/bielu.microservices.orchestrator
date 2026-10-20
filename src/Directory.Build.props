@@ -21,7 +21,7 @@
         <Copyright>Copyright (c) 2026 Arkadiusz Biel</Copyright>
         <RepositoryUrl>https://github.com/bielu/bielu.microservices.orchestrator</RepositoryUrl>
         <RepositoryType>git</RepositoryType>
-        <PackageProjectUrl>https://github.com/bielu/bielu.microservices.orchestrator</PackageProjectUrl>
+        <PackageProjectUrl>https://orchestration.bielu.pl/</PackageProjectUrl>
     </PropertyGroup>
 
     <!--
