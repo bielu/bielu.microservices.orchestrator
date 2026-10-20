@@ -207,6 +207,12 @@ The rule is: **feature first, layer second** — never the other way around. A d
 - Follow the **Arrange / Act / Assert** comment structure used in the existing tests.
 - Name tests `Method_Scenario_ExpectedResult` (e.g. `SaveAsync_OverwritesExistingInstance`).
 - Add or update tests for any behavior change, covering the happy path and argument-validation/error paths. Never delete or weaken tests to make CI pass.
+- Test providers through their real SDK client against the in-process fakes in the test project, not by mocking the SDK. Tests must not need a container runtime or cluster.
+  - `FakeDockerApi`: a Docker Engine API behind a real `DockerClient`, plugged in through Docker.DotNet's transport factory.
+  - `FakeKubernetesApi`: a Kubernetes API server behind a real `k8s.Kubernetes` client.
+  - `FakeContainerd`: a gRPC `CallInvoker` for the generated containerd clients. Like `Grpc.Net.Client`, it reports cancellation as `RpcException(Cancelled)`.
+  - `TelemetryCapture`: records the orchestrator's spans and metrics. Tests using it join the serial `Telemetry` collection.
+- Code that starts OS processes or reads host files takes an internal seam (see `CniPluginInvoker`'s process runner and `HostMetricsProvider`'s file paths), so it can be tested on every OS. Tests that need a Unix shell use `[UnixOnlyFact]`.
 
 ### Code coverage
 
