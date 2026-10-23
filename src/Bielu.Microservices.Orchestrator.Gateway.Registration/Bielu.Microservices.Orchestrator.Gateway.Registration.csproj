@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <Description>Bielu.Microservices.Orchestrator.Gateway.Registration - Client library for auto-registering orchestrator instances with the YARP gateway</Description>
+    <TargetFramework>net10.0</TargetFramework>
+    <LangVersion>14</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AssemblyName>Bielu.Microservices.Orchestrator.Gateway.Registration</AssemblyName>
+    <PackageId>Bielu.Microservices.Orchestrator.Gateway.Registration</PackageId>
+    <PackageTags>container;gateway;yarp;registration;orchestrator;microservices</PackageTags>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Bielu.Microservices.Orchestrator\Bielu.Microservices.Orchestrator.csproj" />
+    <ProjectReference Include="..\Bielu.Microservices.Orchestrator.Gateway.Contracts\Bielu.Microservices.Orchestrator.Gateway.Contracts.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Hosting" />
+    <PackageReference Include="Microsoft.Extensions.Http" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <Description>Bielu.Microservices.Orchestrator.Gateway.Contracts - Shared models for gateway registration</Description>
+    <TargetFramework>net10.0</TargetFramework>
+    <LangVersion>14</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AssemblyName>Bielu.Microservices.Orchestrator.Gateway.Contracts</AssemblyName>
+    <PackageId>Bielu.Microservices.Orchestrator.Gateway.Contracts</PackageId>
+    <PackageTags>container;gateway;yarp;orchestrator;microservices</PackageTags>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+  </PropertyGroup>
+
+</Project>

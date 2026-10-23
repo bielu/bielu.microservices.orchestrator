@@ -19,6 +19,8 @@
     <ProjectReference Include="..\Bielu.Microservices.Orchestrator.HealthChecks\Bielu.Microservices.Orchestrator.HealthChecks.csproj" />
     <ProjectReference Include="..\Bielu.Microservices.Orchestrator.Storage.File\Bielu.Microservices.Orchestrator.Storage.File.csproj" />
     <ProjectReference Include="..\Bielu.Microservices.Orchestrator.Storage.EfCore\Bielu.Microservices.Orchestrator.Storage.EfCore.csproj" />
+    <ProjectReference Include="..\Bielu.Microservices.Orchestrator.Gateway\Bielu.Microservices.Orchestrator.Gateway.csproj" />
+    <ProjectReference Include="..\Bielu.Microservices.Orchestrator.Gateway.Registration\Bielu.Microservices.Orchestrator.Gateway.Registration.csproj" />
     <ProjectReference Include="..\Bielu.Microservices.Orchestrator.Examples.AppHost\Bielu.Microservices.Orchestrator.Examples.AppHost.csproj" />
   </ItemGroup>
 
