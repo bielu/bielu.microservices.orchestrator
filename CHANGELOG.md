@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.0.1
+
+### Patch Changes
+
+- [#18](https://github.com/bielu/bielu.microservices.orchestrator/pull/18) [`343c47a`](https://github.com/bielu/bielu.microservices.orchestrator/commit/343c47acdbdc814225f5aae674fba6363d141209) Thanks [@github-actions](https://github.com/apps/github-actions)! - Update vendored containerd gRPC proto files from `v2.3.4` to `v2.4.2`.
+
+- [#26](https://github.com/bielu/bielu.microservices.orchestrator/pull/26) [`be64864`](https://github.com/bielu/bielu.microservices.orchestrator/commit/be6486424e2452325bbb85ae6f334d09830bf0a6) Thanks [@bielu](https://github.com/bielu)! - Publish documentation at https://orchestration.bielu.pl/ and use it as the NuGet project URL.
+
+- [#24](https://github.com/bielu/bielu.microservices.orchestrator/pull/24) [`8976322`](https://github.com/bielu/bielu.microservices.orchestrator/commit/8976322567a14c9e89f6e259a2c32617e4dc8519) Thanks [@bielu](https://github.com/bielu)! - Ship XML documentation, Source Link and `.snupkg` symbol packages with every NuGet package, build deterministically on CI, and include the license file and SPDX metadata in each package.
+
+- [#38](https://github.com/bielu/bielu.microservices.orchestrator/pull/38) [`2a5f878`](https://github.com/bielu/bielu.microservices.orchestrator/commit/2a5f8780852ccdd9e932a087a50cd21e006fd0ac) Thanks [@bielu](https://github.com/bielu)! - Every package now has an icon on nuget.org: a control plane wired to three containers, drawn in the same style as the other bielu package icons.
+
 ## 1.0.0
 
 ### Major Changes
