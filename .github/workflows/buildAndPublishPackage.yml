@@ -78,7 +78,7 @@ jobs:
         with:
           dotnet-version: '10.0.x'
       - name: Test with coverage
-        run: dotnet test src/Bielu.Microservices.Orchestrator.slnx --results-directory TestResults/coverage
+        run: dotnet test src/Bielu.Microservices.Orchestrator.slnx --results-directory TestResults/coverage --blame-hang-timeout 5m
       - name: Enforce coverage floors
         run: node scripts/coverage.mjs TestResults/coverage --check
       - uses: actions/upload-artifact@v4

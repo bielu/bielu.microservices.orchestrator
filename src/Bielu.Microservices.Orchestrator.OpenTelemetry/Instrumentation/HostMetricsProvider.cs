@@ -20,8 +20,17 @@ namespace Bielu.Microservices.Orchestrator.OpenTelemetry.Instrumentation;
 /// system-wide usage).
 /// </para>
 /// </summary>
-internal sealed class HostMetricsProvider
+/// <param name="procStatPath">Path of the kernel CPU statistics file; tests point it at a fixture.</param>
+/// <param name="memInfoPath">Path of the kernel memory statistics file; tests point it at a fixture.</param>
+/// <param name="useProcFileSystem">
+/// Whether to read the <c>/proc</c> files; defaults to <c>true</c> on Linux only.
+/// </param>
+internal sealed class HostMetricsProvider(
+    string procStatPath = "/proc/stat",
+    string memInfoPath = "/proc/meminfo",
+    bool? useProcFileSystem = null)
 {
+    private readonly bool _useProcFileSystem = useProcFileSystem ?? RuntimeInformation.IsOSPlatform(OSPlatform.Linux);
     private long _previousIdleTime;
     private long _previousTotalTime;
     private double _lastCpuUsagePercent;
@@ -35,7 +44,7 @@ internal sealed class HostMetricsProvider
     /// </summary>
     internal double GetCpuUsagePercent()
     {
-        if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+        if (_useProcFileSystem)
         {
             return GetLinuxCpuUsage();
         }
@@ -52,7 +61,7 @@ internal sealed class HostMetricsProvider
     /// </summary>
     internal long GetTotalMemoryBytes()
     {
-        if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+        if (_useProcFileSystem)
         {
             var total = ReadMemInfoValue("MemTotal:");
             if (total > 0)
@@ -71,7 +80,7 @@ internal sealed class HostMetricsProvider
     /// </summary>
     internal long GetAvailableMemoryBytes()
     {
-        if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+        if (_useProcFileSystem)
         {
             var available = ReadMemInfoValue("MemAvailable:");
             if (available > 0)
@@ -105,7 +114,7 @@ internal sealed class HostMetricsProvider
     {
         try
         {
-            var line = File.ReadLines("/proc/stat").FirstOrDefault(l => l.StartsWith("cpu ", StringComparison.Ordinal));
+            var line = File.ReadLines(procStatPath).FirstOrDefault(l => l.StartsWith("cpu ", StringComparison.Ordinal));
             if (line is null)
                 return _lastCpuUsagePercent;
 
@@ -160,11 +169,11 @@ internal sealed class HostMetricsProvider
         }
     }
 
-    private static long ReadMemInfoValue(string key)
+    private long ReadMemInfoValue(string key)
     {
         try
         {
-            foreach (var line in File.ReadLines("/proc/meminfo"))
+            foreach (var line in File.ReadLines(memInfoPath))
             {
                 if (!line.StartsWith(key, StringComparison.Ordinal))
                     continue;
