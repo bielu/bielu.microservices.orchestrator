@@ -1,0 +1,19 @@
+<svg viewBox="0 0 128 128" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <linearGradient id="orchestrator-bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#f4f2ff"/><stop offset="1" stop-color="#e2f4ff"/></linearGradient>
+      <linearGradient id="orchestrator-primary" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#8f6bff"/><stop offset="1" stop-color="#4d7cfe"/></linearGradient>
+      <linearGradient id="orchestrator-cyan" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#5fd8ec"/><stop offset="1" stop-color="#1fa5c4"/></linearGradient>
+    </defs>
+    <rect x="8" y="8" width="112" height="112" rx="28" fill="url(#orchestrator-bg)" stroke="#262a50" stroke-width="5"/>
+    <circle cx="28" cy="27" r="5" fill="#fff" opacity=".9"/>
+    <path d="M24 102c18 8 62 8 80 0" fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round" opacity=".8"/>
+    <path d="M70 52C80 52 76 34 84 34M70 62h14M70 72C80 72 76 90 84 90" fill="none" stroke="#262a50" stroke-width="3.5" stroke-linejoin="round" stroke-linecap="round"/>
+    <rect x="14" y="30" width="58" height="64" rx="11" fill="#262a50" stroke="#262a50" stroke-width="4" stroke-linejoin="round" stroke-linecap="round"/>
+  <path d="M14 47v-6a11 11 0 0 1 11-11h36a11 11 0 0 1 11 11v6z" fill="url(#orchestrator-primary)" stroke="#262a50" stroke-width="4" stroke-linejoin="round" stroke-linecap="round"/>
+  <circle cx="24" cy="38.5" r="2.4" fill="#ffcf4d" stroke="#262a50" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/> <circle cx="32" cy="38.5" r="2.4" fill="#5fd8ec" stroke="#262a50" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/> <circle cx="40" cy="38.5" r="2.4" fill="#fff" stroke="#262a50" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
+    <path d="M24 56h22" stroke="#fff" stroke-width="3.5" stroke-linecap="round" opacity=".45"/><circle cx="56" cy="56" r="4.5" fill="#5fd8ec" stroke="#262a50" stroke-width="2"/><path d="M24 68h22" stroke="#fff" stroke-width="3.5" stroke-linecap="round" opacity=".45"/><circle cx="56" cy="68" r="4.5" fill="#5fd8ec" stroke="#262a50" stroke-width="2"/><path d="M24 80h22" stroke="#fff" stroke-width="3.5" stroke-linecap="round" opacity=".45"/><circle cx="56" cy="80" r="4.5" fill="#ffcf4d" stroke="#262a50" stroke-width="2"/>
+    <rect x="82" y="25" width="26" height="18" rx="3.5" fill="url(#orchestrator-cyan)" stroke="#262a50" stroke-width="3.5" stroke-linejoin="round" stroke-linecap="round"/>
+  <path d="M88.5 29v10M95 29v10M101.5 29v10" stroke="#262a50" stroke-width="2" stroke-linecap="round" opacity=".35"/> <rect x="82" y="53" width="26" height="18" rx="3.5" fill="#ffffff" stroke="#262a50" stroke-width="3.5" stroke-linejoin="round" stroke-linecap="round"/>
+  <path d="M88.5 57v10M95 57v10M101.5 57v10" stroke="#262a50" stroke-width="2" stroke-linecap="round" opacity=".35"/> <rect x="82" y="81" width="26" height="18" rx="3.5" fill="#ffcf4d" stroke="#262a50" stroke-width="3.5" stroke-linejoin="round" stroke-linecap="round"/>
+  <path d="M88.5 85v10M95 85v10M101.5 85v10" stroke="#262a50" stroke-width="2" stroke-linecap="round" opacity=".35"/>
+  </svg>

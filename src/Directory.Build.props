@@ -22,7 +22,13 @@
         <RepositoryUrl>https://github.com/bielu/bielu.microservices.orchestrator</RepositoryUrl>
         <RepositoryType>git</RepositoryType>
         <PackageProjectUrl>https://orchestration.bielu.pl/</PackageProjectUrl>
+        <PackageIcon>icon.png</PackageIcon>
     </PropertyGroup>
+
+    <!-- The package icon, rendered at 512px from icon.svg next to it. -->
+    <ItemGroup>
+        <None Include="$(MSBuildThisFileDirectory)../assets/icon.png" Pack="true" PackagePath="/" Visible="false" />
+    </ItemGroup>
 
     <!--
       Package health as NuGet Package Explorer and nuget.org report it (Source Link, deterministic,
