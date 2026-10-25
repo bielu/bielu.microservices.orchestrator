@@ -116,8 +116,29 @@ jobs:
     with:
       generate-schema: false
       publish-npm: false
-    secrets:
-      NUGET_APIKEY: ${{ secrets.NUGET_APIKEY }}
+      # Build only; publishNuget below pushes from this repository (see there).
+      push-nuget: false
+
+  # Push whichever NuGet build ran in this workflow run (stable, beta or manual release; at most one
+  # does). nuget.org trusted publishing only accepts an OIDC token whose job_workflow_ref is a
+  # workflow in this repository, so the push must happen in a job declared here, not inside the
+  # template's reusable workflow. The nuget.org policy must name this file
+  # (buildAndPublishPackage.yml). NUGET_APIKEY is only a fallback if the token exchange fails.
+  publishNuget:
+    needs: [releaseStable, releaseBeta, release]
+    if: >-
+      always() && !cancelled()
+      && (needs.releaseStable.result == 'success' || needs.releaseBeta.result == 'success'
+          || needs.release.result == 'success')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: bielu/bielu.GithubActions.Templates/.github/actions/publish-nuget@main
+        with:
+          nuget-user: bielu
+          api-key: ${{ secrets.NUGET_APIKEY }}
 
   # Record-keeping: tag + GitHub Release for the shared NuGet version. Release notes are the
   # version's section of CHANGELOG.md (written by changesets in the Version Packages PR); versions
@@ -224,15 +245,17 @@ jobs:
       nuget-version-override: ${{ needs.betaVersions.outputs.nuget }}
       generate-schema: false
       publish-npm: false
-    secrets:
-      NUGET_APIKEY: ${{ secrets.NUGET_APIKEY }}
+      # Build only; publishNuget below pushes from this repository (see there).
+      push-nuget: false
 
   # Record-keeping for interim betas: surface each published beta build as a GitHub prerelease,
   # using the exact `-beta.<stamp>` version that was packed (release.yml's nuget-version output,
   # which echoes the betaVersions override) and the pending — not yet versioned — changesets as the release notes.
   tagBeta:
-    needs: releaseBeta
-    if: always() && !cancelled() && needs.releaseBeta.result == 'success'
+    needs: [releaseBeta, publishNuget]
+    if: >-
+      always() && !cancelled() && needs.releaseBeta.result == 'success'
+      && needs.publishNuget.result == 'success'
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -269,5 +292,5 @@ jobs:
     with:
       generate-schema: false
       publish-npm: false
-    secrets:
-      NUGET_APIKEY: ${{ secrets.NUGET_APIKEY }}
+      # Build only; publishNuget below pushes from this repository (see there).
+      push-nuget: false
