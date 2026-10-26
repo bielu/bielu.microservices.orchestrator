@@ -15,6 +15,7 @@ A .NET library for managing container runtimes (Docker, Podman, containerd, and 
 - **Health checks** — `IHealthCheck` that verifies the container runtime is reachable
 - **Dependency injection** — first-class `Microsoft.Extensions.DependencyInjection` support
 - **Aspire integration** — example and test projects using .NET Aspire
+- **YARP gateway** — load-balance across many orchestrator instances that register themselves automatically
 
 ## Packages
 
@@ -27,6 +28,9 @@ A .NET library for managing container runtimes (Docker, Podman, containerd, and 
 | `Bielu.Microservices.Orchestrator.Kubernetes` | Kubernetes runtime provider |
 | `Bielu.Microservices.Orchestrator.OpenTelemetry` | OpenTelemetry tracing decorators |
 | `Bielu.Microservices.Orchestrator.HealthChecks` | ASP.NET Core health-check integration |
+| `Bielu.Microservices.Orchestrator.Gateway` | YARP reverse-proxy gateway in front of multiple orchestrator instances |
+| `Bielu.Microservices.Orchestrator.Gateway.Registration` | Auto-registers an orchestrator instance with the gateway |
+| `Bielu.Microservices.Orchestrator.Gateway.Contracts` | Shared registration models |
 
 ---
 
@@ -301,6 +305,69 @@ The check returns:
 | ✅ Yes | `Healthy` — *"Container runtime 'Docker' is available."* |
 | ❌ No | `Unhealthy` — *"Container runtime 'Docker' is not reachable."* |
 | 💥 Exception | `Unhealthy` — exception details attached |
+
+---
+
+## Gateway (multiple orchestrator instances)
+
+`Bielu.Microservices.Orchestrator.Gateway` is a YARP reverse proxy that sits in front of any number of
+orchestrator instances. Instances register themselves over an API-key–protected API, heartbeat to stay
+alive, and are dropped when their TTL expires. Requests are routed to the least-loaded instance
+("power of two choices" on the CPU and memory reported in each heartbeat).
+
+### Run the gateway
+
+```csharp
+using Bielu.Microservices.Orchestrator.Gateway.Extensions;
+
+builder.Services.AddOrchestratorGateway(options =>
+{
+    options.ApiKey = builder.Configuration["Gateway:ApiKey"]!; // required, shared with instances
+    options.InstanceTtlSeconds = 30;                           // dropped after 30 s without a heartbeat
+    options.MaxMemoryMbForScoring = 4096;                      // memory that counts as "fully loaded"
+    options.RoutePattern = "{**catch-all}";                    // which requests are proxied
+});
+
+var app = builder.Build();
+app.UseAuthentication();
+app.UseAuthorization();
+app.MapControllers();   // /api/gateway/* registration API
+app.MapReverseProxy();
+app.Run();
+```
+
+### Register each orchestrator instance
+
+```bash
+dotnet add package Bielu.Microservices.Orchestrator.Gateway.Registration
+```
+
+```csharp
+using Bielu.Microservices.Orchestrator.Gateway.Registration.Extensions;
+
+builder.Services.AddMicroservicesOrchestrator(orchestrator => orchestrator
+    .AddDocker()
+    .AddGatewayRegistration(options =>
+    {
+        options.GatewayUrl = "http://gateway:8080";
+        options.InstanceAddress = "http://orchestrator-1:5000"; // how the gateway reaches this instance
+        options.ApiKey = builder.Configuration["Gateway:ApiKey"]!;
+        options.InstanceId = "orchestrator-1";                  // optional; letters, digits, - _ .
+        options.HeartbeatInterval = TimeSpan.FromSeconds(10);   // keep well under the gateway TTL
+    }));
+```
+
+The instance retries registration with backoff until the gateway is reachable, re-registers if a
+heartbeat fails (for example after a gateway restart), and deregisters on shutdown.
+
+| Endpoint | Purpose |
+|---|---|
+| `POST /api/gateway/register` | Register or re-register an instance |
+| `PUT /api/gateway/heartbeat/{instanceId}` | Refresh TTL and load stats |
+| `DELETE /api/gateway/register/{instanceId}` | Deregister |
+| `GET /api/gateway/instances` | List live instances |
+
+All endpoints require the `X-Orchestrator-ApiKey` header.
 
 ---
 
